@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Users, Zap, TrendingUp, BarChart2, Clock, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Users, Zap, TrendingUp, BarChart2, Clock, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react';
 import { useMetrics } from '../../lib/hooks/useMetrics';
 import { useWallet } from '../../lib/hooks/useWallet';
 

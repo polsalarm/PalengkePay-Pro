@@ -183,8 +183,7 @@ export function CustomerScan() {
         <div className="flex items-center gap-3 px-4 pt-4 pb-2">
           <button
             onClick={() => {
-              if (step === 'scan') navigate('/customer/home');
-              else if (step === 'done' || step === 'utang_done') navigate('/customer/home');
+              if (step === 'done' || step === 'utang_done') navigate('/customer/home');
               else backToScan();
             }}
             className="w-10 h-10 rounded-2xl flex items-center justify-center transition-colors active:scale-95"

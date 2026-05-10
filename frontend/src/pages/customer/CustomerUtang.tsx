@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { HandCoins, CheckCircle, Loader2, X, ExternalLink, AlertTriangle, ScanLine, ImageUp, ChevronRight } from 'lucide-react';
+import { HandCoins, CheckCircle, Loader2, X, ExternalLink, AlertTriangle, ScanLine, ImageUp } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useCustomerUtangs, usePayInstallment, useCreateUtang } from '../../lib/hooks/useUtang';
