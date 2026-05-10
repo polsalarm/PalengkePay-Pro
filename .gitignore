@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# Environment — NEVER commit secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Vite
+frontend/.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# PWA generated files
+frontend/dist/sw.js
+frontend/dist/workbox-*.js
+
+# Rust / Soroban contracts
+**/target/
+**/*.wasm
+Cargo.lock
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Misc
+*.log
+coverage/
+image.png
+
+# Seed script output — contains private keys
+scripts/seed/seed-output.json
+
+# Internal docs and planning files
+docs/
+!docs/contract-deployment.md
+UI_UX_IMPROVEMENTS.md
+frontend/README.md
+
+# Claude Code local config — personal, not project files
+.claude/
+.agents/

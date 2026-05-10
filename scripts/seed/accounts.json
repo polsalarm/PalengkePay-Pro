@@ -1,0 +1,13 @@
+{
+  "vendors": [
+    { "name": "Emerita P. Garbino",  "address": "GCFFUUKXBQK4MCVDBIIKRWWPBP5DPYSQ6YY6LQSI3W5I4GSNQ267VV3B", "productType": "other",      "email": "emerita.garbino07@gmail.com" },
+    { "name": "Pamela Babaran",       "address": "GBVCJE6ZXKIROQ5GVRX4TLGC5U4MJNSZYK4BTBFRI6TIW3RD3KHUB0P4", "productType": "vegetables", "email": "babaranelle@gmail.com" },
+    { "name": "Ken Cedric Marzan",    "address": "GBH4SBWR6WUWBGS2BYT7FNHJY7SVJ5M5ES7POPX6WKPNLSZD4D5Q2WZF", "productType": "fish",       "email": "marzanken232@gmail.com" },
+    { "name": "Armielyn Obinguar",    "address": "GDBUCYIKSBA666CVBPB7YY65JC4VM0V6IRFHNPK7NTC2WDL5MMLU4MQB", "productType": "fish",       "email": "aemyobinguar@gmail.com" }
+  ],
+  "customers": [
+    { "name": "Carl Arbolado",             "address": "GCAPIVKCRMCP7S3NMZTEHXTCVT32AYMLQTLJDQ62B7HPRERGPNVUTETB", "email": "arbolado.carl.velasquez@gmail.com" },
+    { "name": "Alfred Joshua I. Palpal-l", "address": "GDRJD2K6XUOSLM5VMGSYHE52S7PMK5CC5VSIWHO2N7VPHJOLLREWASLM", "email": "alfredjoshua.palpallatoc@gmail.com" },
+    { "name": "Mark Kengie Aldabon",       "address": "GC4GDDXKK36P6YIU7GHGKLWPRTWF0RV4FTSH6MDKCCAQKB6NIVRAIDBE", "email": "aldabon.mark.kengie@gmail.com" }
+  ]
+}
