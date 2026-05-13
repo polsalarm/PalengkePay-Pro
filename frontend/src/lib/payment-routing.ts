@@ -7,8 +7,9 @@ export function getPaymentContractId(): string | undefined {
   return import.meta.env.VITE_PALENGKE_PAYMENT_CONTRACT_ID as string | undefined;
 }
 
-export function resolvePaymentSettlementMode(contractId = getPaymentContractId()): PaymentSettlementMode {
-  return contractId?.trim() ? 'contract' : 'fee-bump';
+export function resolvePaymentSettlementMode(contractId?: string): PaymentSettlementMode {
+  const configuredContractId = arguments.length === 0 ? getPaymentContractId() : contractId;
+  return configuredContractId?.trim() ? 'contract' : 'fee-bump';
 }
 
 export function xlmToStroops(amountXlm: string): bigint {

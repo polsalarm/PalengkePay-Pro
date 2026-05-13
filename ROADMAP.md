@@ -28,9 +28,10 @@
 | Monitoring (Sentry + health) | ✅ Built | ✅ Checkpointed |
 | Security (CSP + sanitizer + contract auth) | 🟡 Partial | ✅ Checkpointed |
 | Contract-first QR Payments | ✅ Built | ⏳ Pending |
-| Full Documentation | ✅ README + feature inventory + user flows + architecture + contracts + deployment + verification docs refreshed | ✅ Checkpointed |
+| Full Documentation | ✅ README + feature inventory + user flows + architecture + contracts + deployment + verification + contributing + security docs refreshed | ✅ Checkpointed |
 | Friendbot faucet button | ✅ Built on `/connect` and onboarding | ✅ Checkpointed |
-| CONTRIBUTING.md | ⬜ Not started | — |
+| CONTRIBUTING.md | ✅ Added setup, good-first-issue ideas, and PR checklist | ⏳ Pending |
+| SECURITY.md | ✅ Added reporting guidance, controls, risks, and pre-release checklist | ⏳ Pending |
 
 ---
 
@@ -92,7 +93,7 @@
 - [x] Utang repayment/default negative tests added
 - [ ] Next: migrate utang to a true on-chain vendor-offer/customer-accept model
 - [ ] Next: replace admin-only `increment_stats` with an authorized payment-contract path
-- [ ] `SECURITY.md` — checklist documented
+- [x] `SECURITY.md` — reporting guidance, controls, risks, and pre-release checklist documented
 
 ### 6. Full Documentation
 - [x] `docs/FEATURE_INVENTORY.md` — previous work, present features, future work, and blockers
@@ -101,7 +102,7 @@
 - [x] `docs/CONTRACTS.md` — all 3 contract interfaces, auth boundaries, frontend usage, and deployed IDs
 - [x] `docs/DEPLOYMENT.md` — step-by-step local/deploy guide, env vars, smoke checks, and reset recovery
 - [x] `docs/VERIFICATION.md` — command gates and claim rules
-- [ ] `CONTRIBUTING.md` — good-first-issues, PR template
+- [x] `CONTRIBUTING.md` — setup, good-first-issue ideas, and PR checklist
 - [x] README project-doc links refreshed
 
 ### 7. User Acquisition (30+ verified)
@@ -112,7 +113,7 @@
 
 ### 8. Community Contribution
 - [ ] Create 3 `good first issue` labels on GitHub
-- [ ] `CONTRIBUTING.md` with setup guide
+- [x] `CONTRIBUTING.md` with setup guide
 - [ ] Get 1 PR merged from external contributor
 
 ---

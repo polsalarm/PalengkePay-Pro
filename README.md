@@ -40,6 +40,8 @@ Beta users were onboarded via a Google Form collecting name, email, wallet addre
 - **[Contracts](docs/CONTRACTS.md)** — Soroban contract interfaces, auth boundaries, frontend usage, and contract roadmap.
 - **[Deployment](docs/DEPLOYMENT.md)** — local setup, env vars, Vercel deployment, smoke checks, and reset recovery.
 - **[Verification Gates](docs/VERIFICATION.md)** — commands and evidence required before claiming built, passing, deployed, or production-ready.
+- **[Contributing](CONTRIBUTING.md)** — setup, quality gates, good first issue ideas, and PR checklist.
+- **[Security](SECURITY.md)** — reporting scope, current controls, known risks, and pre-release checklist.
 - **[Roadmap](ROADMAP.md)** — build status, requirements checklist, and next architecture decisions.
 - **[Contracts Guide](contracts/README.md)** — deployed contract IDs, interfaces, and Soroban commands.
 
