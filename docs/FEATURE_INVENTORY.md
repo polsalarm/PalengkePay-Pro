@@ -31,12 +31,12 @@ Evidence:
 - Added QR scan and manual vendor wallet entry.
 - Added vendor identity metadata in payment QR payloads.
 - Added signed Stellar payment transaction flow.
-- Routed live QR payments through the fee-bump submit path.
+- Routed live QR payments through the `PalengkePayment.pay` contract path when configured.
 - Added instant local history with background Horizon sync.
 
 Current caveat:
 
-- Live QR payments currently settle as direct Stellar transfers wrapped by fee bump. The `PalengkePayment` contract exists and is tested, but it is not yet the live payment source of truth.
+- Live QR payments now prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured. Direct fee-bumped Stellar transfers remain as the missing-contract fallback.
 
 Evidence:
 
@@ -99,7 +99,7 @@ Evidence:
 
 Current caveat:
 
-- Metrics read `VendorRegistry` counters, not the live QR payment path. This is useful for admin state, but it is not yet a single canonical payment source.
+- Metrics still read `VendorRegistry` counters. The payment path has moved toward `PalengkePayment.pay`, but metrics still need to read the canonical payment source.
 
 Evidence:
 
@@ -142,7 +142,7 @@ Evidence:
 
 Current caveat:
 
-- This contract is deployed/tested code, but the frontend does not yet use it as the live QR payment execution path.
+- This contract is now the preferred frontend QR payment execution path when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured.
 
 Evidence:
 
@@ -154,7 +154,7 @@ Evidence:
 ### 1.8 Fee Sponsorship / Gasless Transactions
 
 - Built Vercel API function for fee-bump sponsorship.
-- Added client submit path through `submitWithFeeBump()`.
+- Added client submit path through `submitWithFeeBump()` for the missing-contract fallback.
 - Added gasless payment integration in the payment hook.
 - Added Vercel routing so `/api/*` reaches serverless functions.
 - Added fee-bump environment configuration documentation.
@@ -298,7 +298,7 @@ Evidence:
 | Contract | Present role | Current limitation |
 | --- | --- | --- |
 | `VendorRegistry` | Vendor applications, admin approvals, vendor profiles, vendor counters | Stats should eventually be updated by canonical payment flow |
-| `PalengkePayment` | Payment records, vendor payment lookups, payment events | Not yet the live frontend QR payment path |
+| `PalengkePayment` | Payment records, vendor payment lookups, payment events, preferred QR payment execution | Metrics are not yet sourced from payment contract records |
 | `UtangEscrow` | Utang agreements, repayment tracking, completion/default status | Needs true vendor-offer/customer-accept architecture |
 
 ### 2.4 API and Runtime Functions
@@ -317,21 +317,20 @@ Evidence:
 | `cd frontend; npm run lint` | Frontend lint | Passing |
 | `cd frontend; npm run build` | Production build | Passing with Vite chunk-size warning |
 | `cd frontend; npm run qa:visual` | Playwright desktop/mobile route checks | Passing: 16 tests |
-| `cd contracts; cargo test --workspace` | Rust contract test suite | Blocked locally by missing Windows MSVC `link.exe` |
+| `cd contracts; cargo test --workspace` | Rust contract test suite | Passing: 32 tests |
 
 ## 3. Future Work
 
 ### 3.1 Highest Priority
 
-1. Install Windows Visual Studio Build Tools/C++ linker and run `cargo test --workspace`.
-2. Make `PalengkePayment.pay` the canonical QR payment path.
-3. Move payment events and vendor stats to the same source-of-truth transaction path.
-4. Keep Horizon indexing as a cache/history layer only.
-5. Replace admin-only `increment_stats` with an authorized payment-contract path.
+1. Move payment events and vendor stats to the same source-of-truth transaction path.
+2. Keep Horizon indexing as a cache/history layer only.
+3. Replace admin-only `increment_stats` with an authorized payment-contract path.
+4. Keep `cargo test --workspace` green in CI and local release checks.
 
 ### 3.2 Product Architecture
 
-- Decide and implement contract-first payments instead of direct Stellar transfer plus separate metrics.
+- Finish contract-first payment architecture by moving metrics and stats away from separate vendor counters.
 - Redesign utang as vendor creates offer on-chain, customer accepts on-chain, and repayment follows that agreement.
 - Add a clearer data model for payment, vendor stats, and indexed history boundaries.
 - Add a dedicated architecture doc after canonical payment flow is chosen.
@@ -346,8 +345,8 @@ Evidence:
 
 ### 3.4 Deployment and Operations
 
-- Add `docs/DEPLOYMENT.md`.
-- Add production deployment checklist.
+- Keep `docs/DEPLOYMENT.md` current as env vars, contract IDs, and deployment flow change.
+- Keep the production deployment checklist current.
 - Add uptime monitor for deployed `/api/health`.
 - Verify Vercel env values without exposing secrets.
 - Add release checklist for contract IDs, RPC URLs, fee-bump sponsor account, and Sentry DSN.
@@ -448,14 +447,13 @@ These items come from the workspace deep-research reports:
 ### 4.7 Research Open Questions
 
 - Are deployed contract IDs and WASM hashes aligned with this source tree?
-- Is the active payment path intentionally direct Stellar transfer, or should it now move fully to `PalengkePayment.pay`?
+- Should fee sponsorship expand to tightly validated Soroban payment invocations, or remain only as the classic-transfer fallback?
 - Are vendor/admin/customer forms consistently validating wallet addresses, amounts, memo fields, and uploaded QR payloads?
 - What is the chosen mobile target: web PWA only, quick mobile shell, or durable store-ready mobile app?
 - Which features are actually needed for the next submission: judge demo, production pilot, or mobile expansion?
 
 ## 5. Open Blockers
 
-- Rust contract test suite now runs locally after installing Visual Studio Build Tools with the C++ workload. Last verified on 2026-05-13 with `cargo test --workspace`.
 - Production fee sponsorship needs real server-side env values:
   - `SPONSOR_SECRET`
   - `FEE_BUMP_ALLOWED_DESTINATIONS`

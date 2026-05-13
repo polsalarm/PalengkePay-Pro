@@ -9,7 +9,8 @@
 - [x] Monitoring active
 - [x] Data indexing implemented
 - [x] README documentation refreshed
-- [x] Feature inventory documented
+- [x] Comprehensive docs pack documented
+- [x] Contract-first QR payment path
 - [ ] 1 community contribution
 - [x] 1 advanced feature implemented — Fee Sponsorship (gasless)
 - [ ] 15+ meaningful commits
@@ -26,7 +27,8 @@
 | Data Indexing | ✅ Built | ✅ Checkpointed |
 | Monitoring (Sentry + health) | ✅ Built | ✅ Checkpointed |
 | Security (CSP + sanitizer + contract auth) | 🟡 Partial | ✅ Checkpointed |
-| Full Documentation | 🟡 README + feature inventory refreshed; architecture/deployment docs pending | ✅ Checkpointed |
+| Contract-first QR Payments | ✅ Built | ⏳ Pending |
+| Full Documentation | ✅ README + feature inventory + user flows + architecture + contracts + deployment + verification docs refreshed | ✅ Checkpointed |
 | Friendbot faucet button | ✅ Built on `/connect` and onboarding | ✅ Checkpointed |
 | CONTRIBUTING.md | ⬜ Not started | — |
 
@@ -53,7 +55,7 @@
 - [x] `frontend/vercel.json` — rewrite excludes `/api/*`
 - [x] `frontend/.env.example` — documents `VITE_FEE_BUMP_URL`
 - [x] `frontend/api/fee-bump.test.ts` — validates signed source, `PP:` memo, operation type, amount/fee limits, destination allowlist, and rate limiting
-- [x] Add "Gasless" badge to UI (CustomerScan + PaymentForm)
+- [x] Add settlement badge to UI (contract receipt or gasless fallback)
 
 > ⚠️ **BEFORE DEPLOYING:** Add `SPONSOR_SECRET=<funded_testnet_secret>` and `FEE_BUMP_ALLOWED_DESTINATIONS=<comma-separated approved destinations>` to Vercel dashboard → Environment Variables. Never commit these keys.
 
@@ -63,6 +65,7 @@
 - [x] Stats: active vendors, tx count, total XLM volume, avg tx size
 - [x] Product breakdown + top vendors
 - [x] Link from AdminMarket header
+- [x] QR payments prefer `PalengkePayment.pay`
 - [ ] Next: unify metrics with the canonical payment source of truth
 
 ### 3. Data Indexing
@@ -91,11 +94,13 @@
 
 ### 6. Full Documentation
 - [x] `docs/FEATURE_INVENTORY.md` — previous work, present features, future work, and blockers
-- [ ] `docs/ARCHITECTURE.md` — system diagram
-- [ ] `docs/CONTRACTS.md` — all 3 contract interfaces + deployed IDs
-- [ ] `docs/DEPLOYMENT.md` — step-by-step deploy guide
+- [x] `docs/USER_FLOWS.md` — end-to-end customer, vendor, admin, onboarding, and demo flows
+- [x] `docs/ARCHITECTURE.md` — runtime layers, source-of-truth map, and target architecture
+- [x] `docs/CONTRACTS.md` — all 3 contract interfaces, auth boundaries, frontend usage, and deployed IDs
+- [x] `docs/DEPLOYMENT.md` — step-by-step local/deploy guide, env vars, smoke checks, and reset recovery
+- [x] `docs/VERIFICATION.md` — command gates and claim rules
 - [ ] `CONTRIBUTING.md` — good-first-issues, PR template
-- [ ] README update — metrics screenshot, gasless callout
+- [x] README project-doc links refreshed
 
 ### 7. User Acquisition (30+ verified)
 - [ ] Add Friendbot faucet button on `/connect` page
@@ -114,19 +119,18 @@
 
 Current state:
 
-- Live QR payments use direct Stellar transfers through `submitWithFeeBump()`.
+- Live QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured.
 - Transaction history uses the Horizon indexer and localStorage cache.
 - Admin metrics use counters in `VendorRegistry`.
-- `PalengkePayment` is tested contract code but is not the live QR payment source of truth.
+- Direct Stellar transfers through `submitWithFeeBump()` remain as the missing-contract fallback.
 
 Recommended next architecture:
 
-- Route QR payments through `PalengkePayment.pay`.
 - Make payment events and stats updates come from the same transaction path.
 - Let the dashboard read from the canonical payment/stat source, not browser cache.
 - Keep Horizon indexing only as a fast read/cache layer for user history.
 
-Decision needed before implementation: contract-first payments vs. keeping direct Stellar transfers with a separate proof-based metrics updater. Contract-first is cleaner because settlement, events, and metrics share one trust boundary.
+Decision remaining: wire metrics/stats to the payment contract source of truth instead of keeping separate vendor counters.
 
 ---
 

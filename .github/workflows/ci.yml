@@ -54,7 +54,7 @@ jobs:
 
       - name: API abuse-path tests
         working-directory: frontend
-        run: npm test -- api/fee-bump.test.ts
+        run: npm test -- api/fee-bump.test.ts src/lib/payment-routing.test.ts
 
       - name: Build
         working-directory: frontend

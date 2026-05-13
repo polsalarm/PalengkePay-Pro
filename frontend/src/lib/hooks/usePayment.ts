@@ -1,5 +1,18 @@
 import { useState, useCallback } from 'react';
-import { buildPaymentTx, submitWithFeeBump } from '../stellar';
+import {
+  addressToScVal,
+  buildPaymentTx,
+  i128ToScVal,
+  prepareContractTx,
+  stringToScVal,
+  submitSorobanTx,
+  submitWithFeeBump,
+} from '../stellar';
+import {
+  getPaymentContractId,
+  resolvePaymentSettlementMode,
+  xlmToStroops,
+} from '../payment-routing';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 
 export type TxStatus = 'idle' | 'building' | 'signing' | 'submitting' | 'confirmed' | 'failed';
@@ -11,6 +24,8 @@ export interface PaymentState {
 }
 
 export function usePayment() {
+  const paymentContractId = getPaymentContractId();
+  const settlementMode = resolvePaymentSettlementMode(paymentContractId);
   const [state, setState] = useState<PaymentState>({
     status: 'idle',
     txHash: null,
@@ -25,7 +40,14 @@ export function usePayment() {
   ) => {
     try {
       setState({ status: 'building', txHash: null, error: null });
-      const xdr = await buildPaymentTx(from, to, amount, memo);
+      const xdr = settlementMode === 'contract' && paymentContractId
+        ? await prepareContractTx(from, paymentContractId, 'pay', [
+          addressToScVal(from),
+          addressToScVal(to),
+          i128ToScVal(xlmToStroops(amount)),
+          stringToScVal(memo?.trim() ?? ''),
+        ])
+        : await buildPaymentTx(from, to, amount, memo);
 
       setState((s) => ({ ...s, status: 'signing' }));
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
@@ -34,20 +56,22 @@ export function usePayment() {
       });
 
       setState((s) => ({ ...s, status: 'submitting' }));
-      const result = await submitWithFeeBump(signedTxXdr);
+      const txHash = settlementMode === 'contract'
+        ? await submitSorobanTx(signedTxXdr)
+        : (await submitWithFeeBump(signedTxXdr)).hash;
 
-      setState({ status: 'confirmed', txHash: result.hash, error: null });
+      setState({ status: 'confirmed', txHash, error: null });
     } catch (err: unknown) {
       const message = parseWalletError(err);
       setState({ status: 'failed', txHash: null, error: message });
     }
-  }, []);
+  }, [paymentContractId, settlementMode]);
 
   const reset = useCallback(() => {
     setState({ status: 'idle', txHash: null, error: null });
   }, []);
 
-  return { ...state, sendPayment, reset };
+  return { ...state, settlementMode, sendPayment, reset };
 }
 
 function parseWalletError(err: unknown): string {

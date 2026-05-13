@@ -62,6 +62,11 @@ scripts/seed/seed-output.json
 docs/
 !docs/
 !docs/FEATURE_INVENTORY.md
+!docs/USER_FLOWS.md
+!docs/ARCHITECTURE.md
+!docs/CONTRACTS.md
+!docs/DEPLOYMENT.md
+!docs/VERIFICATION.md
 !docs/contract-deployment.md
 UI_UX_IMPROVEMENTS.md
 frontend/README.md

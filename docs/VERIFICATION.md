@@ -1,0 +1,128 @@
+# PalengkePay Verification Gates
+
+Last updated: 2026-05-13
+
+This document maps each important quality gate to the command or evidence that proves it. Use this before claiming the app is working, ready, deployed, or production-ready.
+
+## 1. Gate Summary
+
+| Gate | Command/evidence | Required before |
+| --- | --- | --- |
+| Fee-bump and payment-routing tests | `cd frontend; npm test -- api/fee-bump.test.ts src/lib/payment-routing.test.ts` | Any fee-bump/security/payment-routing claim |
+| TypeScript check | `cd frontend; npx tsc --noEmit` | Any frontend code claim |
+| Lint | `cd frontend; npm run lint` | Any frontend code claim |
+| Production build | `cd frontend; npm run build` | Deployment or release claim |
+| Visual route QA | `cd frontend; npm run qa:visual` | UI/responsive route claim |
+| Contract tests | `cd contracts; cargo test --workspace` | Contract behavior/auth claim |
+| Health endpoint | `GET /api/health` locally or live | Runtime dependency claim |
+| Live payment smoke | Wallet-signed testnet payment with hash | End-to-end payment claim |
+| Admin metrics smoke | `/admin/metrics` loads with registry-derived data | Metrics claim |
+| Deployment smoke | Live landing, connect, health, key routes | Live/deployed claim |
+
+## 2. Frontend Commands
+
+Run from `Stellar-PalengkePay-Pro\frontend`.
+
+```powershell
+npm test -- api/fee-bump.test.ts src/lib/payment-routing.test.ts
+npx tsc --noEmit
+npm run lint
+npm run build
+npm run qa:visual
+```
+
+Expected:
+
+- Fee-bump and payment-routing test suites pass.
+- TypeScript exits 0.
+- ESLint exits 0.
+- Vite build exits 0. Chunk-size warnings are acceptable unless they become a performance task.
+- Playwright route checks pass on desktop/mobile viewports.
+
+## 3. Contract Commands
+
+Run from `Stellar-PalengkePay-Pro\contracts`.
+
+```powershell
+cargo test --workspace
+```
+
+Recommended additional gates:
+
+```powershell
+cargo fmt --all -- --check
+cargo clippy --workspace -- -D warnings
+```
+
+Expected:
+
+- All contract unit tests pass.
+- Auth negative tests stay present for vendor application, vendor stats, utang creation, utang repayment, and defaulting.
+
+## 4. API Checks
+
+### 4.1 Health
+
+Local or live:
+
+```powershell
+Invoke-WebRequest http://localhost:5173/api/health
+```
+
+Expected:
+
+- JSON response reports `ok` when Horizon and Soroban RPC are reachable.
+- `degraded` is acceptable only when the failed dependency is explicitly documented.
+
+### 4.2 Fee Bump
+
+Do not test by pasting secrets. Use the automated test suite for policy checks and a wallet-generated signed XDR for manual smoke tests.
+
+Policy coverage expected:
+
+- signed inner source required,
+- Testnet network passphrase required,
+- `PP:` memo required,
+- allowed operations only,
+- amount and fee bounds,
+- source signature check,
+- optional destination allowlist,
+- rate limiting.
+
+## 5. Manual Route Smoke Matrix
+
+| Route | What to verify |
+| --- | --- |
+| `/` | Landing loads and navigation works |
+| `/connect` | Wallet options render |
+| `/onboard` | Funding/role flow renders |
+| `/market` | Market directory loads |
+| `/vendor/apply` | Application form loads and validates required fields |
+| `/vendor/home` | Vendor shell loads for connected wallet |
+| `/vendor/qr` | QR generation surface loads |
+| `/vendor/transactions` | History surface loads and can sync |
+| `/vendor/utang` | Utang offer form/QR surface loads |
+| `/vendor/profile` | Profile state loads |
+| `/customer/home` | Customer shell loads |
+| `/customer/scan` | Scanner/manual payment form loads |
+| `/customer/history` | History surface loads |
+| `/customer/utang` | Customer utang list/actions load |
+| `/admin/market` | Pending/active vendor lists load |
+| `/admin/register` | Manual registration loads |
+| `/admin/metrics` | Metrics dashboard loads |
+
+## 6. Claim Rules
+
+- Say "built" only when the code/docs exist in the repo.
+- Say "passing" only when the command was run and exited 0.
+- Say "deployed" only when a live URL was checked.
+- Say "end-to-end working" only when browser/API/chain flow was actually exercised.
+- Say "production-ready" only after secrets, durable rate limiting, deployment checks, contract tests, and live smoke checks pass.
+
+## 7. Current Known Risks
+
+- Payment and metrics source-of-truth split remains unresolved.
+- Fee-bump rate limiting is in-memory and not durable.
+- Testnet reset can invalidate accounts/contracts.
+- Mobile behavior still needs real-device verification.
+- Mainnet is not appropriate until contracts and deployment flow are audited.

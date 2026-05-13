@@ -47,7 +47,7 @@ export function CustomerScan() {
   const { vendor, isLoading: vendorLoading } = useVendor(
     step === 'pay' || step === 'confirm' || step === 'done' ? vendorAddress : null
   );
-  const { status, txHash, error, sendPayment, reset } = usePayment();
+  const { status, txHash, error, settlementMode, sendPayment, reset } = usePayment();
   const { createUtang, isCreating } = useCreateUtang();
 
   useEffect(() => {
@@ -353,6 +353,7 @@ export function CustomerScan() {
             preloadedStallInfo={scannedMeta?.stallInfo}
             onSubmit={handlePay}
             disabled={false}
+            settlementMode={settlementMode}
           />
         </div>
       )}
@@ -410,13 +411,15 @@ export function CustomerScan() {
             )}
           </div>
 
-          {/* Gasless badge */}
+          {/* Settlement badge */}
           <div
             className="flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold"
             style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22C55E' }} />
-            Gasless — fees sponsored, zero cost sa iyo
+            {settlementMode === 'contract'
+              ? 'On-chain receipt — recorded by PalengkePayment'
+              : 'Gasless — fees sponsored, zero cost sa iyo'}
           </div>
 
           {status === 'idle' && (

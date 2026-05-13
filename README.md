@@ -35,6 +35,11 @@ Beta users were onboarded via a Google Form collecting name, email, wallet addre
 ## Project Docs
 
 - **[Feature Inventory](docs/FEATURE_INVENTORY.md)** — complete previous work, present features, current caveats, and future work.
+- **[User Flows](docs/USER_FLOWS.md)** — customer, vendor, admin, onboarding, utility, and demo flows.
+- **[Architecture](docs/ARCHITECTURE.md)** — runtime layers, source-of-truth map, payment architecture, and target architecture.
+- **[Contracts](docs/CONTRACTS.md)** — Soroban contract interfaces, auth boundaries, frontend usage, and contract roadmap.
+- **[Deployment](docs/DEPLOYMENT.md)** — local setup, env vars, Vercel deployment, smoke checks, and reset recovery.
+- **[Verification Gates](docs/VERIFICATION.md)** — commands and evidence required before claiming built, passing, deployed, or production-ready.
 - **[Roadmap](ROADMAP.md)** — build status, requirements checklist, and next architecture decisions.
 - **[Contracts Guide](contracts/README.md)** — deployed contract IDs, interfaces, and Soroban commands.
 
@@ -132,13 +137,13 @@ PalengkePay puts a Stellar wallet in every vendor's pocket and a QR code on ever
 ## Advanced Features
 
 ### ⚡ Gasless Transactions (Fee Sponsorship)
-Customers and vendors pay **zero network fees**. A server-side sponsor wallet wraps every payment in a Stellar FeeBumpTransaction, covering the base fee transparently. Users sign the inner transaction; the sponsor covers the fee. Removes the #1 adoption blocker for first-time crypto users.
+Fee sponsorship remains available as the fallback path for classic Stellar transfers when the payment contract is not configured. A server-side sponsor wallet wraps approved payment/createAccount inner transactions in a Stellar FeeBumpTransaction. Users sign the inner transaction; the sponsor covers the classic Stellar fee.
 
 - `frontend/api/fee-bump.ts` — Vercel serverless function wraps inner XDR with FeeBumpTransaction
 - `SPONSOR_SECRET` stays server-only; never shipped to the client
 - Sponsorship is restricted to signed Stellar Testnet inner transactions with `PP:` PalengkePay memos, native XLM `payment` / `createAccount` operations only, approved destinations when `FEE_BUMP_ALLOWED_DESTINATIONS` is configured, bounded fees, bounded amounts, and matching source signatures
 - The endpoint includes a best-effort in-memory per-IP rate limit. For production, pair it with durable storage, Vercel Firewall, or another edge/WAF limiter because serverless memory is not shared across instances.
-- Badge shown in payment form: "Gasless — fees sponsored, zero cost to you"
+- Current deployed QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured, giving an on-chain contract receipt and shared payment source of truth.
 
 ### 📊 Metrics Dashboard
 Admin metrics aggregated from `VendorRegistry` records — accessible at `/admin/metrics`.
@@ -147,7 +152,7 @@ Admin metrics aggregated from `VendorRegistry` records — accessible at `/admin
 - Total XLM volume, transaction count, average transaction size
 - Product category breakdown (horizontal bars)
 - Top 5 vendors by volume (progress bars)
-- Current caveat: QR payments still settle as direct Stellar/Horizon transfers, while metrics read `VendorRegistry.total_transactions` / `total_volume`. Treat metrics as registry counters until the payment source-of-truth milestone is completed.
+- Current caveat: QR payments now prefer `PalengkePayment.pay`, while metrics still read `VendorRegistry.total_transactions` / `total_volume`. The next step is wiring metrics to the canonical payment contract events/records.
 
 ### 🗂 Data Indexing
 Cursor-based Horizon payment indexer with localStorage caching.
@@ -171,7 +176,7 @@ Cursor-based Horizon payment indexer with localStorage caching.
 - **Vendor identity in QR** — name and stall info embedded so customers see who they're paying before signing
 - **Memo field** — customer logs what they bought (e.g. "2kg tilapia") visible in transaction history
 - **Real-time notifications** — vendor gets a browser push notification on payment received
-- **Current source of truth** — live QR payments use direct Stellar transfers plus fee bump; the `PalengkePayment` contract exists and is tested, but is not yet the authoritative live payment path.
+- **Current source of truth** — live QR payments use `PalengkePayment.pay` when the contract ID is configured; direct fee-bumped Stellar transfers remain as the missing-contract fallback.
 
 ### BNPL / Utang (Credit)
 - **QR offer flow** — vendor fills in items, amount, installments, interval → pays service fee → QR generated → customer scans to accept
@@ -209,9 +214,9 @@ Cursor-based Horizon payment indexer with localStorage caching.
 | `PalengkePayment` | `CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF` | QR-based payments with fee support and stat tracking |
 | `UTangEscrow` | `CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG` | BNPL installment agreements — create, pay, complete, default |
 
-All deployed on **Stellar Testnet**. See [`docs/contract-deployment.md`](docs/contract-deployment.md) for deployment guide.
+All deployed on **Stellar Testnet**. See [`docs/CONTRACTS.md`](docs/CONTRACTS.md) for contract interfaces and [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for deployment guidance.
 
-> **Note:** Stellar Testnet resets periodically (~quarterly). Contract IDs above are from the April 2026 deployment. After a reset, redeploy via `docs/contract-deployment.md` and update `.env.local` and this table.
+> **Note:** Stellar Testnet resets periodically (~quarterly). Contract IDs above are from the April 2026 deployment. After a reset, follow `docs/DEPLOYMENT.md`, redeploy contracts, and update `.env.local` and this table.
 
 ### VendorRegistry
 
@@ -402,7 +407,7 @@ Run frontend checks with:
 
 ```bash
 npx tsc --noEmit
-npm test -- api/fee-bump.test.ts
+npm test -- api/fee-bump.test.ts src/lib/payment-routing.test.ts
 npm run lint
 npm run build
 npm run qa:visual
@@ -456,26 +461,25 @@ FEE_BUMP_MAX_SPONSORED_XLM=100
 
 Current implementation:
 
-- Customer QR payments are direct Stellar transfers submitted through fee bump sponsorship.
+- Customer QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured.
 - Vendor/customer history is indexed from Horizon into browser localStorage.
 - Admin metrics read counters stored in `VendorRegistry`.
-- `PalengkePayment` is deployed/tested contract code, but it is not the live QR payment execution path.
+- Direct fee-bumped Stellar transfer remains available as a local-dev or missing-contract fallback.
 
 Cleanest architecture for the next hardening milestone:
 
-1. Make `PalengkePayment.pay` the canonical QR payment path.
-2. Have that contract emit payment events and update vendor stats through an authorized contract-to-registry path, or move payment stats into the payment contract and make the dashboard read from there.
-3. Keep the Horizon indexer as a fast UX cache only, not the business source of truth.
-4. Keep fee bump sponsorship as the wrapper around the signed canonical payment transaction, with destination allowlisting and abuse-path tests.
+1. Have the payment contract events/records drive vendor stats and admin metrics.
+2. Keep the Horizon indexer as a fast UX cache only, not the business source of truth.
+3. Decide whether fee sponsorship should expand to tightly validated Soroban payment invocations.
 
 ---
 
 ## CI and Production Caveats
 
-- GitHub Actions runs contract tests on Ubuntu and frontend typecheck/build on Node 20. The frontend job now also runs `npm test -- api/fee-bump.test.ts` for fee-bump abuse paths.
+- GitHub Actions runs contract tests on Ubuntu and frontend typecheck/build on Node 20. The frontend job now also runs `npm test -- api/fee-bump.test.ts src/lib/payment-routing.test.ts` for fee-bump abuse paths and payment routing.
 - Last upstream CI verified before this hardening: manual `workflow_dispatch` run `25807769027` passed on commit `7f24867` with `Contract Tests` and `Frontend Build` green.
 - Local frontend verification for this hardening passed: `npx tsc --noEmit`, `npm test -- api/fee-bump.test.ts`, `npm run lint`, and `npm run build`.
-- Local Windows contract tests remain blocked until Visual Studio Build Tools with the C++ linker (`link.exe`) are installed. The new Soroban abuse-path tests are wired for CI, but must be verified by the next GitHub Actions run after push.
+- Local Windows contract tests now pass after installing Visual Studio Build Tools with the C++ workload. Last local check: `cargo test --workspace` passed 32 contract tests on 2026-05-13.
 - The app still runs on Stellar Testnet. Contract IDs, sponsor balances, and sponsor abuse controls must be rechecked before any mainnet deployment.
 
 ---
@@ -497,6 +501,6 @@ Cleanest architecture for the next hardening milestone:
 
 ## Deployment
 
-See [`docs/contract-deployment.md`](docs/contract-deployment.md) for step-by-step Stellar Testnet deployment.
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for step-by-step local setup, Vercel deployment, smoke checks, and Stellar Testnet reset recovery.
 
 **Note:** Stellar Testnet resets periodically (~3 months). Redeploy contracts and update `.env.local` when that happens.

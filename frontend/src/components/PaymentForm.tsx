@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Store, Zap } from 'lucide-react';
 import type { VendorProfile } from '../lib/hooks/useVendor';
+import type { PaymentSettlementMode } from '../lib/payment-routing';
 
 const MEMO_MAX = 28;
 const XLM_TO_PHP = 8.5;
@@ -13,9 +14,10 @@ interface Props {
   preloadedStallInfo?: string;
   onSubmit: (amount: string, memo: string) => void;
   disabled?: boolean;
+  settlementMode?: PaymentSettlementMode;
 }
 
-export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorName, preloadedStallInfo, onSubmit, disabled }: Props) {
+export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorName, preloadedStallInfo, onSubmit, disabled, settlementMode = 'fee-bump' }: Props) {
   const [amount, setAmount] = useState('');
   const [memo, setMemo] = useState('');
   const [error, setError] = useState('');
@@ -156,13 +158,15 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
         <p className="text-xs font-semibold px-1" style={{ color: '#F43F5E' }}>{error}</p>
       )}
 
-      {/* ── Gasless badge ── */}
+      {/* ── Settlement badge ── */}
       <div
         className="flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold"
         style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}
       >
         <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22C55E' }} />
-        Gasless — fees sponsored, zero cost sa iyo
+        {settlementMode === 'contract'
+          ? 'On-chain receipt — recorded by PalengkePayment'
+          : 'Gasless — fees sponsored, zero cost sa iyo'}
       </div>
 
       {/* ── Submit ── */}
