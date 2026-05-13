@@ -8,6 +8,7 @@ import { useWallet } from '../lib/hooks/useWallet';
 import { isRegisteredVendor } from '../lib/hooks/useVendor';
 import phoneImg from '../assets/phone.png';
 import logoImg from '../assets/logo.png';
+import ctaBgImg from '../assets/cta-bg.png';
 
 // ── Main component ──────────────────────────────────────────────────────────
 export function Landing() {
@@ -768,7 +769,7 @@ export function Landing() {
 <section 
   className="relative w-full"
   style={{ 
-    backgroundImage: "url('/src/assets/cta-bg.png')",
+    backgroundImage: `url(${ctaBgImg})`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
