@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { UserPlus, CheckCircle, Loader2, AlertTriangle, ExternalLink, Wallet, ShieldCheck } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, prepareContractTx, submitSorobanTx, addressToScVal, stringToScVal } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 

@@ -1,10 +1,11 @@
-import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 import { FreighterModule } from '@creit.tech/stellar-wallets-kit/modules/freighter';
 import { LobstrModule } from '@creit.tech/stellar-wallets-kit/modules/lobstr';
 import { xBullModule } from '@creit.tech/stellar-wallets-kit/modules/xbull';
 import { AlbedoModule } from '@creit.tech/stellar-wallets-kit/modules/albedo';
 import { fetchBalance } from '../lib/stellar';
+import { WalletContext } from '../lib/wallet-context';
 
 // Inline SVG data URIs — no external image fetch, never broken
 const ICONS: Record<string, string> = {
@@ -20,23 +21,14 @@ function patchIcon(mod: { productIcon?: string; productId?: string }) {
   if (ICONS[id]) mod.productIcon = ICONS[id];
 }
 
-export interface WalletContextValue {
-  address: string | null;
-  balance: string | null;
-  walletName: string | null;
-  isConnected: boolean;
-  isConnecting: boolean;
-  connect: () => Promise<string | null>;
-  disconnect: () => Promise<void>;
-  signTransaction: (xdr: string) => Promise<string>;
-  error: string | null;
-}
-
-export const WalletContext = createContext<WalletContextValue | null>(null);
-
 // WalletConnect loaded via dynamic import — avoids @reown/appkit circular dep
 // crash during bundle evaluation in production builds
 let kitInitPromise: Promise<void> | null = null;
+
+function getStoredValue(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(key);
+}
 
 function initKit(): Promise<void> {
   if (!kitInitPromise) {
@@ -70,9 +62,9 @@ function initKit(): Promise<void> {
 }
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [address, setAddress] = useState<string | null>(null);
+  const [address, setAddress] = useState<string | null>(() => getStoredValue('palengkepay_address'));
   const [balance, setBalance] = useState<string | null>(null);
-  const [walletName, setWalletName] = useState<string | null>(null);
+  const [walletName, setWalletName] = useState<string | null>(() => getStoredValue('palengkepay_wallet_name'));
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,15 +78,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const stored = localStorage.getItem('palengkepay_address');
-    const storedWallet = localStorage.getItem('palengkepay_wallet_name');
-    if (stored) {
-      setAddress(stored);
-      if (storedWallet) setWalletName(storedWallet);
-      refreshBalance(stored);
-    }
+    if (address) refreshBalance(address);
     initKit(); // pre-warm in background
-  }, [refreshBalance]);
+  }, [address, refreshBalance]);
 
   const connect = useCallback(async (): Promise<string | null> => {
     setIsConnecting(true);

@@ -63,7 +63,10 @@ export function CustomerUtang() {
       setTimeout(() => setUploadError(null), 5000);
     } finally {
       setUploadLoading(false);
-      try { await scanner.clear(); } catch {}
+      try { await scanner.clear(); } catch (clearError) {
+        void clearError;
+        // File scanner cleanup is best-effort.
+      }
     }
   };
 

@@ -137,7 +137,6 @@ export async function submitSorobanTx(signedXdr: string): Promise<string> {
 
   const hash = sendResult.hash;
   let attempts = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     await new Promise((r) => setTimeout(r, 2000));
     const getResult = await server.getTransaction(hash);

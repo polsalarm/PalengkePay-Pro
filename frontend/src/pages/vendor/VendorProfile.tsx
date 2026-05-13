@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Edit2, Check, X, Loader2, MapPin, Tag, Phone, BarChart2, Coins } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, prepareContractTx, submitSorobanTx, addressToScVal, stringToScVal } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 

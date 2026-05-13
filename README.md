@@ -375,12 +375,21 @@ The following improvements are planned for Phase 2, derived directly from beta u
 
 ```bash
 cd frontend
-npm install
+npm ci --legacy-peer-deps
 cp .env.example .env.local   # fill in contract IDs
 npm run dev
 ```
 
+On Windows PowerShell, if a transitive wallet package postinstall script fails with `yarn setup || true`, install with `npm ci --legacy-peer-deps --ignore-scripts`.
+
 Open `http://localhost:5173`
+
+Run frontend checks with:
+
+```bash
+npm run lint
+npm run build
+```
 
 ### Contracts
 

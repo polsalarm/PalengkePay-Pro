@@ -65,7 +65,10 @@ export function CustomerScan() {
         setStep('utang_offer');
         return true;
       }
-    } catch {}
+    } catch (parseError) {
+      void parseError;
+      // Not an installment QR payload.
+    }
     return false;
   };
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CheckCircle, Loader2, QrCode, ExternalLink, MapPin, Phone, Tag, Wallet } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useApplyVendor } from '../../lib/hooks/useVendor';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress } from '../../lib/stellar';
 
 const PRODUCT_TYPES = ['fish', 'meat', 'vegetables', 'fruits', 'rice & grains', 'spices', 'other'];

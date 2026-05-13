@@ -38,12 +38,12 @@ export function Landing() {
         className="sticky top-0 z-50 border-b"
         style={{ backgroundColor: 'rgba(250,250,247,0.92)', backdropFilter: 'blur(16px)', borderColor: 'rgba(0,0,0,0.06)' }}
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-14 h-16 flex items-center justify-between gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-14 h-16 flex items-center justify-between gap-3 sm:gap-6">
           <div className="flex items-center gap-2.5 shrink-0">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ backgroundColor: '#0F766E' }}>
               <span className="text-white font-black" style={{ fontSize: '1.1rem' }}>₱</span>
             </div>
-            <span className="font-black text-slate-900 text-lg tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <span className="font-black text-slate-900 text-base sm:text-lg tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
               PalengkePay
             </span>
           </div>
@@ -58,7 +58,7 @@ export function Landing() {
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => navigate('/connect')}
-              className="flex items-center gap-2 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-sm hover:opacity-90"
+              className="flex items-center gap-2 text-white text-sm font-bold px-4 sm:px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-sm hover:opacity-90"
               style={{ backgroundColor: '#0F766E' }}
             >
               <span className="sm:hidden">Get Started</span>

@@ -45,7 +45,8 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
             address = parsed.a;
             if (parsed.n) meta = { name: parsed.n, stallInfo: parsed.s ?? undefined };
           }
-        } catch {
+        } catch (parseError) {
+          void parseError;
           // Not JSON — treat as plain Stellar address
         }
 
@@ -56,7 +57,9 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
           setTimeout(() => setError(null), 3000);
         }
       },
-      () => {}
+      (scanError) => {
+        void scanError;
+      }
     )
       .then(() => setStarted(true))
       .catch((err) => {
@@ -65,10 +68,12 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
 
     return () => {
       if (scannerRef.current?.isScanning) {
-        scannerRef.current.stop().catch(() => {});
+        scannerRef.current.stop().catch(() => {
+          // Scanner may already be stopped during unmount.
+        });
       }
     };
-  }, [onScan]);
+  }, [onRawScan, onScan]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,7 +104,10 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
           address = parsed.a;
           if (parsed.n) meta = { name: parsed.n, stallInfo: parsed.s ?? undefined };
         }
-      } catch {}
+      } catch (parseError) {
+        void parseError;
+        // Not JSON — treat as plain Stellar address
+      }
 
       if (address.startsWith('G') && address.length === 56) {
         onScan(address, meta);
@@ -112,7 +120,10 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
       setTimeout(() => setError(null), 4000);
     } finally {
       setUploading(false);
-      try { await tempScanner.clear(); } catch {}
+      try { await tempScanner.clear(); } catch (clearError) {
+        void clearError;
+        // File scanner cleanup is best-effort.
+      }
     }
   };
 

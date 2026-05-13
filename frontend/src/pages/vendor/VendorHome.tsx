@@ -6,7 +6,7 @@ import { useBalance } from '../../lib/hooks/useBalance';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
 import type { TxRecord } from '../../lib/hooks/useTransactions';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, stellarExpertUrl, getServer } from '../../lib/stellar';
 
 const STRINGS = {
