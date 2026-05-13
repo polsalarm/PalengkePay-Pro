@@ -79,7 +79,7 @@ Source: `README.md` and `contracts/README.md`.
 
 ### 4.3 Target Usage
 
-Metrics, receipts, and future PalengkeScore inputs now have a shared `PalengkePayment` read model. The remaining deployment target is to redeploy the payment contract with `get_customer_payments`, then remove the registry metrics fallback.
+Metrics, receipts, and future PalengkeScore inputs now have a shared `PalengkePayment` read model. The payment-contract redeploy for `get_customer_payments` is intentionally deferred for now; until it resumes, customer history keeps using the Horizon/localStorage fallback and admin metrics keep the registry fallback.
 
 ## 5. UTangEscrow
 

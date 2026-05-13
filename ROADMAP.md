@@ -68,7 +68,7 @@
 - [x] QR payments prefer `PalengkePayment.pay`
 - [x] Metrics prefer `PalengkePayment` records through `frontend/src/lib/payment-source.ts`
 - [x] Dashboard labels when it falls back to legacy registry counters
-- [ ] Next: redeploy payment contract with customer payment lookup and retire registry stat fallback
+- [ ] Deferred: redeploy payment contract with customer payment lookup and retire registry stat fallback
 
 ### 3. Data Indexing
 - [x] `frontend/src/lib/indexer.ts` — Horizon cursor-based indexer
@@ -129,7 +129,7 @@ Current state:
 
 Recommended next architecture:
 
-- Redeploy `PalengkePayment` with `get_customer_payments` so customer history has the same contract read path as vendor history.
+- Deferred for now: redeploy `PalengkePayment` with `get_customer_payments` so customer history has the same contract read path as vendor history.
 - Retire or further restrict `VendorRegistry.increment_stats` after registry fallback is no longer needed.
 - Keep Horizon indexing only as a fast read/cache layer for user history.
 

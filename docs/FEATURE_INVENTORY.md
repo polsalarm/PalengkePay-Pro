@@ -332,7 +332,7 @@ Evidence:
 
 ### 3.1 Highest Priority
 
-1. Redeploy `PalengkePayment` and verify `get_customer_payments` against Testnet.
+1. Deferred for now: redeploy `PalengkePayment` and verify `get_customer_payments` against Testnet.
 2. Keep Horizon indexing as a cache/history fallback only.
 3. Replace or retire admin-only `increment_stats` after registry fallback is no longer needed.
 4. Keep `cargo test --workspace` green in CI and local release checks.

@@ -479,7 +479,7 @@ Current implementation:
 
 Remaining hardening:
 
-1. Redeploy `PalengkePayment` with `get_customer_payments` so customer history can read the same contract source as vendor history.
+1. Deferred for now: redeploy `PalengkePayment` with `get_customer_payments` so customer history can read the same contract source as vendor history.
 2. Retire or further restrict manual `VendorRegistry.increment_stats` once no dashboard depends on registry counters.
 3. Decide whether fee sponsorship should expand to tightly validated Soroban payment invocations.
 

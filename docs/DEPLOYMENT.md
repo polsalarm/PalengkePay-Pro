@@ -87,13 +87,102 @@ Deployment checklist:
 6. Smoke-test connect, vendor QR, customer scan, fee-bump payment, transaction history, admin market, and metrics.
 7. Verify no raw secrets appear in build logs or frontend bundle.
 
-## 7. Verification Before Deploy
+## 7. PalengkePayment-Only Redeploy
+
+Use this path when only `contracts/palengke-payment` changed. This is the current required redeploy path for `get_customer_payments`.
+
+Preflight:
+
+1. Confirm local contract tests pass.
+2. Confirm Stellar CLI is installed and available as `stellar`.
+3. Confirm the deployer/admin Testnet key exists in Stellar CLI.
+4. Confirm the deployer/admin account is funded on Testnet.
+5. Confirm whether the frontend/Vercel app should keep the old registry and utang contract IDs.
+
+Local checks:
+
+```powershell
+cd "C:\Codes Local\Hackathons (Workspace)\05-13-26 - PalengkePay\Stellar-PalengkePay-Pro"
+& "$env:USERPROFILE\.cargo\bin\cargo.exe" test --manifest-path .\contracts\Cargo.toml --workspace
+```
+
+Build payment WASM:
+
+```powershell
+cd "C:\Codes Local\Hackathons (Workspace)\05-13-26 - PalengkePay\Stellar-PalengkePay-Pro\contracts"
+& "$env:USERPROFILE\.cargo\bin\cargo.exe" build --release --target wasm32v1-none -p palengke-payment
+```
+
+Deploy only the payment contract:
+
+```powershell
+$NEW_PAYMENT_ID = stellar contract deploy `
+  --wasm .\target\wasm32v1-none\release\palengke_payment.wasm `
+  --source admin `
+  --network testnet
+
+$NEW_PAYMENT_ID
+```
+
+Initialize the new payment contract:
+
+```powershell
+$ADMIN_ADDRESS = stellar keys address admin
+$NATIVE_TOKEN = stellar contract id asset --asset native --network testnet
+
+stellar contract invoke `
+  --id $NEW_PAYMENT_ID `
+  --source admin `
+  --network testnet `
+  -- initialize `
+  --admin $ADMIN_ADDRESS `
+  --fee_bps 0 `
+  --native_token $NATIVE_TOKEN
+```
+
+Verify the new customer-history method exists:
+
+```powershell
+stellar contract invoke `
+  --id $NEW_PAYMENT_ID `
+  --source admin `
+  --network testnet `
+  -- get_customer_payments `
+  --customer $ADMIN_ADDRESS `
+  --limit 1 `
+  --offset 0
+```
+
+Update local env if the ID changed:
+
+```powershell
+# frontend/.env.local
+VITE_PALENGKE_PAYMENT_CONTRACT_ID=<NEW_PAYMENT_ID>
+```
+
+Update Vercel if the ID changed:
+
+```powershell
+cd "C:\Codes Local\Hackathons (Workspace)\05-13-26 - PalengkePay\Stellar-PalengkePay-Pro\frontend"
+vercel env rm VITE_PALENGKE_PAYMENT_CONTRACT_ID production
+vercel env add VITE_PALENGKE_PAYMENT_CONTRACT_ID production
+vercel env rm VITE_PALENGKE_PAYMENT_CONTRACT_ID preview
+vercel env add VITE_PALENGKE_PAYMENT_CONTRACT_ID preview
+```
+
+After env updates:
+
+1. Update `README.md`, `contracts/README.md`, and `docs/CONTRACTS.md` with the new `PalengkePayment` ID.
+2. Redeploy the frontend.
+3. Run the live smoke checks in section 9.
+
+## 8. Verification Before Deploy
 
 From app root:
 
 ```powershell
 cd .\frontend
-npm test -- api/fee-bump.test.ts
+npm test
 npx tsc --noEmit
 npm run lint
 npm run build
@@ -104,10 +193,10 @@ From app root:
 
 ```powershell
 cd .\contracts
-cargo test --workspace
+& "$env:USERPROFILE\.cargo\bin\cargo.exe" test --workspace
 ```
 
-## 8. Live Smoke Checks
+## 9. Live Smoke Checks
 
 After deployment:
 
@@ -117,18 +206,19 @@ After deployment:
 | `GET /connect` | Wallet connect page loads |
 | `GET /api/health` | Returns `ok` or clearly reports degraded dependency |
 | Customer QR payment | Wallet signs `PalengkePayment.pay`, transaction hash appears |
-| Vendor transaction history | Recent payment appears after Horizon sync |
+| Customer transaction history | Recent payment appears from `PalengkePayment` customer records |
+| Vendor transaction history | Recent payment appears from `PalengkePayment` vendor records |
 | Admin market | Pending/active vendor lists load |
-| Admin metrics | Metrics page loads from registry state |
+| Admin metrics | Recent payment is counted once and source label shows `PalengkePayment records` |
 
-## 9. Production Caveats
+## 10. Production Caveats
 
 - Direct Stellar transfer plus fee bump remains available only as the missing-contract fallback.
 - Serverless in-memory rate limits are not durable across instances.
 - Testnet resets can invalidate contract IDs, account state, and sponsor balances.
 - Mainnet deployment should wait for architecture finalization, contract audit, durable rate limiting, and full deployment runbook proof.
 
-## 10. Reset Recovery
+## 11. Reset Recovery
 
 If Stellar Testnet resets:
 
