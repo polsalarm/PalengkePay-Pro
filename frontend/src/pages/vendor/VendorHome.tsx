@@ -114,14 +114,14 @@ export function VendorHome() {
                 const memo = records[0]?.memo ?? '';
                 new Notification('PalengkePay — Payment received!', {
                   body: memo ? `+${amt} XLM · ${memo}` : `+${amt} XLM`,
-                  icon: '/favicon.svg',
+                  icon: '/favicon.ico',
                   tag: 'payment-received',
                 });
               })
               .catch(() => {
                 new Notification('PalengkePay — Payment received!', {
                   body: `+${amt} XLM`,
-                  icon: '/favicon.svg',
+                  icon: '/favicon.ico',
                   tag: 'payment-received',
                 });
               });
