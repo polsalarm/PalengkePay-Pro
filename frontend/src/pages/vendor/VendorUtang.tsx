@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, X, HandCoins, AlertTriangle, ScanLine, Keyboard, QrCode, ChevronLeft, Loader2, CheckCircle, ShieldCheck, Download } from 'lucide-react';
+import { Plus, X, HandCoins, AlertTriangle, ScanLine, Keyboard, QrCode, ChevronLeft, Loader2, CheckCircle, ShieldCheck, Download, BarChart3, Database } from 'lucide-react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendorUtangs } from '../../lib/hooks/useUtang';
@@ -9,6 +9,7 @@ import { QRScanner } from '../../components/QRScanner';
 import { buildPaymentTx, submitTx } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { buildCollectionsSummary } from '../../lib/vendor-proof';
 
 const ESCROW_ID = import.meta.env.VITE_UTANG_ESCROW_CONTRACT_ID as string | undefined;
 const FEE_XLM = import.meta.env.VITE_UTANG_FEE_XLM ?? '1';
@@ -77,6 +78,7 @@ export function VendorUtang() {
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const active = utangs.filter((u) => u.status === 'active');
+  const collectionsSummary = useMemo(() => buildCollectionsSummary(utangs), [utangs]);
   const filtered = filter === 'all' ? utangs : utangs.filter((u) => u.status === filter);
   const totalOwed = active.reduce(
     (sum, u) => sum + (u.totalAmountXlm - u.installmentAmountXlm * u.installmentsPaid),
@@ -312,6 +314,72 @@ export function VendorUtang() {
           </p>
         </div>
       )}
+
+      {/* ── Collections reporting ── */}
+      <section
+        className="rounded-3xl p-5 space-y-4"
+        style={{ backgroundColor: 'white', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <BarChart3 size={18} style={{ color: '#D97706' }} />
+              <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {lang === 'tl' ? 'Collections Report' : 'Collections Report'}
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500">
+              {lang === 'tl'
+                ? 'Buod ng aktibo, tapos, overdue, at defaulted na kasunduan.'
+                : 'Summary of active, completed, overdue, and defaulted agreements.'}
+            </p>
+          </div>
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black shrink-0"
+            style={{ backgroundColor: '#FFFBEB', color: '#B45309', border: '1px solid #FDE68A' }}
+          >
+            <Database size={12} />
+            {collectionsSummary.sourceLabel}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: 'Active', value: collectionsSummary.activeAgreements },
+            { label: 'Completed', value: collectionsSummary.completedAgreements },
+            { label: 'Overdue', value: collectionsSummary.overdueAgreements },
+            { label: 'Defaulted', value: collectionsSummary.defaultedAgreements },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-2xl p-3" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <p className="text-xs font-bold text-slate-400 mb-1">{label}</p>
+              <p className="text-lg font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-2xl p-4" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
+            <p className="text-xs font-bold mb-1" style={{ color: '#C2410C' }}>Outstanding</p>
+            <p className="text-xl font-black" style={{ color: '#9A3412', fontFamily: "'Montserrat', sans-serif" }}>
+              {collectionsSummary.totalOutstandingXlm.toFixed(2)}
+              <span className="text-xs font-bold ml-1">XLM</span>
+            </p>
+          </div>
+          <div className="rounded-2xl p-4" style={{ backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}>
+            <p className="text-xs font-bold mb-1" style={{ color: '#047857' }}>Collected</p>
+            <p className="text-xl font-black" style={{ color: '#065F46', fontFamily: "'Montserrat', sans-serif" }}>
+              {collectionsSummary.totalCollectedXlm.toFixed(2)}
+              <span className="text-xs font-bold ml-1">XLM</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-3" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+          {collectionsSummary.caveats.map((caveat) => (
+            <p key={caveat} className="text-xs text-slate-500">- {caveat}</p>
+          ))}
+        </div>
+      </section>
 
       {/* ── Filter tabs ── */}
       {utangs.length > 0 && (

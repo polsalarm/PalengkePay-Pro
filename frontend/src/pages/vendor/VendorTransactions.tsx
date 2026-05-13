@@ -1,11 +1,20 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, QrCode, TrendingUp, AlertCircle, RefreshCw, Zap } from 'lucide-react';
+import { AlertCircle, CalendarDays, Database, Download, ExternalLink, FileJson, Printer, QrCode, RefreshCw, ShieldCheck, TrendingUp, Zap } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
+import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
 import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
+import {
+  buildProofBundle,
+  buildProofSummary,
+  filterTransactionsByPeriod,
+  PROOF_PERIODS,
+  toProofCsv,
+  type ProofPeriodKind,
+} from '../../lib/vendor-proof';
 
 const STRINGS = {
   en: {
@@ -110,9 +119,27 @@ function TxRow({ tx }: { tx: TxRecord }) {
 export function VendorTransactions() {
   const navigate = useNavigate();
   const { address } = useWallet();
+  const { vendor } = useVendor(address);
   const { transactions, isLoading, error, retry, todayEarnings, todayCount } = useVendorTransactions(address);
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
+  const [periodKind, setPeriodKind] = useState<ProofPeriodKind>('30d');
   const t = STRINGS[lang];
+  const selectedPeriod = PROOF_PERIODS.find((period) => period.kind === periodKind) ?? PROOF_PERIODS[1];
+  const proofTransactions = useMemo(
+    () => filterTransactionsByPeriod(transactions, selectedPeriod),
+    [transactions, selectedPeriod],
+  );
+  const proofSummary = useMemo(() => buildProofSummary({
+    vendor: {
+      name: vendor?.name ?? 'Vendor',
+      wallet: address ?? '',
+      stallNumber: vendor?.stallNumber,
+      productType: vendor?.productType,
+    },
+    transactions: proofTransactions,
+    period: selectedPeriod,
+    hasLivePaymentProof: false,
+  }), [address, proofTransactions, selectedPeriod, vendor]);
 
   const earnings = todayEarnings();
   const count = todayCount();
@@ -121,6 +148,20 @@ export function VendorTransactions() {
 
   if (!address) {
     return <WalletRequiredState detail="Connect your vendor wallet to load earnings history and receipt links." />;
+  }
+
+  function downloadProof(type: 'csv' | 'json') {
+    const text = type === 'csv'
+      ? toProofCsv(proofSummary)
+      : JSON.stringify(buildProofBundle(proofSummary), null, 2);
+    const mime = type === 'csv' ? 'text/csv' : 'application/json';
+    const blob = new Blob([text], { type: `${mime};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `palengkepay-proof-${selectedPeriod.kind}-${new Date().toISOString().slice(0, 10)}.${type}`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -231,6 +272,119 @@ export function VendorTransactions() {
           )}
         </div>
       </div>
+
+      {/* ── Proof workspace ── */}
+      <section
+        className="rounded-3xl overflow-hidden bg-white"
+        style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 10px 28px rgba(15,23,42,0.05)' }}
+      >
+        <div className="p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <ShieldCheck size={18} style={{ color: '#008055' }} />
+                <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  Income Proof Pack
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500">
+                Exportable vendor proof with source labels and Testnet caveats.
+              </p>
+            </div>
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black shrink-0"
+              style={{
+                backgroundColor: proofSummary.hasFallbackCaveat ? '#FFFBEB' : '#ECFDF5',
+                color: proofSummary.hasFallbackCaveat ? '#B45309' : '#047857',
+                border: `1px solid ${proofSummary.hasFallbackCaveat ? '#FDE68A' : '#A7F3D0'}`,
+              }}
+            >
+              <Database size={12} />
+              {proofSummary.sourceLabel}
+            </span>
+          </div>
+
+          <div className="flex gap-1 p-1 rounded-2xl" style={{ backgroundColor: '#F1F5F9' }}>
+            {PROOF_PERIODS.map((period) => (
+              <button
+                key={period.kind}
+                onClick={() => setPeriodKind(period.kind)}
+                className="flex-1 text-xs font-black rounded-xl transition-all"
+                style={{
+                  minHeight: 38,
+                  backgroundColor: periodKind === period.kind ? 'white' : 'transparent',
+                  color: periodKind === period.kind ? '#008055' : '#64748B',
+                  boxShadow: periodKind === period.kind ? '0 1px 6px rgba(15,23,42,0.1)' : 'none',
+                }}
+              >
+                {period.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: 'Transactions', value: String(proofSummary.transactionCount) },
+              { label: 'Total XLM', value: proofSummary.totalXlm.toFixed(2) },
+              { label: 'Avg XLM', value: proofSummary.averageXlm.toFixed(2) },
+              { label: 'Customers', value: String(proofSummary.uniqueCustomers) },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-2xl p-3" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                <p className="text-xs font-bold text-slate-400 mb-1">{label}</p>
+                <p className="text-lg font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <CalendarDays size={15} style={{ color: '#008055' }} />
+              <p className="text-sm font-black text-slate-800">{proofSummary.readiness.label}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <p className="text-slate-500">Payment data: <span className="font-bold text-slate-700">{proofSummary.readiness.paymentDataPresent ? 'Present' : 'Missing'}</span></p>
+              <p className="text-slate-500">Repayment data: <span className="font-bold text-slate-700">{proofSummary.readiness.repaymentDataPresent ? 'Present' : 'Not attached'}</span></p>
+              <p className="text-slate-500">Live proof: <span className="font-bold text-slate-700">{proofSummary.readiness.liveProofMissing ? 'Missing' : 'Attached'}</span></p>
+              <p className="text-slate-500">PHP total: <span className="font-bold text-slate-700">Unavailable</span></p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl p-4" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
+            <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: '#C2410C' }}>Caveats</p>
+            <ul className="space-y-1">
+              {proofSummary.caveats.map((caveat) => (
+                <li key={caveat} className="text-xs text-orange-800">- {caveat}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => downloadProof('csv')}
+              disabled={proofSummary.transactionCount === 0}
+              className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95 disabled:opacity-50"
+              style={{ minHeight: 46, color: 'white', backgroundColor: '#008055' }}
+            >
+              <Download size={14} /> CSV
+            </button>
+            <button
+              onClick={() => downloadProof('json')}
+              disabled={proofSummary.transactionCount === 0}
+              className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95 disabled:opacity-50"
+              style={{ minHeight: 46, color: '#008055', backgroundColor: '#F0FDFA', border: '1px solid #CCFBF1' }}
+            >
+              <FileJson size={14} /> JSON
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95"
+              style={{ minHeight: 46, color: '#334155', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
+            >
+              <Printer size={14} /> Print
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* ── Transactions list ── */}
       <div className="rounded-3xl overflow-hidden" style={{ border: '1.5px solid #F1F5F9' }}>
