@@ -186,7 +186,7 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
             onClick={onManualEntry}
             className="flex items-center justify-center gap-2 text-sm font-bold py-3.5 rounded-2xl active:scale-95 transition-all"
             style={{
-              color: '#0A3D38',
+              color: '#00284B',
               backgroundColor: 'rgba(255,255,255,0.92)',
             }}
           >
@@ -199,7 +199,7 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
           disabled={uploading}
           className="flex items-center justify-center gap-2 text-sm font-bold py-3.5 rounded-2xl active:scale-95 transition-all disabled:opacity-40"
           style={{
-            color: '#0A3D38',
+            color: '#00284B',
             backgroundColor: 'rgba(255,255,255,0.92)',
           }}
         >

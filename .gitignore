@@ -74,3 +74,5 @@ frontend/README.md
 # Claude Code local config — personal, not project files
 .claude/
 .agents/
+
+.vercel

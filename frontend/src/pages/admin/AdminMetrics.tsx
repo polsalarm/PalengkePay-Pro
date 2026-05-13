@@ -56,7 +56,7 @@ function DonutChart({ data, center }: {
       <text
         x={65} y={61}
         textAnchor="middle"
-        style={{ fontSize: 20, fontWeight: 900, fill: '#0F172A', fontFamily: "'Syne', sans-serif" }}
+        style={{ fontSize: 20, fontWeight: 900, fill: '#0F172A', fontFamily: "'Montserrat', sans-serif" }}
       >
         {center.value}
       </text>
@@ -142,7 +142,7 @@ function StatCard({ icon: Icon, label, value, sub, color }: {
       >
         <Icon size={18} style={{ color }} />
       </div>
-      <p className="text-2xl font-black text-slate-900" style={{ fontFamily: "'Syne', sans-serif" }}>{value}</p>
+      <p className="text-2xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{value}</p>
       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">{label}</p>
       {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
     </div>
@@ -206,13 +206,13 @@ export function AdminMetrics() {
   if (!isConnected) {
     return (
       <div className="max-w-2xl mx-auto animate-page-in">
-        <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#0A3D38' }}>
+        <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#00284B' }}>
           <div className="absolute pointer-events-none" style={{ top: -60, right: -40, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(20,184,166,0.3) 0%, transparent 65%)', filter: 'blur(50px)' }} />
           <div className="relative p-10 text-center">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
               <ShieldCheck size={28} className="text-white" />
             </div>
-            <h1 className="text-xl font-black text-white mb-2" style={{ fontFamily: "'Syne', sans-serif" }}>Metrics Dashboard</h1>
+            <h1 className="text-xl font-black text-white mb-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>Metrics Dashboard</h1>
             <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>Connect admin wallet to view live metrics</p>
             <button onClick={connect} className="font-black px-8 py-3 rounded-2xl active:scale-95 text-white" style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}>
               Connect Wallet
@@ -227,7 +227,7 @@ export function AdminMetrics() {
     <div className="max-w-2xl mx-auto space-y-4 animate-page-in">
 
       {/* Hero */}
-      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#0A3D38' }}>
+      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#00284B' }}>
         <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{ backgroundImage: `repeating-linear-gradient(45deg, white 0px, white 1px, transparent 1px, transparent 12px), repeating-linear-gradient(-45deg, white 0px, white 1px, transparent 1px, transparent 12px)` }} />
         <div className="absolute pointer-events-none" style={{ top: -60, right: -40, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(20,184,166,0.3) 0%, transparent 65%)', filter: 'blur(50px)' }} />
 
@@ -246,7 +246,7 @@ export function AdminMetrics() {
                 <BarChart2 size={20} className="text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-base font-black text-white truncate" style={{ fontFamily: "'Syne', sans-serif" }}>Metrics Dashboard</h1>
+                <h1 className="text-base font-black text-white truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>Metrics Dashboard</h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
                   <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
@@ -271,7 +271,7 @@ export function AdminMetrics() {
               { label: 'Total', value: isLoading ? '…' : String(summary.totalVendors) },
             ].map(({ label, value }) => (
               <div key={label} className="rounded-2xl p-3 text-center" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
-                <p className="text-xl font-black text-white" style={{ fontFamily: "'Syne', sans-serif" }}>{value}</p>
+                <p className="text-xl font-black text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>{value}</p>
                 <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
               </div>
             ))}
@@ -281,7 +281,7 @@ export function AdminMetrics() {
           {(volHistory.length > 0 || txHistory.length > 0) && (
             <div className="flex items-center justify-between rounded-2xl px-4 py-2" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
               <div className="flex flex-col gap-0.5">
-                <p className="text-xs font-black text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
+                <p className="text-xs font-black text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                   {summary.totalVolumeXlm.toFixed(2)} XLM
                 </p>
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Total volume</p>
@@ -289,7 +289,7 @@ export function AdminMetrics() {
               <Sparkline points={volHistory} color="#14B8A6" />
               <div className="w-px h-8 mx-2" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} />
               <div className="flex flex-col gap-0.5 text-right">
-                <p className="text-xs font-black text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
+                <p className="text-xs font-black text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                   {summary.totalTransactions}
                 </p>
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Transactions</p>
@@ -310,14 +310,14 @@ export function AdminMetrics() {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 size={28} className="animate-spin" style={{ color: '#0F766E' }} />
+          <Loader2 size={28} className="animate-spin" style={{ color: '#008055' }} />
         </div>
       ) : (
         <>
           {/* Stat cards */}
           <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={TrendingUp} label="Total XLM Processed" value={summary.totalVolumeXlm.toFixed(2)} sub="XLM on Testnet" color="#0F766E" />
-            <StatCard icon={Zap} label="Total Transactions" value={String(summary.totalTransactions)} sub="all-time payments" color="#7C3AED" />
+            <StatCard icon={TrendingUp} label="Total XLM Processed" value={summary.totalVolumeXlm.toFixed(2)} sub="XLM on Testnet" color="#008055" />
+            <StatCard icon={Zap} label="Total Transactions" value={String(summary.totalTransactions)} sub="all-time payments" color="#042E80" />
             <StatCard icon={Users} label="Active Vendors" value={`${summary.activeVendors}/${summary.totalVendors}`} sub={`${summary.totalVendors - summary.activeVendors} inactive`} color="#0369A1" />
             <StatCard icon={Clock} label="Avg Tx Size" value={summary.avgTxXlm > 0 ? summary.avgTxXlm.toFixed(3) : '—'} sub="XLM per payment" color="#D97706" />
           </div>
@@ -403,7 +403,7 @@ export function AdminMetrics() {
                             </p>
                           </div>
                         </div>
-                        <span className="text-xs font-black shrink-0 ml-2" style={{ color: '#0F766E' }}>
+                        <span className="text-xs font-black shrink-0 ml-2" style={{ color: '#008055' }}>
                           {v.volumeXlm.toFixed(2)} XLM
                         </span>
                       </div>
@@ -413,7 +413,7 @@ export function AdminMetrics() {
                           className="h-full rounded-full"
                           style={{
                             width: barAnimated ? `${widthPct}%` : '0%',
-                            background: `linear-gradient(90deg, ${prodColor} 0%, #0F766E 100%)`,
+                            background: `linear-gradient(90deg, ${prodColor} 0%, #008055 100%)`,
                             transition: `width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 80}ms`,
                           }}
                         />

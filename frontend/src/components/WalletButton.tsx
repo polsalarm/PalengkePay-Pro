@@ -6,7 +6,7 @@ import { truncateAddress } from '../lib/stellar';
 const WALLET_BADGES: Record<string, { label: string; bg: string; color: string }> = {
   freighter:     { label: 'Freighter',     bg: '#EEF2FF', color: '#4F46E5' },
   lobstr:        { label: 'LOBSTR',        bg: '#EFF6FF', color: '#2563EB' },
-  xbull:         { label: 'xBull',         bg: '#F5F3FF', color: '#7C3AED' },
+  xbull:         { label: 'xBull',         bg: '#F5F3FF', color: '#042E80' },
   albedo:        { label: 'Albedo',        bg: '#FFF7ED', color: '#EA580C' },
   walletconnect: { label: 'WalletConnect', bg: '#F1F5F9', color: '#475569' },
 };
@@ -45,7 +45,7 @@ export function WalletButton() {
         onClick={connect}
         disabled={isConnecting}
         className="flex items-center gap-2 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all active:scale-95 disabled:opacity-60"
-        style={{ backgroundColor: '#0F766E', boxShadow: '0 2px 8px rgba(15,118,110,0.3)' }}
+        style={{ backgroundColor: '#008055', boxShadow: '0 2px 8px rgba(15,118,110,0.3)' }}
       >
         {isConnecting
           ? <Loader2 size={14} className="animate-spin" />
@@ -64,7 +64,7 @@ export function WalletButton() {
         className="flex items-center gap-2 text-sm font-bold px-3 py-1.5 rounded-full transition-all active:scale-95 border"
         style={{
           backgroundColor: 'white',
-          borderColor: open ? '#0F766E' : '#E2E8F0',
+          borderColor: open ? '#008055' : '#E2E8F0',
           color: '#334155',
           boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
         }}
@@ -90,7 +90,7 @@ export function WalletButton() {
           }}
         >
           {/* Header — dark teal */}
-          <div className="p-4" style={{ backgroundColor: '#0A3D38' }}>
+          <div className="p-4" style={{ backgroundColor: '#00284B' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#4ADE80' }} />
@@ -111,7 +111,7 @@ export function WalletButton() {
             {balance !== null && (
               <p
                 className="font-black text-white leading-none mb-1"
-                style={{ fontSize: '1.5rem', fontFamily: "'Syne', sans-serif', letterSpacing: '-0.02em'" }}
+                style={{ fontSize: '1.5rem', fontFamily: "'Montserrat', sans-serif', letterSpacing: '-0.02em'" }}
               >
                 {parseFloat(balance).toFixed(2)}
                 <span className="text-sm font-semibold ml-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>XLM</span>
@@ -127,7 +127,7 @@ export function WalletButton() {
               style={{ backgroundColor: '#F8FAFC' }}
             >
               <span className="font-mono text-xs text-slate-500 truncate flex-1">{address}</span>
-              <span className="shrink-0 text-xs font-bold" style={{ color: copied ? '#16A34A' : '#0F766E' }}>
+              <span className="shrink-0 text-xs font-bold" style={{ color: copied ? '#16A34A' : '#008055' }}>
                 {copied ? 'Copied!' : <Copy size={13} />}
               </span>
             </button>

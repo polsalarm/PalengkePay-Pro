@@ -161,11 +161,11 @@ export function CustomerScan() {
           className="w-20 h-20 rounded-3xl flex items-center justify-center mb-5"
           style={{ backgroundColor: '#F0FDFA', border: '2px solid #CCFBF1' }}
         >
-          <ScanLine size={36} style={{ color: '#0F766E' }} />
+          <ScanLine size={36} style={{ color: '#008055' }} />
         </div>
         <h2
           className="text-xl font-black text-slate-900 mb-2 text-center"
-          style={{ fontFamily: "'Syne', sans-serif" }}
+          style={{ fontFamily: "'Montserrat', sans-serif" }}
         >
           Connect your wallet
         </h2>
@@ -175,7 +175,7 @@ export function CustomerScan() {
         <button
           onClick={connect}
           className="w-full text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-base"
-          style={{ backgroundColor: '#0F766E', maxWidth: '320px' }}
+          style={{ backgroundColor: '#008055', maxWidth: '320px' }}
         >
           I-connect ang Wallet
         </button>
@@ -203,7 +203,7 @@ export function CustomerScan() {
           </button>
           <h1
             className="text-lg font-black text-slate-900"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
             {stepTitle[step]}
           </h1>
@@ -215,7 +215,7 @@ export function CustomerScan() {
         <div
           className="flex flex-col"
           style={{
-            backgroundColor: '#0A3D38',
+            backgroundColor: '#00284B',
             minHeight: '100dvh',
           }}
         >
@@ -251,7 +251,7 @@ export function CustomerScan() {
               <ArrowLeft size={18} style={{ color: 'rgba(255,255,255,0.8)' }} />
             </button>
             <div>
-              <h1 className="text-base font-black text-white leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <h1 className="text-base font-black text-white leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 I-Scan ang QR
               </h1>
               <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
@@ -337,7 +337,7 @@ export function CustomerScan() {
           <button
             type="submit"
             className="w-full text-white font-bold rounded-2xl active:scale-95 transition-all"
-            style={{ backgroundColor: '#0F766E', minHeight: '56px', fontSize: '1rem' }}
+            style={{ backgroundColor: '#008055', minHeight: '56px', fontSize: '1rem' }}
           >
             Ituloy
           </button>
@@ -370,15 +370,15 @@ export function CustomerScan() {
           >
             <div
               className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ backgroundColor: '#0F766E' }}
+              style={{ backgroundColor: '#008055' }}
             >
               <Store size={20} className="text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: '#0F766E' }}>
+              <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: '#008055' }}>
                 Nagbabayad kay
               </p>
-              <p className="text-base font-black text-slate-900 truncate" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-base font-black text-slate-900 truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {vendorDisplay}
               </p>
             </div>
@@ -387,7 +387,7 @@ export function CustomerScan() {
           {/* Amount — large and confident */}
           <div
             className="rounded-3xl p-6 text-center"
-            style={{ backgroundColor: '#0A3D38' }}
+            style={{ backgroundColor: '#00284B' }}
           >
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
               Halagang Babayaran
@@ -396,7 +396,8 @@ export function CustomerScan() {
               className="font-black text-white leading-none mb-1"
               style={{
                 fontSize: formatPhp(pendingPayment.quote.phpAmount).length > 10 ? '2.1rem' : '3rem',
-                fontFamily: "'Syne', sans-serif",
+                fontFamily: "'Montserrat', sans-serif",
+                letterSpacing: '-0.02em',
               }}
             >
               {formatPhp(pendingPayment.quote.phpAmount)}
@@ -451,10 +452,10 @@ export function CustomerScan() {
               onClick={handleConfirm}
               className="w-full text-white font-black rounded-2xl active:scale-95 transition-all"
               style={{
-                backgroundColor: '#0F766E',
+                backgroundColor: '#008055',
                 minHeight: '60px',
                 fontSize: '1.05rem',
-                fontFamily: "'Syne', sans-serif",
+                fontFamily: "'Montserrat', sans-serif",
                 boxShadow: '0 6px 24px rgba(15,118,110,0.4)',
               }}
             >
@@ -485,7 +486,7 @@ export function CustomerScan() {
             {/* Green success header */}
             <div
               className="p-8 text-center"
-              style={{ background: 'linear-gradient(135deg, #0A3D38 0%, #0F766E 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #00284B 0%, #008055 100%)' }}
             >
               <div
                 className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
@@ -495,7 +496,7 @@ export function CustomerScan() {
               </div>
               <h2
                 className="text-xl font-black text-white mb-1"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 Bayad na!
               </h2>
@@ -504,7 +505,8 @@ export function CustomerScan() {
                   className="font-black text-white leading-none mt-3"
                   style={{
                     fontSize: formatPhp(pendingPayment.quote.phpAmount).length > 10 ? '2rem' : '2.5rem',
-                    fontFamily: "'Syne', sans-serif",
+                    fontFamily: "'Montserrat', sans-serif",
+                    letterSpacing: '-0.02em',
                   }}
                 >
                   {formatPhp(pendingPayment.quote.phpAmount)}
@@ -550,7 +552,7 @@ export function CustomerScan() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
-                  style={{ color: '#0F766E', backgroundColor: '#F0FDFA' }}
+                  style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
                 >
                   <ExternalLink size={13} /> Tingnan sa Stellar Expert
                 </a>
@@ -571,7 +573,7 @@ export function CustomerScan() {
                 <button
                   onClick={() => navigate('/customer/home')}
                   className="font-bold rounded-2xl active:scale-95 transition-all text-sm text-white"
-                  style={{ minHeight: '52px', backgroundColor: '#0F766E' }}
+                  style={{ minHeight: '52px', backgroundColor: '#008055' }}
                 >
                   Home
                 </button>
@@ -593,7 +595,7 @@ export function CustomerScan() {
               <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#D97706' }}>
                 Installment Credit Offer
               </p>
-              <p className="text-sm font-black text-slate-800 mt-0.5" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-sm font-black text-slate-800 mt-0.5" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 Suriin bago tanggapin
               </p>
             </div>
@@ -622,7 +624,7 @@ export function CustomerScan() {
               <div className="p-4 text-center">
                 <p
                   className="text-xl font-black text-slate-900 leading-tight"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >
                   {(utangOffer.a / STROOPS).toFixed(2)}
                 </p>
@@ -631,7 +633,7 @@ export function CustomerScan() {
               <div className="p-4 text-center">
                 <p
                   className="text-xl font-black text-slate-900 leading-tight"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >
                   {utangOffer.n}×
                 </p>
@@ -642,7 +644,7 @@ export function CustomerScan() {
               <div className="p-4 text-center">
                 <p
                   className="text-base font-black text-slate-900 leading-tight capitalize"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >
                   {intervalLabel(utangOffer.i)}
                 </p>
@@ -662,10 +664,10 @@ export function CustomerScan() {
               onClick={handleAcceptUtang}
               className="w-full text-white font-black rounded-2xl active:scale-95 transition-all"
               style={{
-                backgroundColor: '#0F766E',
+                backgroundColor: '#008055',
                 minHeight: '60px',
                 fontSize: '1.05rem',
-                fontFamily: "'Syne', sans-serif",
+                fontFamily: "'Montserrat', sans-serif",
                 boxShadow: '0 6px 24px rgba(15,118,110,0.4)',
               }}
             >
@@ -678,7 +680,7 @@ export function CustomerScan() {
               className="text-center py-6 space-y-3 rounded-2xl"
               style={{ backgroundColor: '#F8FAFC' }}
             >
-              <Loader2 className="animate-spin mx-auto" size={28} style={{ color: '#0F766E' }} />
+              <Loader2 className="animate-spin mx-auto" size={28} style={{ color: '#008055' }} />
               <p className="text-sm font-bold text-slate-600">Kumpirmahin sa iyong wallet…</p>
               <p className="text-xs text-slate-400">Sa mobile: buksan ang LOBSTR app at i-approve.</p>
             </div>
@@ -696,7 +698,7 @@ export function CustomerScan() {
               <button
                 onClick={handleAcceptUtang}
                 className="w-full text-white font-bold rounded-2xl active:scale-95"
-                style={{ backgroundColor: '#0F766E', minHeight: '56px' }}
+                style={{ backgroundColor: '#008055', minHeight: '56px' }}
               >
                 Subukan Ulit
               </button>
@@ -724,7 +726,7 @@ export function CustomerScan() {
               </div>
               <h2
                 className="text-xl font-black text-white mb-1"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 Kasunduan Tinanggap!
               </h2>
@@ -740,7 +742,7 @@ export function CustomerScan() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full active:scale-95"
-                  style={{ color: '#0F766E', backgroundColor: '#F0FDFA' }}
+                  style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
                 >
                   <ExternalLink size={13} /> Tingnan sa Stellar Expert
                 </a>
@@ -761,7 +763,7 @@ export function CustomerScan() {
                 <button
                   onClick={() => navigate('/customer/home')}
                   className="font-bold rounded-2xl active:scale-95 text-sm text-white"
-                  style={{ minHeight: '52px', backgroundColor: '#0F766E' }}
+                  style={{ minHeight: '52px', backgroundColor: '#008055' }}
                 >
                   Home
                 </button>

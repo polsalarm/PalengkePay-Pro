@@ -48,7 +48,7 @@ function VendorCard({ vendor }: { vendor: VendorProfile }) {
       <div className="bg-white px-4 py-3 space-y-2">
         <p
           className="font-black text-slate-900 leading-tight truncate"
-          style={{ fontFamily: "'Syne', sans-serif", fontSize: '0.9rem' }}
+          style={{ fontFamily: "'Montserrat', sans-serif", fontSize: '0.9rem' }}
         >
           {vendor.name}
         </p>
@@ -121,7 +121,7 @@ export function MarketDirectory() {
     <div className="space-y-4 animate-page-in">
 
       {/* ── Hero bar ── */}
-      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#0A3D38' }}>
+      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#00284B' }}>
         <div
           className="absolute inset-0 pointer-events-none opacity-[0.04]"
           style={{
@@ -145,7 +145,7 @@ export function MarketDirectory() {
               </p>
               <p
                 className="text-xl font-black text-white"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 {isLoading ? '…' : active.length}
                 <span className="text-sm font-semibold ml-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
@@ -194,7 +194,7 @@ export function MarketDirectory() {
               onClick={() => setTypeFilter(t)}
               className="shrink-0 flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-full transition-all active:scale-95"
               style={active
-                ? { backgroundColor: '#0F766E', color: 'white', boxShadow: '0 2px 8px rgba(15,118,110,0.3)' }
+                ? { backgroundColor: '#008055', color: 'white', boxShadow: '0 2px 8px rgba(15,118,110,0.3)' }
                 : { backgroundColor: 'white', color: '#64748B', border: '1.5px solid #E2E8F0' }
               }
             >
@@ -249,9 +249,9 @@ export function MarketDirectory() {
             className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
             style={{ backgroundColor: '#F0FDFA', border: '1.5px solid #CCFBF1' }}
           >
-            <Store size={28} style={{ color: '#0F766E' }} />
+            <Store size={28} style={{ color: '#008055' }} />
           </div>
-          <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
             {query || typeFilter !== 'all' ? 'Walang nahanap' : 'Wala pang vendor'}
           </p>
           <p className="text-xs text-slate-400 mb-4">
@@ -261,7 +261,7 @@ export function MarketDirectory() {
             <button
               onClick={() => { setQuery(''); setTypeFilter('all'); }}
               className="text-xs font-bold px-4 py-2 rounded-xl active:scale-95 text-white"
-              style={{ backgroundColor: '#0F766E' }}
+              style={{ backgroundColor: '#008055' }}
             >
               I-clear ang filters
             </button>

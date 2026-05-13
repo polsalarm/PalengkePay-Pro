@@ -13,7 +13,7 @@ export default defineConfig({
         name: 'PalengkePay',
         short_name: 'PalengkePay',
         description: 'Stellar micropayments for Philippine wet markets',
-        theme_color: '#0F766E',
+        theme_color: '#008055',
         background_color: '#F8FAFC',
         display: 'standalone',
         orientation: 'portrait',

@@ -18,7 +18,7 @@ const PRODUCT_META: Record<string, { emoji: string; label: string; accent: strin
   other:           { emoji: '🛒', label: 'Other',         accent: '#475569', bg: '#F8FAFC', chipBg: '#E2E8F0', chipColor: '#334155' },
 };
 
-const AVATAR_COLORS = ['#0F766E', '#4F46E5', '#D97706', '#F43F5E', '#7C3AED'];
+const AVATAR_COLORS = ['#008055', '#4F46E5', '#D97706', '#F43F5E', '#042E80'];
 
 function Avatar({ name }: { name: string }) {
   const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
@@ -26,7 +26,7 @@ function Avatar({ name }: { name: string }) {
   return (
     <div
       className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-sm shrink-0"
-      style={{ backgroundColor: color, fontFamily: "'Syne', sans-serif" }}
+      style={{ backgroundColor: color, fontFamily: "'Montserrat', sans-serif" }}
     >
       {initials || '?'}
     </div>
@@ -68,7 +68,7 @@ function ApplicationCard({
         <div className="flex items-start gap-3">
           <Avatar name={app.name} />
           <div className="flex-1 min-w-0">
-            <p className="font-black text-slate-900" style={{ fontFamily: "'Syne', sans-serif" }}>{app.name}</p>
+            <p className="font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{app.name}</p>
             <p className="text-xs font-bold text-slate-400 mt-0.5">Stall {app.stallNumber}</p>
             {app.phone && <p className="text-xs text-slate-400 mt-0.5">📞 {app.phone}</p>}
             <p className="text-xs font-mono mt-1" style={{ color: '#CBD5E1' }}>{truncateAddress(app.wallet)}</p>
@@ -81,9 +81,9 @@ function ApplicationCard({
             disabled={loading}
             className="flex items-center justify-center gap-2 text-white font-black rounded-2xl active:scale-95 transition-all disabled:opacity-40 text-sm"
             style={{
-              backgroundColor: '#0F766E',
+              backgroundColor: '#008055',
               minHeight: '48px',
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "'Montserrat', sans-serif",
               boxShadow: '0 4px 16px rgba(15,118,110,0.3)',
             }}
           >
@@ -99,7 +99,7 @@ function ApplicationCard({
               backgroundColor: '#FFF1F2',
               border: '1.5px solid #FECDD3',
               color: '#F43F5E',
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "'Montserrat', sans-serif",
             }}
           >
             <XCircle size={16} />
@@ -167,7 +167,7 @@ function VendorCard({
         <div className="flex items-start gap-3">
           <Avatar name={vendor.name} />
           <div className="flex-1 min-w-0">
-            <p className="font-black text-slate-900" style={{ fontFamily: "'Syne', sans-serif" }}>{vendor.name}</p>
+            <p className="font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{vendor.name}</p>
             <p className="text-xs font-bold text-slate-400 mt-0.5">Stall {vendor.stallNumber}</p>
             {vendor.phone && (
               <p className="text-xs text-slate-400 mt-0.5">📞 {vendor.phone}</p>
@@ -177,14 +177,14 @@ function VendorCard({
 
         <div className="flex items-center gap-4 px-1 py-2 rounded-2xl" style={{ backgroundColor: '#F8FAFC' }}>
           <div className="flex-1 text-center">
-            <p className="text-xl font-black text-slate-900" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {vendor.totalTransactions}
             </p>
             <p className="text-xs text-slate-400">transactions</p>
           </div>
           <div className="w-px h-8" style={{ backgroundColor: '#E2E8F0' }} />
           <div className="flex-1 text-center">
-            <p className="text-xl font-black" style={{ fontFamily: "'Syne', sans-serif", color: '#0F766E' }}>
+            <p className="text-xl font-black" style={{ fontFamily: "'Montserrat', sans-serif", color: '#008055' }}>
               {(Number(vendor.totalVolume) / 10_000_000).toFixed(1)}
             </p>
             <p className="text-xs text-slate-400">XLM volume</p>
@@ -221,7 +221,7 @@ function VendorCard({
           <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}>
             <div className="flex items-center gap-2" style={{ color: '#F43F5E' }}>
               <AlertTriangle size={15} />
-              <p className="text-sm font-black" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-sm font-black" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 Deactivate {vendor.name}?
               </p>
             </div>
@@ -233,7 +233,7 @@ function VendorCard({
                 onClick={() => { setConfirming(false); onDeactivate(); }}
                 disabled={loading}
                 className="flex items-center justify-center gap-1.5 text-white font-black rounded-2xl active:scale-95 transition-all text-sm disabled:opacity-40"
-                style={{ backgroundColor: '#F43F5E', minHeight: '44px', fontFamily: "'Syne', sans-serif" }}
+                style={{ backgroundColor: '#F43F5E', minHeight: '44px', fontFamily: "'Montserrat', sans-serif" }}
               >
                 {loading ? <Loader2 size={14} className="animate-spin" /> : <PowerOff size={14} />}
                 Deactivate
@@ -291,18 +291,18 @@ export function AdminMarket() {
   if (!isConnected) {
     return (
       <div className="max-w-2xl mx-auto animate-page-in">
-        <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#0A3D38' }}>
+        <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#00284B' }}>
           <div className="absolute pointer-events-none" style={{ top: -60, right: -40, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(20,184,166,0.3) 0%, transparent 65%)', filter: 'blur(50px)' }} />
           <div className="relative p-10 text-center">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
               <ShieldCheck size={28} className="text-white" />
             </div>
-            <h1 className="text-xl font-black text-white mb-2" style={{ fontFamily: "'Syne', sans-serif" }}>Admin Dashboard</h1>
+            <h1 className="text-xl font-black text-white mb-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>Admin Dashboard</h1>
             <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>Connect admin wallet to manage vendors</p>
             <button
               onClick={connect}
               className="font-black px-8 py-3 rounded-2xl active:scale-95 text-white"
-              style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', fontFamily: "'Syne', sans-serif" }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', fontFamily: "'Montserrat', sans-serif" }}
             >
               Connect Wallet
             </button>
@@ -316,7 +316,7 @@ export function AdminMarket() {
     <div className="max-w-2xl mx-auto space-y-4 animate-page-in">
 
       {/* Hero */}
-      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#0A3D38' }}>
+      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#00284B' }}>
         <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{ backgroundImage: `repeating-linear-gradient(45deg, white 0px, white 1px, transparent 1px, transparent 12px), repeating-linear-gradient(-45deg, white 0px, white 1px, transparent 1px, transparent 12px)` }} />
         <div className="absolute pointer-events-none" style={{ top: -60, right: -40, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(20,184,166,0.3) 0%, transparent 65%)', filter: 'blur(50px)' }} />
 
@@ -327,7 +327,7 @@ export function AdminMarket() {
               <ShieldCheck size={20} className="text-white" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-black text-white truncate" style={{ fontFamily: "'Syne', sans-serif" }}>Admin Dashboard</h1>
+              <h1 className="text-base font-black text-white truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>Admin Dashboard</h1>
               <p className="text-xs font-mono truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{truncateAddress(address ?? '')}</p>
             </div>
           </div>
@@ -363,7 +363,7 @@ export function AdminMarket() {
                 <Clock size={14} style={{ color: '#FCD34D' }} />
                 <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Pending</span>
               </div>
-              <p className="text-3xl font-black text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-3xl font-black text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {loadingPending ? '…' : applications.length}
               </p>
               {applications.length > 0
@@ -383,7 +383,7 @@ export function AdminMarket() {
                 <Users size={14} style={{ color: '#5EEAD4' }} />
                 <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Vendors</span>
               </div>
-              <p className="text-3xl font-black text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-3xl font-black text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {loadingVendors ? '…' : activeVendors.length}
               </p>
               <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>active in market</p>
@@ -408,7 +408,7 @@ export function AdminMarket() {
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-black text-slate-800" style={{ fontFamily: "'Syne', sans-serif" }}>Pending Applications</h2>
+              <h2 className="text-sm font-black text-slate-800" style={{ fontFamily: "'Montserrat', sans-serif" }}>Pending Applications</h2>
               {applications.length > 0 && (
                 <span
                   className="text-xs font-black px-2.5 py-0.5 rounded-full"
@@ -429,7 +429,7 @@ export function AdminMarket() {
 
           {loadingPending && (
             <div className="flex items-center justify-center py-16">
-              <Loader2 size={28} className="animate-spin" style={{ color: '#0F766E' }} />
+              <Loader2 size={28} className="animate-spin" style={{ color: '#008055' }} />
             </div>
           )}
 
@@ -459,7 +459,7 @@ export function AdminMarket() {
       {tab === 'vendors' && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-sm font-black text-slate-800" style={{ fontFamily: "'Syne', sans-serif" }}>Registered Vendors</h2>
+            <h2 className="text-sm font-black text-slate-800" style={{ fontFamily: "'Montserrat', sans-serif" }}>Registered Vendors</h2>
             <button
               onClick={refetchVendors}
               className="w-8 h-8 rounded-xl flex items-center justify-center active:scale-95 transition-all"
@@ -471,7 +471,7 @@ export function AdminMarket() {
 
           {loadingVendors && (
             <div className="flex items-center justify-center py-16">
-              <Loader2 size={28} className="animate-spin" style={{ color: '#0F766E' }} />
+              <Loader2 size={28} className="animate-spin" style={{ color: '#008055' }} />
             </div>
           )}
 

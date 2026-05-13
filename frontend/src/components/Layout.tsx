@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Home, QrCode, ScanLine, List, User, UserPlus, Users, HandCoins, Store, ChevronLeft, ChevronRight, ArrowUp } from 'lucide-react';
 import { WalletButton } from './WalletButton';
+import logoImg from '../assets/logo.png';
 
 const vendorNav = [
   { to: '/vendor/home', icon: Home, label: 'Home' },
@@ -90,17 +91,26 @@ export function Layout() {
 
       {/* ── Desktop sidebar ─────────────────────────────── */}
       <aside
-        className={`hidden lg:flex flex-col bg-white border-r border-slate-200 shrink-0 transition-all duration-200 ${
+        className={`hidden lg:flex flex-col bg-white border-r border-slate-200 shrink-0 transition-all duration-300 relative ${
           collapsed ? 'w-16' : 'w-60'
         }`}
       >
+        {/* Logo Section */}
         <div className={`flex items-center h-16 border-b border-slate-200 shrink-0 ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-6'}`}>
-          <div className="w-7 h-7 rounded-lg bg-teal-700 flex items-center justify-center shrink-0">
-            <span className="text-white text-xs font-bold">₱</span>
-          </div>
-          {!collapsed && <span className="font-semibold text-slate-900">PalengkePay</span>}
+          <img
+            src={logoImg}
+            alt="PalengkePay"
+            className="w-7 h-7 rounded-lg object-cover shrink-0"
+          />
+          {!collapsed && (
+            <span className="font-semibold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              <span style={{ color: '#00284B' }}>Palengke</span>
+              <span style={{ color: '#008055' }}>Pay</span>
+            </span>
+          )}
         </div>
 
+        {/* Navigation Links */}
         {navItems && (
           <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
             {navItems.map(({ to, icon: Icon, label }) => (
@@ -125,18 +135,27 @@ export function Layout() {
           </nav>
         )}
 
+        {/* Wallet Button Section */}
         <div className={`border-t border-slate-200 shrink-0 ${collapsed ? 'py-3 flex justify-center' : 'p-4'}`}>
           {!collapsed && <WalletButton />}
+          {collapsed && (
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center mx-auto">
+              <span className="text-xs font-bold text-slate-600">₱</span>
+            </div>
+          )}
         </div>
 
-        {/* Collapse toggle */}
+        {/* Collapse Toggle Button - Fixed positioning */}
         <button
-          onClick={() => setCollapsed((c) => !c)}
-          className="absolute left-[calc(var(--sidebar-w)-12px)] hidden lg:flex w-6 h-6 rounded-full bg-white border border-slate-200 shadow-sm items-center justify-center hover:bg-teal-50 hover:border-teal-300 transition-colors z-10"
-          style={{ '--sidebar-w': collapsed ? '64px' : '240px' } as React.CSSProperties}
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 z-10"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <ChevronRight size={12} className="text-slate-500" /> : <ChevronLeft size={12} className="text-slate-500" />}
+          {collapsed ? (
+            <ChevronRight size={12} className="text-slate-500" />
+          ) : (
+            <ChevronLeft size={12} className="text-slate-500" />
+          )}
         </button>
       </aside>
 
@@ -146,10 +165,15 @@ export function Layout() {
         {/* Mobile top bar */}
         <header className="lg:hidden shrink-0 bg-white border-b border-slate-200 h-14 flex items-center justify-between px-4 z-20">
           <div className="flex items-center gap-2 min-w-0 shrink-0">
-            <div className="w-6 h-6 rounded-md bg-teal-700 flex items-center justify-center shrink-0">
-              <span className="text-white text-xs font-bold">₱</span>
-            </div>
-            <span className="font-semibold text-slate-900 text-sm">PalengkePay</span>
+            <img
+              src={logoImg}
+              alt="PalengkePay"
+              className="w-6 h-6 rounded-md object-cover shrink-0"
+            />
+            <span className="font-semibold text-sm" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              <span style={{ color: '#00284B' }}>Palengke</span>
+              <span style={{ color: '#008055' }}>Pay</span>
+            </span>
           </div>
           <div className="shrink-0 ml-3">
             <WalletButton />

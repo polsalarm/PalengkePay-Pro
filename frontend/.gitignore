@@ -25,3 +25,5 @@ qa-artifacts
 *.njsproj
 *.sln
 *.sw?
+
+.vercel

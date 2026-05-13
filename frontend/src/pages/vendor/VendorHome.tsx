@@ -77,7 +77,7 @@ function groupByDate(txs: TxRecord[], lang: 'en' | 'tl') {
   return Object.entries(buckets).map(([label, txs]) => ({ label, txs }));
 }
 
-const AVATAR_COLORS = ['#14B8A6', '#0F766E', '#A78BFA', '#FB923C', '#F472B6', '#34D399', '#60A5FA'];
+const AVATAR_COLORS = ['#14B8A6', '#008055', '#A78BFA', '#FB923C', '#F472B6', '#34D399', '#60A5FA'];
 
 export function VendorHome() {
   const { address } = useWallet();
@@ -114,14 +114,14 @@ export function VendorHome() {
                 const memo = records[0]?.memo ?? '';
                 new Notification('PalengkePay — Payment received!', {
                   body: memo ? `+${amt} XLM · ${memo}` : `+${amt} XLM`,
-                  icon: '/favicon.svg',
+                  icon: '/favicon.ico',
                   tag: 'payment-received',
                 });
               })
               .catch(() => {
                 new Notification('PalengkePay — Payment received!', {
                   body: `+${amt} XLM`,
-                  icon: '/favicon.svg',
+                  icon: '/favicon.ico',
                   tag: 'payment-received',
                 });
               });
@@ -161,7 +161,7 @@ export function VendorHome() {
       {/* ── EARNINGS HERO ── */}
       <div
         className="relative mx-4 mt-4 rounded-3xl"
-        style={{ backgroundColor: '#0A3D38', overflow: 'clip' }}
+        style={{ backgroundColor: '#00284B', overflow: 'clip' }}
       >
         {/* Banig-weave diagonal texture */}
         <div
@@ -190,7 +190,7 @@ export function VendorHome() {
             fontSize: '12rem', lineHeight: 1,
             color: 'rgba(255,255,255,0.04)',
             bottom: -20, right: -10,
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Montserrat', sans-serif",
           }}
         >₱</div>
 
@@ -217,7 +217,7 @@ export function VendorHome() {
                   onClick={() => setLang(l)}
                   className="text-xs font-bold px-3 py-1 rounded-full transition-all"
                   style={lang === l
-                    ? { backgroundColor: '#0F766E', color: 'white' }
+                    ? { backgroundColor: '#008055', color: 'white' }
                     : { color: 'rgba(255,255,255,0.45)' }
                   }
                 >
@@ -242,7 +242,7 @@ export function VendorHome() {
                     className="font-black text-white leading-none"
                     style={{
                       fontSize: earningsFontSize,
-                      fontFamily: "'Syne', sans-serif",
+                      fontFamily: "'Montserrat', sans-serif",
                       letterSpacing: '-0.02em',
                       lineHeight: 1.05,
                     }}
@@ -251,7 +251,7 @@ export function VendorHome() {
                   </span>
                   <span
                     className="text-base font-bold shrink-0"
-                    style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Syne', sans-serif" }}
+                    style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Montserrat', sans-serif" }}
                   >XLM</span>
                 </div>
               )
@@ -272,20 +272,20 @@ export function VendorHome() {
           >
             <div>
               <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.allTimeEarnings}</p>
-              <p className="text-sm font-black text-white leading-tight truncate" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-sm font-black text-white leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {allTimeTotal.toFixed(2)}
               </p>
               <p className="text-xs opacity-40 text-white">XLM</p>
             </div>
             <div>
               <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.totalPayments}</p>
-              <p className="text-sm font-black text-white leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-sm font-black text-white leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {transactions.length}
               </p>
             </div>
             <div>
               <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.wallet}</p>
-              <p className="text-sm font-black text-white leading-tight truncate" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-sm font-black text-white leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {balanceStr}
               </p>
               <p className="text-xs opacity-40 text-white">XLM</p>
@@ -300,7 +300,7 @@ export function VendorHome() {
           onClick={() => navigate('/vendor/qr')}
           className="w-full relative overflow-hidden flex items-center gap-4 text-white rounded-3xl transition-all active:scale-95"
           style={{
-            background: 'linear-gradient(135deg, #0F766E 0%, #0D9488 100%)',
+            background: 'linear-gradient(135deg, #008055 0%, #0D9488 100%)',
             minHeight: '80px',
             padding: '0 20px',
             boxShadow: '0 8px 32px rgba(15,118,110,0.45)',
@@ -335,7 +335,7 @@ export function VendorHome() {
           <div className="relative text-left flex-1 min-w-0">
             <p
               className="font-black text-lg leading-tight"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "'Montserrat', sans-serif" }}
             >
               {t.showQR}
             </p>
@@ -366,7 +366,7 @@ export function VendorHome() {
             <HandCoins size={22} style={{ color: '#D97706' }} />
           </div>
           <div className="flex-1 text-left min-w-0">
-            <p className="text-sm font-black text-slate-900 leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-sm font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {t.utang}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">{t.utangSub}</p>
@@ -380,14 +380,14 @@ export function VendorHome() {
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1.5px solid #F8FAFC' }}>
           <h2
             className="text-base font-black text-slate-900"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
             {t.recentPayments}
           </h2>
           <button
             onClick={() => navigate('/vendor/transactions')}
             className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full active:scale-95"
-            style={{ color: '#0F766E', backgroundColor: '#F0FDFA' }}
+            style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
           >
             {t.viewAll} <ArrowRight size={11} />
           </button>
@@ -422,7 +422,7 @@ export function VendorHome() {
               <button
                 onClick={retry}
                 className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2.5 rounded-xl active:scale-95"
-                style={{ color: '#0F766E', backgroundColor: '#F0FDFA' }}
+                style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
               >
                 <RefreshCw size={12} /> {t.retry}
               </button>
@@ -437,14 +437,14 @@ export function VendorHome() {
               >
                 <TrendingUp size={26} style={{ color: '#14B8A6' }} />
               </div>
-              <p className="text-base font-black text-slate-700 mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-base font-black text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {t.emptyTitle}
               </p>
               <p className="text-sm text-slate-500 mb-5">{t.emptyDesc}</p>
               <button
                 onClick={() => navigate('/vendor/qr')}
                 className="inline-flex items-center gap-2 text-sm font-bold px-5 py-3 rounded-2xl active:scale-95"
-                style={{ color: 'white', backgroundColor: '#0F766E' }}
+                style={{ color: 'white', backgroundColor: '#008055' }}
               >
                 <QrCode size={15} /> {t.showQRBtn}
               </button>
@@ -483,14 +483,14 @@ export function VendorHome() {
                             <div className="min-w-0">
                               <p className="text-sm font-mono text-slate-600 truncate leading-tight">{truncateAddress(tx.from)}</p>
                               {tx.memo && (
-                                <p className="text-xs font-semibold truncate mt-0.5" style={{ color: '#0F766E' }}>{tx.memo}</p>
+                                <p className="text-xs font-semibold truncate mt-0.5" style={{ color: '#008055' }}>{tx.memo}</p>
                               )}
                               <p className="text-xs text-slate-400 mt-0.5">{relativeTime(tx.createdAt)}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0 ml-2">
                             <div className="text-right">
-                              <span className="text-sm font-black block" style={{ color: '#059669', fontFamily: "'Syne', sans-serif" }}>
+                              <span className="text-sm font-black block" style={{ color: '#059669', fontFamily: "'Montserrat', sans-serif" }}>
                                 +{tx.amountXlm.toFixed(2)}
                               </span>
                               <span className="text-xs text-slate-400">XLM</span>

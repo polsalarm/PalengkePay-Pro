@@ -178,7 +178,7 @@ export function VendorUtang() {
         <div>
           <h1
             className="text-xl font-black text-slate-900"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
             {lang === 'tl' ? 'Utang (BNPL)' : 'Utang (BNPL)'}
           </h1>
@@ -193,7 +193,7 @@ export function VendorUtang() {
             className="flex items-center text-xs font-bold rounded-full px-2.5 py-1 transition-all"
             style={{
               backgroundColor: 'rgba(15,118,110,0.1)',
-              color: '#0F766E',
+              color: '#008055',
               border: '1px solid rgba(15,118,110,0.2)',
             }}
           >
@@ -204,7 +204,7 @@ export function VendorUtang() {
               onClick={() => { setShowPanel(true); setMode('qr'); setStep('form'); }}
               className="flex items-center gap-1.5 text-white px-4 rounded-xl text-sm font-bold transition-all active:scale-95"
               style={{
-                background: 'linear-gradient(135deg, #0F766E, #0D9488)',
+                background: 'linear-gradient(135deg, #008055, #0D9488)',
                 minHeight: '44px',
                 boxShadow: '0 4px 14px rgba(15,118,110,0.35)',
               }}
@@ -255,7 +255,7 @@ export function VendorUtang() {
             style={{
               right: -8, bottom: -16, fontSize: 96,
               color: 'rgba(255,255,255,0.12)',
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "'Montserrat', sans-serif",
               lineHeight: 1,
             }}
           >
@@ -273,7 +273,7 @@ export function VendorUtang() {
             style={{
               fontSize: owedFontSize,
               color: '#431407',
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "'Montserrat', sans-serif",
             }}
           >
             {owedStr}
@@ -299,7 +299,7 @@ export function VendorUtang() {
               style={{
                 minHeight: '40px',
                 backgroundColor: filter === f ? 'white' : 'transparent',
-                color: filter === f ? '#0F766E' : 'rgba(15,23,42,0.4)',
+                color: filter === f ? '#008055' : 'rgba(15,23,42,0.4)',
                 boxShadow: filter === f ? '0 1px 6px rgba(0,0,0,0.12)' : 'none',
               }}
             >
@@ -352,7 +352,7 @@ export function VendorUtang() {
                 className="inline-flex items-center gap-2 text-xs font-bold px-5 py-2.5 rounded-full transition-all active:scale-95"
                 style={{
                   backgroundColor: 'rgba(15,118,110,0.1)',
-                  color: '#0F766E',
+                  color: '#008055',
                 }}
               >
                 <Plus size={13} />
@@ -411,7 +411,7 @@ export function VendorUtang() {
               </button>
               <h2
                 className="text-base font-black text-slate-900"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 {stepTitle}
               </h2>
@@ -434,14 +434,14 @@ export function VendorUtang() {
                         onClick={() => { setMode(id); setShowCustomerScanner(false); }}
                         className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all active:scale-[0.97] text-center"
                         style={{
-                          border: mode === id ? '2px solid #0F766E' : '2px solid rgba(15,23,42,0.1)',
+                          border: mode === id ? '2px solid #008055' : '2px solid rgba(15,23,42,0.1)',
                           backgroundColor: mode === id ? 'rgba(15,118,110,0.08)' : 'white',
                           minHeight: '90px',
                         }}
                       >
-                        <Icon size={24} style={{ color: mode === id ? '#0F766E' : 'rgba(15,23,42,0.4)' }} />
+                        <Icon size={24} style={{ color: mode === id ? '#008055' : 'rgba(15,23,42,0.4)' }} />
                         <div>
-                          <p className="text-sm font-bold" style={{ color: mode === id ? '#0F766E' : '#1e293b' }}>
+                          <p className="text-sm font-bold" style={{ color: mode === id ? '#008055' : '#1e293b' }}>
                             {lang === 'tl' ? titleTl : titleEn}
                           </p>
                           <p className="text-xs leading-tight mt-0.5" style={{ color: 'rgba(15,23,42,0.4)' }}>
@@ -459,7 +459,7 @@ export function VendorUtang() {
                     {/* Customer wallet (manual mode) */}
                     {mode === 'manual' && (
                       <div>
-                        <label className="block text-xs font-bold mb-1.5" style={{ color: '#0F766E' }}>
+                        <label className="block text-xs font-bold mb-1.5" style={{ color: '#008055' }}>
                           {lang === 'tl' ? 'Customer Wallet Address' : 'Customer Wallet Address'}
                         </label>
                         <div className="flex gap-2">
@@ -482,7 +482,7 @@ export function VendorUtang() {
                             style={{
                               minWidth: 48, minHeight: 48,
                               border: showCustomerScanner ? 'none' : '1.5px solid rgba(15,23,42,0.15)',
-                              backgroundColor: showCustomerScanner ? '#0F766E' : 'rgba(15,23,42,0.03)',
+                              backgroundColor: showCustomerScanner ? '#008055' : 'rgba(15,23,42,0.03)',
                               color: showCustomerScanner ? 'white' : 'rgba(15,23,42,0.4)',
                             }}
                           >
@@ -492,7 +492,7 @@ export function VendorUtang() {
                         {showCustomerScanner && (
                           <div
                             className="mt-3 rounded-2xl overflow-hidden"
-                            style={{ border: '1.5px solid rgba(15,23,42,0.1)', backgroundColor: '#0A3D38' }}
+                            style={{ border: '1.5px solid rgba(15,23,42,0.1)', backgroundColor: '#00284B' }}
                           >
                             <div
                               className="flex items-center justify-between px-4 py-3"
@@ -516,7 +516,7 @@ export function VendorUtang() {
 
                     {/* Items description */}
                     <div>
-                      <label className="block text-xs font-bold mb-1.5" style={{ color: '#0F766E' }}>
+                      <label className="block text-xs font-bold mb-1.5" style={{ color: '#008055' }}>
                         {lang === 'tl' ? 'Mga Items' : 'Items'}
                         <span className="font-normal ml-1" style={{ color: 'rgba(15,23,42,0.35)' }}>
                           {lang === 'tl' ? '(binibili nila sa credit)' : '(what they\'re buying on credit)'}
@@ -539,7 +539,7 @@ export function VendorUtang() {
 
                     {/* Amount */}
                     <div>
-                      <label className="block text-xs font-bold mb-1.5" style={{ color: '#0F766E' }}>
+                      <label className="block text-xs font-bold mb-1.5" style={{ color: '#008055' }}>
                         {lang === 'tl' ? 'Kabuuang Halaga (XLM)' : 'Total Amount (XLM)'}
                       </label>
                       <input
@@ -561,7 +561,7 @@ export function VendorUtang() {
                     {/* Installments + Interval */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold mb-1.5" style={{ color: '#0F766E' }}>
+                        <label className="block text-xs font-bold mb-1.5" style={{ color: '#008055' }}>
                           {lang === 'tl' ? 'Installments' : 'Installments'}
                         </label>
                         <select
@@ -578,7 +578,7 @@ export function VendorUtang() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold mb-1.5" style={{ color: '#0F766E' }}>
+                        <label className="block text-xs font-bold mb-1.5" style={{ color: '#008055' }}>
                           {lang === 'tl' ? 'Agwat' : 'Interval'}
                         </label>
                         <select
@@ -606,7 +606,7 @@ export function VendorUtang() {
                         className="rounded-xl px-4 py-3"
                         style={{ backgroundColor: 'rgba(15,118,110,0.07)', border: '1px solid rgba(15,118,110,0.15)' }}
                       >
-                        <p className="text-xs font-bold" style={{ color: '#0F766E' }}>{form.description}</p>
+                        <p className="text-xs font-bold" style={{ color: '#008055' }}>{form.description}</p>
                         <p className="text-xs mt-0.5" style={{ color: 'rgba(15,118,110,0.7)' }}>
                           {form.installmentsTotal} × {installmentXlm} XLM · {INTERVAL_OPTIONS.find((o) => o.days === form.intervalDays)?.[lang === 'tl' ? 'labelTl' : 'label'].toLowerCase()}
                         </p>
@@ -629,7 +629,7 @@ export function VendorUtang() {
                       onClick={handleGenerateQR}
                       className="w-full flex items-center justify-center gap-2 text-white font-bold rounded-2xl transition-all active:scale-[0.98]"
                       style={{
-                        background: 'linear-gradient(135deg, #0F766E, #0D9488)',
+                        background: 'linear-gradient(135deg, #008055, #0D9488)',
                         minHeight: '56px',
                         fontSize: '0.9rem',
                         boxShadow: '0 4px 18px rgba(15,118,110,0.4)',
@@ -643,7 +643,7 @@ export function VendorUtang() {
                       onClick={handleGenerateQR}
                       className="w-full flex items-center justify-center gap-2 text-white font-bold rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50"
                       style={{
-                        background: 'linear-gradient(135deg, #0F766E, #0D9488)',
+                        background: 'linear-gradient(135deg, #008055, #0D9488)',
                         minHeight: '56px',
                         fontSize: '0.9rem',
                         boxShadow: '0 4px 18px rgba(15,118,110,0.4)',
@@ -662,7 +662,7 @@ export function VendorUtang() {
                   {/* Summary card — dark teal */}
                   <div
                     className="rounded-2xl p-5 space-y-3 relative overflow-hidden"
-                    style={{ background: 'linear-gradient(135deg, #0A3D38, #0F766E)' }}
+                    style={{ background: 'linear-gradient(135deg, #00284B, #008055)' }}
                   >
                     <div
                       className="absolute inset-0 pointer-events-none opacity-[0.05]"
@@ -721,7 +721,7 @@ export function VendorUtang() {
                       </span>
                       <span
                         className="font-black"
-                        style={{ fontSize: '1.6rem', color: '#92400E', fontFamily: "'Syne', sans-serif" }}
+                        style={{ fontSize: '1.6rem', color: '#92400E', fontFamily: "'Montserrat', sans-serif" }}
                       >
                         {FEE_XLM} XLM
                       </span>
@@ -747,7 +747,7 @@ export function VendorUtang() {
                       onClick={handlePayFee}
                       className="w-full flex items-center justify-center gap-2 text-white font-bold rounded-2xl transition-all active:scale-[0.98]"
                       style={{
-                        background: 'linear-gradient(135deg, #0F766E, #0D9488)',
+                        background: 'linear-gradient(135deg, #008055, #0D9488)',
                         minHeight: '56px',
                         fontSize: '0.9rem',
                         boxShadow: '0 4px 18px rgba(15,118,110,0.4)',
@@ -822,7 +822,7 @@ export function VendorUtang() {
                     onClick={downloadQR}
                     className="w-full flex items-center justify-center gap-2 text-white font-bold rounded-2xl transition-all active:scale-[0.98]"
                     style={{
-                      background: 'linear-gradient(135deg, #0F766E, #0D9488)',
+                      background: 'linear-gradient(135deg, #008055, #0D9488)',
                       minHeight: '56px',
                       fontSize: '0.9rem',
                       boxShadow: '0 4px 18px rgba(15,118,110,0.4)',
@@ -837,7 +837,7 @@ export function VendorUtang() {
                     className="rounded-2xl p-4 space-y-2"
                     style={{ backgroundColor: 'rgba(15,118,110,0.07)', border: '1px solid rgba(15,118,110,0.12)' }}
                   >
-                    <p className="text-sm font-bold" style={{ color: '#0F766E' }}>
+                    <p className="text-sm font-bold" style={{ color: '#008055' }}>
                       {lang === 'tl' ? 'Paano ito gumagana' : 'How it works'}
                     </p>
                     <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: 'rgba(15,118,110,0.8)' }}>

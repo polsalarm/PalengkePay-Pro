@@ -58,7 +58,7 @@ export function VendorProfile() {
     <div className="space-y-4 animate-page-in max-w-md">
 
       {/* ── PROFILE HERO ── */}
-      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#0A3D38' }}>
+      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#00284B' }}>
         <div
           className="absolute pointer-events-none"
           style={{
@@ -72,7 +72,7 @@ export function VendorProfile() {
           style={{
             fontSize: '11rem', lineHeight: 1, color: 'rgba(255,255,255,0.03)',
             bottom: -16, right: 0,
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Montserrat', sans-serif",
           }}
         >₱</div>
 
@@ -97,7 +97,7 @@ export function VendorProfile() {
               <div className="min-w-0">
                 <p
                   className="font-black text-white text-xl leading-tight truncate"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >{vendor?.name || 'Vendor'}</p>
                 <p className="text-xs font-medium capitalize mt-0.5" style={{ color: '#14B8A6' }}>
                   {vendor?.productType || ''}
@@ -138,11 +138,11 @@ export function VendorProfile() {
           <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#F0FDFA' }}>
-                <BarChart2 size={15} style={{ color: '#0F766E' }} />
+                <BarChart2 size={15} style={{ color: '#008055' }} />
               </div>
               <span className="text-xs text-slate-500 font-medium">Transactions</span>
             </div>
-            <p className="text-3xl font-black text-slate-900" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-3xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {vendor.totalTransactions}
             </p>
           </div>
@@ -153,7 +153,7 @@ export function VendorProfile() {
               </div>
               <span className="text-xs text-slate-500 font-medium">Volume</span>
             </div>
-            <p className="text-3xl font-black text-slate-900" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-3xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {(Number(vendor.totalVolume) / 10_000_000).toFixed(1)}
             </p>
             <p className="text-xs text-slate-400 mt-0.5">XLM</p>
@@ -164,14 +164,14 @@ export function VendorProfile() {
       {/* ── STALL DETAILS ── */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-black text-slate-900" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <h2 className="text-sm font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
             Stall Details
           </h2>
           {!editing && vendor && REGISTRY_ID && (
             <button
               onClick={() => setEditing(true)}
               className="flex items-center gap-1.5 text-xs font-bold transition-colors"
-              style={{ color: '#0F766E' }}
+              style={{ color: '#008055' }}
             >
               <Edit2 size={12} /> Edit
             </button>
@@ -215,7 +215,7 @@ export function VendorProfile() {
                     placeholder={placeholder}
                     className="w-full border rounded-xl px-4 py-2.5 text-sm text-slate-900 transition-all outline-none"
                     style={{ borderColor: '#E2E8F0' }}
-                    onFocus={e => e.target.style.borderColor = '#0F766E'}
+                    onFocus={e => e.target.style.borderColor = '#008055'}
                     onBlur={e => e.target.style.borderColor = '#E2E8F0'}
                   />
                 </div>
@@ -227,7 +227,7 @@ export function VendorProfile() {
                   onChange={update('productType')}
                   className="w-full border rounded-xl px-4 py-2.5 text-sm text-slate-900 bg-white outline-none transition-all"
                   style={{ borderColor: '#E2E8F0' }}
-                  onFocus={e => e.target.style.borderColor = '#0F766E'}
+                  onFocus={e => e.target.style.borderColor = '#008055'}
                   onBlur={e => e.target.style.borderColor = '#E2E8F0'}
                 >
                   {PRODUCT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -238,7 +238,7 @@ export function VendorProfile() {
                   onClick={handleSave}
                   disabled={saving}
                   className="flex-1 flex items-center justify-center gap-2 text-white font-bold py-2.5 rounded-xl text-sm transition-all active:scale-95 disabled:opacity-50"
-                  style={{ backgroundColor: '#0F766E' }}
+                  style={{ backgroundColor: '#008055' }}
                 >
                   {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                   {saving ? 'Saving…' : 'Save changes'}
@@ -257,8 +257,8 @@ export function VendorProfile() {
           {!isLoading && vendor && !editing && (
             <div className="space-y-1">
               {[
-                { icon: MapPin, label: 'Stall', value: vendor.stallNumber || '—', color: '#0F766E', bg: '#F0FDFA' },
-                { icon: Tag,    label: 'Product', value: vendor.productType || '—', color: '#7C3AED', bg: '#F5F3FF' },
+                { icon: MapPin, label: 'Stall', value: vendor.stallNumber || '—', color: '#008055', bg: '#F0FDFA' },
+                { icon: Tag,    label: 'Product', value: vendor.productType || '—', color: '#042E80', bg: '#F5F3FF' },
                 { icon: Phone,  label: 'Phone', value: vendor.phone || '—', color: '#D97706', bg: '#FFFBEB' },
               ].map(({ icon: Icon, label, value, color, bg }) => (
                 <div

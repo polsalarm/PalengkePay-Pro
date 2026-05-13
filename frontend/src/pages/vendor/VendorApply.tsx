@@ -28,9 +28,9 @@ const SECTIONS = ['A', 'B', 'C', 'D'];
 const STALLS_PER_SECTION = 20;
 
 const SECTION_COLORS: Record<string, { active: string; text: string; ring: string }> = {
-  A: { active: '#0F766E', text: 'white',   ring: '#14B8A6' },
+  A: { active: '#008055', text: 'white',   ring: '#14B8A6' },
   B: { active: '#D97706', text: 'white',   ring: '#FCD34D' },
-  C: { active: '#7C3AED', text: 'white',   ring: '#C4B5FD' },
+  C: { active: '#042E80', text: 'white',   ring: '#C4B5FD' },
   D: { active: '#DB2777', text: 'white',   ring: '#FBCFE8' },
 };
 
@@ -159,7 +159,7 @@ export function VendorApply() {
         <div className="rounded-3xl overflow-hidden" style={{ border: '1.5px solid #F1F5F9' }}>
           <div
             className="p-8 text-center relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, #0A3D38 0%, #0F766E 100%)' }}
+            style={{ background: 'linear-gradient(135deg, #00284B 0%, #008055 100%)' }}
           >
             <div
               className="absolute pointer-events-none"
@@ -177,7 +177,7 @@ export function VendorApply() {
             </div>
             <h2
               className="text-xl font-black text-white mb-1"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "'Montserrat', sans-serif" }}
             >
               Application Submitted!
             </h2>
@@ -203,7 +203,7 @@ export function VendorApply() {
                     className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                     style={{ backgroundColor: '#F0FDFA' }}
                   >
-                    <Icon size={13} style={{ color: '#0F766E' }} />
+                    <Icon size={13} style={{ color: '#008055' }} />
                   </div>
                   <div>
                     <p className="text-xs text-slate-400">{label}</p>
@@ -219,7 +219,7 @@ export function VendorApply() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full active:scale-95"
-                style={{ color: '#0F766E', backgroundColor: '#F0FDFA' }}
+                style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
               >
                 <ExternalLink size={13} /> View on Stellar Expert
               </a>
@@ -235,7 +235,7 @@ export function VendorApply() {
     <div className="max-w-md mx-auto space-y-4 animate-page-in">
 
       {/* ── Hero ── */}
-      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#0A3D38' }}>
+      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#00284B' }}>
         <div
           className="absolute inset-0 pointer-events-none opacity-[0.04]"
           style={{
@@ -260,7 +260,7 @@ export function VendorApply() {
           </div>
           <h1
             className="text-xl font-black text-white mb-1"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
             Apply as Vendor
           </h1>
@@ -304,7 +304,7 @@ export function VendorApply() {
             placeholder="e.g. Aling Nena Sari-Sari"
             className="w-full rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-800 focus:outline-none transition-all placeholder:font-normal placeholder:text-slate-300"
             style={{ border: '2px solid #E2E8F0' }}
-            onFocus={(e) => { e.target.style.borderColor = '#0F766E'; }}
+            onFocus={(e) => { e.target.style.borderColor = '#008055'; }}
             onBlur={(e) => { e.target.style.borderColor = '#E2E8F0'; }}
           />
         </div>
@@ -319,7 +319,7 @@ export function VendorApply() {
               value={form.productType} onChange={update('productType')}
               className="w-full rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-800 focus:outline-none transition-all bg-white appearance-none pr-10"
               style={{ border: '2px solid #E2E8F0' }}
-              onFocus={(e) => { e.target.style.borderColor = '#0F766E'; }}
+              onFocus={(e) => { e.target.style.borderColor = '#008055'; }}
               onBlur={(e) => { e.target.style.borderColor = '#E2E8F0'; }}
             >
               {PRODUCT_TYPES.map((t) => (
@@ -363,7 +363,7 @@ export function VendorApply() {
             placeholder="+63917 XXX XXXX"
             className="w-full rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-800 focus:outline-none transition-all placeholder:font-normal placeholder:text-slate-300"
             style={{ border: '2px solid #E2E8F0' }}
-            onFocus={(e) => { e.target.style.borderColor = '#0F766E'; }}
+            onFocus={(e) => { e.target.style.borderColor = '#008055'; }}
             onBlur={(e) => { e.target.style.borderColor = '#E2E8F0'; }}
           />
         </div>
@@ -374,7 +374,7 @@ export function VendorApply() {
             className="rounded-2xl px-4 py-3 flex items-center gap-3"
             style={{ backgroundColor: '#F8FAFC', border: '1.5px solid #F1F5F9' }}
           >
-            <Wallet size={14} style={{ color: '#0F766E' }} className="shrink-0" />
+            <Wallet size={14} style={{ color: '#008055' }} className="shrink-0" />
             <div className="min-w-0">
               <p className="text-xs text-slate-400 mb-0.5">Payment wallet</p>
               <p className="text-xs font-mono text-slate-600 truncate">{address}</p>
@@ -388,10 +388,10 @@ export function VendorApply() {
           disabled={isSubmitting || !isConnected}
           className="w-full text-white font-black rounded-2xl active:scale-95 transition-all disabled:opacity-40"
           style={{
-            backgroundColor: '#0F766E',
+            backgroundColor: '#008055',
             minHeight: '60px',
             fontSize: '1.05rem',
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Montserrat', sans-serif",
             boxShadow: '0 6px 24px rgba(15,118,110,0.35)',
           }}
         >

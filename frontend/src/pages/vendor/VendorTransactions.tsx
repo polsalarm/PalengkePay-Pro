@@ -52,8 +52,8 @@ function groupByDate(txs: TxRecord[], t: typeof STRINGS['en']) {
 
 const PALETTE: Array<[string, string]> = [
   ['#FEE2E2', '#EF4444'], ['#FEF3C7', '#D97706'], ['#D1FAE5', '#059669'],
-  ['#DBEAFE', '#3B82F6'], ['#EDE9FE', '#7C3AED'], ['#FCE7F3', '#DB2777'],
-  ['#CCFBF1', '#0F766E'], ['#FED7AA', '#EA580C'],
+  ['#DBEAFE', '#3B82F6'], ['#EDE9FE', '#042E80'], ['#FCE7F3', '#DB2777'],
+  ['#CCFBF1', '#008055'], ['#FED7AA', '#EA580C'],
 ];
 function hashColor(s: string): [string, string] {
   let h = 0;
@@ -78,7 +78,7 @@ function TxRow({ tx }: { tx: TxRecord }) {
         <div className="min-w-0">
           <p className="text-sm font-mono font-bold text-slate-700 truncate">{display}</p>
           {tx.memo && (
-            <p className="text-xs font-medium truncate mt-0.5" style={{ color: '#0F766E' }}>{tx.memo}</p>
+            <p className="text-xs font-medium truncate mt-0.5" style={{ color: '#008055' }}>{tx.memo}</p>
           )}
           <p className="text-xs text-slate-400">{relativeTime(tx.createdAt)}</p>
         </div>
@@ -122,7 +122,7 @@ export function VendorTransactions() {
     <div className="space-y-4 animate-page-in">
 
       {/* ── Hero stats card ── */}
-      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#0A3D38' }}>
+      <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#00284B' }}>
         {/* Banig texture */}
         <div
           className="absolute inset-0 pointer-events-none opacity-[0.04]"
@@ -148,7 +148,7 @@ export function VendorTransactions() {
           className="absolute select-none pointer-events-none font-black"
           style={{
             fontSize: '9rem', lineHeight: 1, color: 'rgba(255,255,255,0.03)',
-            bottom: -10, right: 8, fontFamily: "'Syne', sans-serif",
+            bottom: -10, right: 8, fontFamily: "'Montserrat', sans-serif",
           }}
         >₱</div>
 
@@ -168,7 +168,7 @@ export function VendorTransactions() {
                   onClick={() => setLang(l)}
                   className="text-xs font-bold px-3 py-1 rounded-full transition-all"
                   style={lang === l
-                    ? { backgroundColor: '#0F766E', color: 'white' }
+                    ? { backgroundColor: '#008055', color: 'white' }
                     : { color: 'rgba(255,255,255,0.45)' }
                   }
                 >
@@ -189,7 +189,7 @@ export function VendorTransactions() {
                 className="font-black text-white leading-none mb-1"
                 style={{
                   fontSize: allTimeTotal.toFixed(2).length > 8 ? '2rem' : '2.5rem',
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'Montserrat', sans-serif",
                   letterSpacing: '-0.02em',
                 }}
               >
@@ -204,7 +204,7 @@ export function VendorTransactions() {
                   <p className="text-xs font-medium mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
                     {t.todayEarnings}
                   </p>
-                  <p className="text-base font-black text-white flex items-center gap-1" style={{ fontFamily: "'Syne', sans-serif" }}>
+                  <p className="text-base font-black text-white flex items-center gap-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     <Zap size={13} style={{ color: '#FDE68A' }} />
                     {earnings.toFixed(2)}
                     <span className="text-xs font-normal" style={{ color: 'rgba(255,255,255,0.4)' }}>XLM</span>
@@ -214,7 +214,7 @@ export function VendorTransactions() {
                   <p className="text-xs font-medium mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
                     {t.paymentsToday}
                   </p>
-                  <p className="text-base font-black text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
+                  <p className="text-base font-black text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     {count}
                     <span className="text-xs font-normal ml-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
                       payment{count !== 1 ? 's' : ''}
@@ -256,14 +256,14 @@ export function VendorTransactions() {
             >
               <AlertCircle size={24} style={{ color: '#F43F5E' }} />
             </div>
-            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {t.failedTitle}
             </p>
             <p className="text-xs text-slate-400 mb-5">{error}</p>
             <button
               onClick={retry}
               className="inline-flex items-center gap-1.5 text-xs font-bold px-5 py-2.5 rounded-xl active:scale-95 text-white"
-              style={{ backgroundColor: '#0F766E' }}
+              style={{ backgroundColor: '#008055' }}
             >
               <RefreshCw size={12} /> {t.retry}
             </button>
@@ -276,16 +276,16 @@ export function VendorTransactions() {
               className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
               style={{ backgroundColor: '#F0FDFA', border: '1.5px solid #CCFBF1' }}
             >
-              <TrendingUp size={28} style={{ color: '#0F766E' }} />
+              <TrendingUp size={28} style={{ color: '#008055' }} />
             </div>
-            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {t.emptyTitle}
             </p>
             <p className="text-xs text-slate-400 mb-5">{t.emptyDesc}</p>
             <button
               onClick={() => navigate('/vendor/qr')}
               className="inline-flex items-center gap-1.5 text-xs font-bold px-5 py-2.5 rounded-xl active:scale-95 text-white"
-              style={{ backgroundColor: '#0F766E' }}
+              style={{ backgroundColor: '#008055' }}
             >
               <QrCode size={12} /> {t.showQr}
             </button>
