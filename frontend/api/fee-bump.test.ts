@@ -42,7 +42,6 @@ afterEach(() => {
   delete process.env.FEE_BUMP_ALLOWED_DESTINATIONS;
   delete process.env.FEE_BUMP_RATE_LIMIT_MAX;
   delete process.env.FEE_BUMP_RATE_LIMIT_WINDOW_MS;
-  delete process.env.FEE_BUMP_ALLOWED_DESTINATIONS;
 });
 
 describe('validateInnerTransaction', () => {
