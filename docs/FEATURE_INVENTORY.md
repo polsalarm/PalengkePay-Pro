@@ -225,12 +225,15 @@ Evidence:
 - Added mobile screenshots and usage guidance in README.
 - Added WalletConnect mobile connection guidance.
 - Added Playwright visual route checks across desktop and mobile viewports.
+- Added PWA install guidance and Workbox/Vite PWA support.
 
 Evidence:
 
 - `README.md`
 - `frontend/src/__tests__/visual-routes.spec.ts`
 - `frontend/playwright.config.ts`
+- `frontend/vite.config.ts`
+- `frontend/src/pwa.ts`
 
 ### 1.12 Documentation and Proof Assets
 
@@ -245,6 +248,30 @@ Evidence:
 - `ROADMAP.md`
 - `contracts/README.md`
 - `docs/FEATURE_INVENTORY.md`
+
+### 1.13 Public, Market, and Shared App Surfaces
+
+- Built landing page and public product walkthrough surface.
+- Added market directory route for customer/vendor discovery.
+- Added generic dashboard route and test-send route for internal/demo transaction checks.
+- Added reusable wallet button, balance display, layout shell, toast system, transaction status tracker, QR generator, QR scanner, payment form, and utang card components.
+- Added QR image upload, QR download, and payment/utang status UI through shared components and page flows.
+
+Evidence:
+
+- `frontend/src/pages/Landing.tsx`
+- `frontend/src/pages/MarketDirectory.tsx`
+- `frontend/src/pages/Dashboard.tsx`
+- `frontend/src/pages/TestSend.tsx`
+- `frontend/src/components/Layout.tsx`
+- `frontend/src/components/WalletButton.tsx`
+- `frontend/src/components/BalanceDisplay.tsx`
+- `frontend/src/components/Toast.tsx`
+- `frontend/src/components/TxStatusTracker.tsx`
+- `frontend/src/components/PaymentForm.tsx`
+- `frontend/src/components/QRGenerator.tsx`
+- `frontend/src/components/QRScanner.tsx`
+- `frontend/src/components/UtangCard.tsx`
 
 ## 2. Present Feature Set
 
@@ -261,7 +288,7 @@ Evidence:
 | Area | Routes |
 | --- | --- |
 | Public/onboarding | `/`, `/connect`, `/onboard`, `/market` |
-| General | `/dashboard`, `/test-send` |
+| General/demo | `/dashboard`, `/test-send` |
 | Customer | `/customer/home`, `/customer/scan`, `/customer/history`, `/customer/utang` |
 | Vendor | `/vendor/home`, `/vendor/qr`, `/vendor/transactions`, `/vendor/utang`, `/vendor/profile`, `/vendor/apply` |
 | Admin | `/admin/market`, `/admin/register`, `/admin/metrics` |
@@ -428,7 +455,7 @@ These items come from the workspace deep-research reports:
 
 ## 5. Open Blockers
 
-- Rust contract test suite cannot be locally verified until the Windows MSVC linker is installed.
+- Rust contract test suite now runs locally after installing Visual Studio Build Tools with the C++ workload. Last verified on 2026-05-13 with `cargo test --workspace`.
 - Production fee sponsorship needs real server-side env values:
   - `SPONSOR_SECRET`
   - `FEE_BUMP_ALLOWED_DESTINATIONS`
