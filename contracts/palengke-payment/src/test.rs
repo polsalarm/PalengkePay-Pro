@@ -1,10 +1,6 @@
 #![cfg(test)]
 use super::*;
-use soroban_sdk::{
-    testutils::Address as _,
-    token::StellarAssetClient,
-    Address, Env, String,
-};
+use soroban_sdk::{testutils::Address as _, token::StellarAssetClient, Address, Env, String};
 
 fn setup() -> (Env, PalengkePaymentClient<'static>) {
     let env = Env::default();

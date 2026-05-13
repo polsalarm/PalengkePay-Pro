@@ -1,7 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short,
-    token, Address, Env, String, Vec,
+    contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Vec,
 };
 
 #[contracttype]
@@ -41,10 +40,18 @@ impl PalengkePayment {
             panic!("already initialized");
         }
         admin.require_auth();
-        env.storage().instance().set(&symbol_short!("ADMIN"), &admin);
-        env.storage().instance().set(&symbol_short!("FEEBPS"), &fee_bps);
-        env.storage().instance().set(&symbol_short!("TOKEN"), &native_token);
-        env.storage().instance().set(&symbol_short!("PAYCNT"), &0u64);
+        env.storage()
+            .instance()
+            .set(&symbol_short!("ADMIN"), &admin);
+        env.storage()
+            .instance()
+            .set(&symbol_short!("FEEBPS"), &fee_bps);
+        env.storage()
+            .instance()
+            .set(&symbol_short!("TOKEN"), &native_token);
+        env.storage()
+            .instance()
+            .set(&symbol_short!("PAYCNT"), &0u64);
     }
 
     pub fn pay(env: Env, customer: Address, vendor: Address, amount: i128, memo: String) -> u64 {
@@ -68,7 +75,9 @@ impl PalengkePayment {
             .get(&symbol_short!("PAYCNT"))
             .unwrap_or(0);
         count += 1;
-        env.storage().instance().set(&symbol_short!("PAYCNT"), &count);
+        env.storage()
+            .instance()
+            .set(&symbol_short!("PAYCNT"), &count);
 
         let payment = Payment {
             id: count,
@@ -78,7 +87,9 @@ impl PalengkePayment {
             timestamp: env.ledger().timestamp(),
             memo: memo.clone(),
         };
-        env.storage().persistent().set(&DataKey::Payment(count), &payment);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Payment(count), &payment);
 
         let mut vendor_payments: Vec<u64> = env
             .storage()
@@ -96,9 +107,10 @@ impl PalengkePayment {
             .get(&DataKey::CustomerPayments(customer.clone()))
             .unwrap_or(Vec::new(&env));
         customer_payments.push_back(count);
-        env.storage()
-            .persistent()
-            .set(&DataKey::CustomerPayments(customer.clone()), &customer_payments);
+        env.storage().persistent().set(
+            &DataKey::CustomerPayments(customer.clone()),
+            &customer_payments,
+        );
 
         env.events().publish(
             (symbol_short!("payment"), symbol_short!("done")),
@@ -142,7 +154,12 @@ impl PalengkePayment {
         result
     }
 
-    pub fn get_customer_payments(env: Env, customer: Address, limit: u32, offset: u32) -> Vec<Payment> {
+    pub fn get_customer_payments(
+        env: Env,
+        customer: Address,
+        limit: u32,
+        offset: u32,
+    ) -> Vec<Payment> {
         let ids: Vec<u64> = env
             .storage()
             .persistent()
