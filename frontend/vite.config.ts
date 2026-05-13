@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const devPort = Number(process.env.PORT)
+
 export default defineConfig({
   plugins: [
     react(),
@@ -33,4 +35,7 @@ export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, 'tests/**'],
   },
+  server: Number.isFinite(devPort) && devPort > 0
+    ? { host: '127.0.0.1', port: devPort }
+    : undefined,
 })
