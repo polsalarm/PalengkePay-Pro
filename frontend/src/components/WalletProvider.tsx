@@ -30,17 +30,23 @@ function getStoredValue(key: string): string | null {
   return window.localStorage.getItem(key);
 }
 
+function getWalletConnectOrigin(): string {
+  if (typeof window === 'undefined') return 'https://palengke-pay.vercel.app';
+  return window.location.origin;
+}
+
 function initKit(): Promise<void> {
   if (!kitInitPromise) {
     kitInitPromise = import('@creit.tech/stellar-wallets-kit/modules/wallet-connect').then(
       ({ WalletConnectModule, WalletConnectTargetChain }) => {
+        const origin = getWalletConnectOrigin();
         const wcMod = new WalletConnectModule({
           projectId: 'c7916523a37cc092c33241c5bf3efcbd',
           metadata: {
             name: 'PalengkePay',
             description: 'Stellar micropayments for Philippine wet market vendors',
-            url: 'https://palengke-pay.vercel.app',
-            icons: ['https://palengke-pay.vercel.app/icon-192.svg'],
+            url: origin,
+            icons: [`${origin}/icon-192.svg`],
           },
           allowedChains: [WalletConnectTargetChain.TESTNET],
         });
@@ -79,7 +85,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (address) refreshBalance(address);
-    initKit(); // pre-warm in background
   }, [address, refreshBalance]);
 
   const connect = useCallback(async (): Promise<string | null> => {

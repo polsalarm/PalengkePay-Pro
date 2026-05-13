@@ -387,9 +387,13 @@ Open `http://localhost:5173`
 Run frontend checks with:
 
 ```bash
+npx tsc --noEmit
 npm run lint
 npm run build
+npm run qa:visual
 ```
+
+`npm run qa:visual` runs Playwright against desktop and mobile routes and writes screenshots to `frontend/qa-artifacts/`.
 
 ### Contracts
 
