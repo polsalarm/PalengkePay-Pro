@@ -130,15 +130,18 @@ Customers and vendors pay **zero network fees**. A server-side sponsor wallet wr
 
 - `frontend/api/fee-bump.ts` — Vercel serverless function wraps inner XDR with FeeBumpTransaction
 - `SPONSOR_SECRET` stays server-only; never shipped to the client
+- Sponsorship is restricted to signed Stellar Testnet inner transactions with `PP:` PalengkePay memos, native XLM `payment` / `createAccount` operations only, approved destinations when `FEE_BUMP_ALLOWED_DESTINATIONS` is configured, bounded fees, bounded amounts, and matching source signatures
+- The endpoint includes a best-effort in-memory per-IP rate limit. For production, pair it with durable storage, Vercel Firewall, or another edge/WAF limiter because serverless memory is not shared across instances.
 - Badge shown in payment form: "Gasless — fees sponsored, zero cost to you"
 
 ### 📊 Metrics Dashboard
-Live admin metrics aggregated from on-chain Soroban data — accessible at `/admin/metrics`.
+Admin metrics aggregated from `VendorRegistry` records — accessible at `/admin/metrics`.
 
 - Total vendors, active vs. pending counts
 - Total XLM volume, transaction count, average transaction size
 - Product category breakdown (horizontal bars)
 - Top 5 vendors by volume (progress bars)
+- Current caveat: QR payments still settle as direct Stellar/Horizon transfers, while metrics read `VendorRegistry.total_transactions` / `total_volume`. Treat metrics as registry counters until the payment source-of-truth milestone is completed.
 
 ### 🗂 Data Indexing
 Cursor-based Horizon payment indexer with localStorage caching.
@@ -162,10 +165,11 @@ Cursor-based Horizon payment indexer with localStorage caching.
 - **Vendor identity in QR** — name and stall info embedded so customers see who they're paying before signing
 - **Memo field** — customer logs what they bought (e.g. "2kg tilapia") visible in transaction history
 - **Real-time notifications** — vendor gets a browser push notification on payment received
+- **Current source of truth** — live QR payments use direct Stellar transfers plus fee bump; the `PalengkePayment` contract exists and is tested, but is not yet the authoritative live payment path.
 
 ### BNPL / Utang (Credit)
 - **QR offer flow** — vendor fills in items, amount, installments, interval → pays service fee → QR generated → customer scans to accept
-- **Manual entry** — vendor types or scans customer wallet address directly
+- **Manual entry** — vendor types or scans a customer wallet to generate a customer-specific offer QR; the customer still signs acceptance from their own wallet
 - **On-chain items description** — what the customer is buying on credit is stored in the smart contract
 - **Customer acceptance** — customer scans vendor's utang QR, reviews all terms, signs and submits from their own wallet
 - **Installment tracking** — progress bar per agreement, due dates, overdue flagging
@@ -239,6 +243,7 @@ cargo test --workspace
 | `test_register_vendor` | Admin registers vendor; ID starts at 1; count increments |
 | `test_get_vendor` | Registered vendor returns correct name, stall, product type, active=true |
 | `test_apply_and_approve` | Vendor applies → pending count = 1 → admin approves → vendor count = 1 |
+| `test_apply_vendor_requires_wallet_auth` | Vendor application requires the applicant wallet signature |
 | `test_apply_and_reject` | Vendor applies → admin rejects → status = Rejected |
 | `test_get_pending_vendors` | Two applicants → pagination returns both; approval removes one |
 | `test_get_all_vendors` | Mix of direct-register + approved-application both appear in list |
@@ -247,6 +252,8 @@ cargo test --workspace
 | `test_duplicate_registration_panics` | Re-registering same wallet panics `"vendor already registered"` |
 | `test_deactivate_vendor` | Admin deactivates vendor; `is_active` = false |
 | `test_increment_stats` | Two payments accumulate correct `total_transactions` and `total_volume` |
+| `test_increment_stats_requires_admin_auth` | Stats mutation rejects calls without admin auth |
+| `test_non_admin_cannot_increment_stats` | Non-admin caller cannot mutate vendor stats |
 | `test_non_admin_cannot_register` | Non-admin caller panics `"not admin"` |
 
 ### PalengkePayment — `contracts/palengke-payment/src/test.rs`
@@ -265,6 +272,7 @@ cargo test --workspace
 |------|-----------------|
 | `test_utang_count_starts_zero` | Fresh contract has `utang_count() == 0` |
 | `test_create_utang` | Creates agreement; verifies all fields (amount, installments, status=Active, description) |
+| `test_create_utang_requires_customer_auth` | Third parties cannot create customer debt without customer signature |
 | `test_pay_installment_transfers_and_tracks` | 3 installments → paid count tracks correctly → final status = Completed |
 | `test_get_customer_utangs` | Customer with 2 agreements → list returns both |
 | `test_get_vendor_utangs` | Vendor with 1 agreement → list returns it |
@@ -388,6 +396,7 @@ Run frontend checks with:
 
 ```bash
 npx tsc --noEmit
+npm test -- api/fee-bump.test.ts
 npm run lint
 npm run build
 npm run qa:visual
@@ -420,6 +429,49 @@ VITE_UTANG_FEE_XLM=1
 
 `VITE_UTANG_FEE_XLM` — XLM fee charged to vendors per utang QR creation (default: `1`).
 
+Server-only fee sponsorship variables:
+
+```env
+SPONSOR_SECRET=SA...
+FEE_BUMP_ALLOWED_DESTINATIONS=G...,G...
+FEE_BUMP_RATE_LIMIT_WINDOW_MS=60000
+FEE_BUMP_RATE_LIMIT_MAX=20
+FEE_BUMP_MAX_INNER_XDR_BYTES=20000
+FEE_BUMP_MAX_INNER_FEE_STROOPS=1000
+FEE_BUMP_MAX_SPONSORED_OPS=1
+FEE_BUMP_MAX_SPONSORED_XLM=100
+```
+
+`SPONSOR_SECRET` must be configured only in the deployment environment. Rate-limit and sponsorship limits have safe defaults, but production should use durable rate limiting because serverless in-memory buckets reset per instance. Set `FEE_BUMP_ALLOWED_DESTINATIONS` to a comma-separated allow list when sponsorship should be locked to known PalengkePay treasury/vendor accounts.
+
+---
+
+## Payment and Metrics Source of Truth
+
+Current implementation:
+
+- Customer QR payments are direct Stellar transfers submitted through fee bump sponsorship.
+- Vendor/customer history is indexed from Horizon into browser localStorage.
+- Admin metrics read counters stored in `VendorRegistry`.
+- `PalengkePayment` is deployed/tested contract code, but it is not the live QR payment execution path.
+
+Cleanest architecture for the next hardening milestone:
+
+1. Make `PalengkePayment.pay` the canonical QR payment path.
+2. Have that contract emit payment events and update vendor stats through an authorized contract-to-registry path, or move payment stats into the payment contract and make the dashboard read from there.
+3. Keep the Horizon indexer as a fast UX cache only, not the business source of truth.
+4. Keep fee bump sponsorship as the wrapper around the signed canonical payment transaction, with destination allowlisting and abuse-path tests.
+
+---
+
+## CI and Production Caveats
+
+- GitHub Actions runs contract tests on Ubuntu and frontend typecheck/build on Node 20. The frontend job now also runs `npm test -- api/fee-bump.test.ts` for fee-bump abuse paths.
+- Last upstream CI verified before this hardening: manual `workflow_dispatch` run `25807769027` passed on commit `7f24867` with `Contract Tests` and `Frontend Build` green.
+- Local frontend verification for this hardening passed: `npx tsc --noEmit`, `npm test -- api/fee-bump.test.ts`, `npm run lint`, and `npm run build`.
+- Local Windows contract tests remain blocked until Visual Studio Build Tools with the C++ linker (`link.exe`) are installed. The new Soroban abuse-path tests are wired for CI, but must be verified by the next GitHub Actions run after push.
+- The app still runs on Stellar Testnet. Contract IDs, sponsor balances, and sponsor abuse controls must be rechecked before any mainnet deployment.
+
 ---
 
 ## Tech Stack
@@ -433,7 +485,7 @@ VITE_UTANG_FEE_XLM=1
 | PWA | `vite-plugin-pwa` + Workbox |
 | Fee Sponsorship | Vercel serverless function (`api/fee-bump.ts`) + Stellar FeeBumpTransaction |
 | Monitoring | `@sentry/react` + `/api/health` Horizon + RPC liveness check |
-| Security | CSP + X-Frame-Options headers in `vercel.json` · input sanitization in `src/lib/sanitize.ts` |
+| Security | CSP + X-Frame-Options headers in `vercel.json` · input sanitization in `src/lib/sanitize.ts` · fee-bump XDR policy checks · Soroban signer auth on protected mutations |
 
 ---
 

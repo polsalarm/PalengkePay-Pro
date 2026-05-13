@@ -1,10 +1,6 @@
 #![cfg(test)]
 use super::*;
-use soroban_sdk::{
-    testutils::Address as _,
-    token::StellarAssetClient,
-    Address, Env, String,
-};
+use soroban_sdk::{testutils::Address as _, token::StellarAssetClient, Address, Env, String};
 
 fn setup() -> (Env, UTangEscrowClient<'static>, Address) {
     let env = Env::default();
@@ -19,6 +15,22 @@ fn setup() -> (Env, UTangEscrowClient<'static>, Address) {
 
     let admin = Address::generate(&env);
     client.initialize(&admin, &token_address);
+
+    (env, client, token_address)
+}
+
+fn setup_without_global_auth() -> (Env, UTangEscrowClient<'static>, Address) {
+    let env = Env::default();
+
+    let token_admin = Address::generate(&env);
+    let asset = env.register_stellar_asset_contract_v2(token_admin);
+    let token_address = asset.address();
+
+    let contract_id = env.register_contract(None, UTangEscrow);
+    let client = UTangEscrowClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.mock_all_auths().initialize(&admin, &token_address);
 
     (env, client, token_address)
 }
@@ -70,6 +82,23 @@ fn test_create_utang() {
 }
 
 #[test]
+#[should_panic]
+fn test_create_utang_requires_customer_auth() {
+    let (env, client, _) = setup_without_global_auth();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+
+    client.create_utang(
+        &vendor,
+        &customer,
+        &(300_000_000i128),
+        &3u32,
+        &604800u64,
+        &desc(&env, "3 kilo tilapia"),
+    );
+}
+
+#[test]
 fn test_pay_installment_transfers_and_tracks() {
     let (env, client, token) = setup();
     let vendor = Address::generate(&env);
@@ -102,13 +131,48 @@ fn test_pay_installment_transfers_and_tracks() {
 }
 
 #[test]
+#[should_panic(expected = "not the debtor")]
+fn test_wrong_customer_cannot_pay_installment() {
+    let (env, client, token) = setup();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    let attacker = Address::generate(&env);
+    mint_to(&env, &token, &attacker, 1_000_000_000i128);
+
+    let utang_id = client.create_utang(
+        &vendor,
+        &customer,
+        &(300_000_000i128),
+        &3u32,
+        &604800u64,
+        &desc(&env, "grocery items"),
+    );
+
+    client.pay_installment(&attacker, &utang_id);
+}
+
+#[test]
 fn test_get_customer_utangs() {
     let (env, client, _) = setup();
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
 
-    client.create_utang(&vendor, &customer, &100_000_000i128, &2u32, &604800u64, &desc(&env, "rice"));
-    client.create_utang(&vendor, &customer, &200_000_000i128, &2u32, &604800u64, &desc(&env, "pork"));
+    client.create_utang(
+        &vendor,
+        &customer,
+        &100_000_000i128,
+        &2u32,
+        &604800u64,
+        &desc(&env, "rice"),
+    );
+    client.create_utang(
+        &vendor,
+        &customer,
+        &200_000_000i128,
+        &2u32,
+        &604800u64,
+        &desc(&env, "pork"),
+    );
 
     let utangs = client.get_customer_utangs(&customer, &10u32, &0u32);
     assert_eq!(utangs.len(), 2);
@@ -120,7 +184,14 @@ fn test_get_vendor_utangs() {
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
 
-    client.create_utang(&vendor, &customer, &100_000_000i128, &2u32, &604800u64, &desc(&env, "fish"));
+    client.create_utang(
+        &vendor,
+        &customer,
+        &100_000_000i128,
+        &2u32,
+        &604800u64,
+        &desc(&env, "fish"),
+    );
 
     let utangs = client.get_vendor_utangs(&vendor, &10u32, &0u32);
     assert_eq!(utangs.len(), 1);
@@ -136,11 +207,56 @@ fn test_mark_default() {
 
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
-    let utang_id = client.create_utang(&vendor, &customer, &100_000_000i128, &2u32, &604800u64, &desc(&env, "vegetables"));
+    let utang_id = client.create_utang(
+        &vendor,
+        &customer,
+        &100_000_000i128,
+        &2u32,
+        &604800u64,
+        &desc(&env, "vegetables"),
+    );
 
     client.mark_default(&admin, &utang_id);
     let utang = client.get_utang(&utang_id);
     assert_eq!(utang.status, UtangStatus::Defaulted);
+}
+
+#[test]
+#[should_panic]
+fn test_mark_default_requires_admin_auth() {
+    let (env, client, _) = setup_without_global_auth();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let utang_id = client.mock_all_auths().create_utang(
+        &vendor,
+        &customer,
+        &100_000_000i128,
+        &2u32,
+        &604800u64,
+        &desc(&env, "vegetables"),
+    );
+
+    client.mark_default(&admin, &utang_id);
+}
+
+#[test]
+#[should_panic(expected = "not admin")]
+fn test_non_admin_cannot_mark_default() {
+    let (env, client, _) = setup();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    let not_admin = Address::generate(&env);
+    let utang_id = client.create_utang(
+        &vendor,
+        &customer,
+        &100_000_000i128,
+        &2u32,
+        &604800u64,
+        &desc(&env, "vegetables"),
+    );
+
+    client.mark_default(&not_admin, &utang_id);
 }
 
 #[test]
@@ -151,7 +267,14 @@ fn test_pay_completed_utang_panics() {
     let customer = Address::generate(&env);
     mint_to(&env, &token, &customer, 1_000_000_000i128);
 
-    let utang_id = client.create_utang(&vendor, &customer, &100_000_000i128, &1u32, &604800u64, &desc(&env, "spices"));
+    let utang_id = client.create_utang(
+        &vendor,
+        &customer,
+        &100_000_000i128,
+        &1u32,
+        &604800u64,
+        &desc(&env, "spices"),
+    );
     client.pay_installment(&customer, &utang_id);
     // Second call should panic — already completed
     client.pay_installment(&customer, &utang_id);
@@ -163,5 +286,12 @@ fn test_zero_amount_panics() {
     let (env, client, _) = setup();
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
-    client.create_utang(&vendor, &customer, &0i128, &2u32, &604800u64, &desc(&env, ""));
+    client.create_utang(
+        &vendor,
+        &customer,
+        &0i128,
+        &2u32,
+        &604800u64,
+        &desc(&env, ""),
+    );
 }

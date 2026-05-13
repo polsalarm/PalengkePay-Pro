@@ -72,6 +72,11 @@ export function CustomerUtang() {
 
   const handleAcceptOffer = async () => {
     if (!uploadedOffer || !address) return;
+    if (uploadedOffer.c && uploadedOffer.c !== address) {
+      setOfferError('This installment offer is assigned to another customer wallet');
+      setOfferAcceptStatus('failed');
+      return;
+    }
     setOfferAcceptStatus('signing');
     setOfferError(null);
     const hash = await createUtang(

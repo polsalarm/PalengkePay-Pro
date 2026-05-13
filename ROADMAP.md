@@ -4,11 +4,11 @@
 ## Requirements Checklist
 
 - [ ] 30+ verified active users
-- [ ] Metrics dashboard live
-- [ ] Security checklist completed
-- [ ] Monitoring active
-- [ ] Data indexing implemented
-- [ ] Full documentation
+- [x] Metrics dashboard live
+- [x] Security checklist partially completed
+- [x] Monitoring active
+- [x] Data indexing implemented
+- [x] README documentation refreshed
 - [ ] 1 community contribution
 - [x] 1 advanced feature implemented — Fee Sponsorship (gasless)
 - [ ] 15+ meaningful commits
@@ -20,20 +20,20 @@
 
 | Feature | Status | Committed |
 |---------|--------|-----------|
-| Fee Sponsorship (gasless) | ✅ Built | ⏳ Pending |
-| Metrics Dashboard | ⬜ Not started | — |
-| Data Indexing | ⬜ Not started | — |
-| Monitoring (Sentry + health) | ⬜ Not started | — |
-| Security (CSP + sanitizer) | ⬜ Not started | — |
-| Full Documentation | ⬜ Not started | — |
-| Friendbot faucet button | ⬜ Not started | — |
+| Fee Sponsorship (gasless) | ✅ Built + abuse-path tests | ✅ Checkpointed |
+| Metrics Dashboard | ✅ Built | ✅ Checkpointed |
+| Data Indexing | ✅ Built | ✅ Checkpointed |
+| Monitoring (Sentry + health) | ✅ Built | ✅ Checkpointed |
+| Security (CSP + sanitizer + contract auth) | 🟡 Partial | ✅ Checkpointed |
+| Full Documentation | 🟡 README refreshed; standalone docs pending | ✅ Checkpointed |
+| Friendbot faucet button | ✅ Built on `/connect` and onboarding | ✅ Checkpointed |
 | CONTRIBUTING.md | ⬜ Not started | — |
 
 ---
 
 ## Advanced Feature (pick 1)
 
-- [ ] **Fee Sponsorship** — Gasless transactions via fee bump ⭐ _recommended_
+- [x] **Fee Sponsorship** — Gasless transactions via fee bump ⭐ _recommended_
 - [ ] Cross-border Flows — SEP-24/SEP-31 anchor integration
 - [ ] Multi-signature Logic — Multi-party approval for transactions
 - [ ] Account Abstraction — Smart wallet with custom auth
@@ -42,7 +42,7 @@
 
 ## Feature Breakdown
 
-### 1. Fee Sponsorship — Gasless Transactions ✅ BUILT (not committed)
+### 1. Fee Sponsorship — Gasless Transactions ✅ BUILT + HARDENED
 **Why:** Vendors/customers pay zero fees. Removes #1 adoption blocker.
 
 - [x] `frontend/api/fee-bump.ts` — Vercel fn wraps inner tx with FeeBumpTransaction
@@ -51,33 +51,41 @@
 - [x] `frontend/src/lib/hooks/usePayment.ts` — uses fee-bump
 - [x] `frontend/vercel.json` — rewrite excludes `/api/*`
 - [x] `frontend/.env.example` — documents `VITE_FEE_BUMP_URL`
-- [ ] Add "Gasless ⚡" badge to UI (CustomerScan + PaymentForm)
+- [x] `frontend/api/fee-bump.test.ts` — validates signed source, `PP:` memo, operation type, amount/fee limits, destination allowlist, and rate limiting
+- [x] Add "Gasless" badge to UI (CustomerScan + PaymentForm)
 
-> ⚠️ **BEFORE COMMITTING:** Add `SPONSOR_SECRET=<funded_testnet_secret>` to Vercel dashboard → Environment Variables. Never commit this key.
+> ⚠️ **BEFORE DEPLOYING:** Add `SPONSOR_SECRET=<funded_testnet_secret>` and `FEE_BUMP_ALLOWED_DESTINATIONS=<comma-separated approved destinations>` to Vercel dashboard → Environment Variables. Never commit these keys.
 
 ### 2. Metrics Dashboard
-- [ ] New page `frontend/src/pages/admin/AdminMetrics.tsx`
-- [ ] New hook `frontend/src/lib/hooks/useMetrics.ts`
-- [ ] Live stats: active vendors, tx count, total XLM volume, avg tx size
-- [ ] Weekly volume chart (recharts)
-- [ ] Link from AdminMarket header
+- [x] New page `frontend/src/pages/admin/AdminMetrics.tsx`
+- [x] New hook `frontend/src/lib/hooks/useMetrics.ts`
+- [x] Stats: active vendors, tx count, total XLM volume, avg tx size
+- [x] Product breakdown + top vendors
+- [x] Link from AdminMarket header
+- [ ] Next: unify metrics with the canonical payment source of truth
 
 ### 3. Data Indexing
-- [ ] `frontend/src/lib/indexer.ts` — Horizon cursor-based indexer
-- [ ] localStorage cache with last-cursor position
-- [ ] VendorHome + CustomerHistory pull from index first
-- [ ] Background sync on reconnect
+- [x] `frontend/src/lib/indexer.ts` — Horizon cursor-based indexer
+- [x] localStorage cache with last-cursor position
+- [x] Vendor/customer history pull from index/cache
+- [x] Background sync pattern
 
 ### 4. Monitoring
-- [ ] Add `@sentry/react` — init in `frontend/src/main.tsx`
-- [ ] Capture failed Soroban calls + unhandled errors
-- [ ] `api/health.ts` — checks Horizon + RPC liveness
+- [x] Add `@sentry/react` — init in `frontend/src/main.tsx`
+- [x] Sentry is disabled when `VITE_SENTRY_DSN` is unset
+- [x] `api/health.ts` — checks Horizon + RPC liveness
 - [ ] UptimeRobot free tier pinging deployed URL
 
 ### 5. Security Checklist
-- [ ] CSP + security headers in `vercel.json`
-- [ ] Input sanitizer util `frontend/src/lib/sanitize.ts`
-- [ ] Audit Soroban contract admin auth
+- [x] CSP + security headers in `vercel.json`
+- [x] Input sanitizer util `frontend/src/lib/sanitize.ts`
+- [x] Fee-bump XDR policy checks + abuse-path tests
+- [x] Vendor apply requires wallet auth
+- [x] Vendor stats mutation requires admin auth
+- [x] Utang creation requires customer auth
+- [x] Utang repayment/default negative tests added
+- [ ] Next: migrate utang to a true on-chain vendor-offer/customer-accept model
+- [ ] Next: replace admin-only `increment_stats` with an authorized payment-contract path
 - [ ] `SECURITY.md` — checklist documented
 
 ### 6. Full Documentation
@@ -97,6 +105,26 @@
 - [ ] Create 3 `good first issue` labels on GitHub
 - [ ] `CONTRIBUTING.md` with setup guide
 - [ ] Get 1 PR merged from external contributor
+
+---
+
+## Payment / Metrics Architecture Decision
+
+Current state:
+
+- Live QR payments use direct Stellar transfers through `submitWithFeeBump()`.
+- Transaction history uses the Horizon indexer and localStorage cache.
+- Admin metrics use counters in `VendorRegistry`.
+- `PalengkePayment` is tested contract code but is not the live QR payment source of truth.
+
+Recommended next architecture:
+
+- Route QR payments through `PalengkePayment.pay`.
+- Make payment events and stats updates come from the same transaction path.
+- Let the dashboard read from the canonical payment/stat source, not browser cache.
+- Keep Horizon indexing only as a fast read/cache layer for user history.
+
+Decision needed before implementation: contract-first payments vs. keeping direct Stellar transfers with a separate proof-based metrics updater. Contract-first is cleaner because settlement, events, and metrics share one trust boundary.
 
 ---
 

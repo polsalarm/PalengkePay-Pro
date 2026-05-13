@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Plus, X, HandCoins, AlertTriangle, ScanLine, Keyboard, QrCode, ChevronLeft, Loader2, CheckCircle, ShieldCheck, Download } from 'lucide-react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { useWallet } from '../../lib/hooks/useWallet';
-import { useVendorUtangs, useCreateUtang } from '../../lib/hooks/useUtang';
+import { useVendorUtangs } from '../../lib/hooks/useUtang';
 import { UtangCard } from '../../components/UtangCard';
 import { QRScanner } from '../../components/QRScanner';
 import { buildPaymentTx, submitTx } from '../../lib/stellar';
@@ -24,6 +24,7 @@ const STROOPS = 10_000_000;
 export interface UtangOfferPayload {
   t: 'u';
   v: string;
+  c?: string;
   a: number;
   n: number;
   i: number;
@@ -59,8 +60,7 @@ const FILTER_LABELS: Record<string, { en: string; tl: string }> = {
 
 export function VendorUtang() {
   const { address } = useWallet();
-  const { utangs, isLoading, refetch } = useVendorUtangs(address);
-  const { createUtang, isCreating, error: createError } = useCreateUtang();
+  const { utangs, isLoading } = useVendorUtangs(address);
 
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
   const [showPanel, setShowPanel] = useState(false);
@@ -126,6 +126,7 @@ export function VendorUtang() {
       setQrPayload({
         t: 'u',
         v: address,
+        c: mode === 'manual' ? form.customerWallet.trim() : undefined,
         a: Math.round(parseFloat(form.totalAmountXlm) * STROOPS),
         n: form.installmentsTotal,
         i: form.intervalDays * 86400,
@@ -141,23 +142,6 @@ export function VendorUtang() {
       );
       setFeeStatus('failed');
     }
-  }
-
-  async function handleManualCreate() {
-    if (!validate() || !address) return;
-    const hash = await createUtang(
-      {
-        vendorWallet: address,
-        customerWallet: form.customerWallet.trim(),
-        totalAmountXlm: parseFloat(form.totalAmountXlm),
-        installmentsTotal: form.installmentsTotal,
-        intervalDays: form.intervalDays,
-        description: form.description.trim(),
-      },
-      address
-    );
-    if (hash) { handleClose(); refetch(); }
-    else if (createError) setFormError(createError);
   }
 
   function downloadQR() {
@@ -629,12 +613,12 @@ export function VendorUtang() {
                       </div>
                     )}
 
-                    {(formError || createError) && (
+                    {formError && (
                       <div
                         className="rounded-xl px-4 py-3 text-xs font-semibold"
                         style={{ backgroundColor: 'rgba(244,63,94,0.08)', color: '#be123c', border: '1px solid rgba(244,63,94,0.2)' }}
                       >
-                        {formError ?? createError}
+                        {formError}
                       </div>
                     )}
                   </div>
@@ -656,8 +640,7 @@ export function VendorUtang() {
                     </button>
                   ) : (
                     <button
-                      onClick={handleManualCreate}
-                      disabled={isCreating}
+                      onClick={handleGenerateQR}
                       className="w-full flex items-center justify-center gap-2 text-white font-bold rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50"
                       style={{
                         background: 'linear-gradient(135deg, #0F766E, #0D9488)',
@@ -666,11 +649,8 @@ export function VendorUtang() {
                         boxShadow: '0 4px 18px rgba(15,118,110,0.4)',
                       }}
                     >
-                      {isCreating && <Loader2 size={16} className="animate-spin" />}
-                      {isCreating
-                        ? (lang === 'tl' ? 'Inilalagay sa chain…' : 'Submitting on-chain…')
-                        : (lang === 'tl' ? 'Lumikha ng Kasunduan' : 'Create Agreement')
-                      }
+                      <QrCode size={17} />
+                      {lang === 'tl' ? 'Gumawa ng Customer QR' : 'Create Customer QR'}
                     </button>
                   )}
                 </>

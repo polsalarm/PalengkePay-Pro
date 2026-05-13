@@ -8,6 +8,7 @@ const HORIZON_URL = 'https://horizon-testnet.stellar.org';
 const RPC_URL = import.meta.env.VITE_SOROBAN_RPC_URL ?? 'https://soroban-testnet.stellar.org';
 const NETWORK_PASSPHRASE = Networks.TESTNET;
 const BASE_FEE = '100';
+const PALENGKEPAY_MEMO_PREFIX = 'PP:';
 
 // ── Horizon ───────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,8 @@ export async function buildPaymentTx(
     }));
   }
 
-  if (memo) builder.addMemo(Memo.text(memo.slice(0, 28)));
+  const memoText = `${PALENGKEPAY_MEMO_PREFIX}${memo?.trim() || 'PalengkePay'}`.slice(0, 28);
+  builder.addMemo(Memo.text(memoText));
 
   return builder.setTimeout(300).build().toXDR();
 }
