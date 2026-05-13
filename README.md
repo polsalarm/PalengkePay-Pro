@@ -136,6 +136,14 @@ PalengkePay puts a Stellar wallet in every vendor's pocket and a QR code on ever
 
 ## Advanced Features
 
+### 💸 Stable Checkout with Price Lock
+Customer checkout is now PHP-first. The app locks the current PHP/XLM quote for one minute, converts the payment into XLM for Stellar settlement, and shows a dual-currency receipt after confirmation.
+
+- `frontend/src/lib/checkout-quote.ts` — builds the locked quote, expiry window, and receipt formatting
+- `frontend/api/quote.ts` — serves the PHP/XLM quote for production; the frontend keeps a direct CoinGecko fallback for local/dev
+- `frontend/src/components/PaymentForm.tsx` — collects PHP amount, shows locked XLM, rate, and countdown
+- `frontend/src/pages/customer/CustomerScan.tsx` — carries the quote through confirmation and receipt screens
+
 ### ⚡ Gasless Transactions (Fee Sponsorship)
 Fee sponsorship remains available as the fallback path for classic Stellar transfers when the payment contract is not configured. A server-side sponsor wallet wraps approved payment/createAccount inner transactions in a Stellar FeeBumpTransaction. Users sign the inner transaction; the sponsor covers the classic Stellar fee.
 
@@ -146,19 +154,20 @@ Fee sponsorship remains available as the fallback path for classic Stellar trans
 - Current deployed QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured, giving an on-chain contract receipt and shared payment source of truth.
 
 ### 📊 Metrics Dashboard
-Admin metrics aggregated from `VendorRegistry` records — accessible at `/admin/metrics`.
+Admin metrics prefer `PalengkePayment` records — accessible at `/admin/metrics`.
 
 - Total vendors, active vs. pending counts
 - Total XLM volume, transaction count, average transaction size
 - Product category breakdown (horizontal bars)
 - Top 5 vendors by volume (progress bars)
-- Current caveat: QR payments now prefer `PalengkePayment.pay`, while metrics still read `VendorRegistry.total_transactions` / `total_volume`. The next step is wiring metrics to the canonical payment contract events/records.
+- Compatibility fallback: if the payment contract ID is missing or contract reads fail, the dashboard can fall back to legacy `VendorRegistry` counters and shows that fallback state in the UI.
 
 ### 🗂 Data Indexing
-Cursor-based Horizon payment indexer with localStorage caching.
+Contract-first payment history with Horizon/localStorage fallback.
 
+- `frontend/src/lib/payment-source.ts` — normalizes `PalengkePayment` records for history and metrics
 - `frontend/src/lib/indexer.ts` — fetches since last cursor, merges into cache, returns newest-first
-- Vendor and customer transaction views load instantly from cache, sync in background
+- Vendor and customer transaction views load cached Horizon rows immediately, then merge contract records when available
 - Zero extra infrastructure — pure Horizon + browser storage
 
 ### 🔍 Monitoring
@@ -173,6 +182,7 @@ Cursor-based Horizon payment indexer with localStorage caching.
 
 ### Payments
 - **QR-based payments** — vendor displays QR, customer scans and pays XLM in seconds
+- **Stable checkout** — customer enters PHP, app locks a short-lived PHP/XLM quote, and receipt shows both PHP paid and XLM settled
 - **Vendor identity in QR** — name and stall info embedded so customers see who they're paying before signing
 - **Memo field** — customer logs what they bought (e.g. "2kg tilapia") visible in transaction history
 - **Real-time notifications** — vendor gets a browser push notification on payment received
@@ -407,7 +417,7 @@ Run frontend checks with:
 
 ```bash
 npx tsc --noEmit
-npm test -- api/fee-bump.test.ts src/lib/payment-routing.test.ts
+npm test
 npm run lint
 npm run build
 npm run qa:visual
@@ -462,24 +472,25 @@ FEE_BUMP_MAX_SPONSORED_XLM=100
 Current implementation:
 
 - Customer QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured.
-- Vendor/customer history is indexed from Horizon into browser localStorage.
-- Admin metrics read counters stored in `VendorRegistry`.
+- Checkout uses a PHP-first locked quote and dual-currency receipt before sending the XLM amount.
+- Vendor/customer history prefers `PalengkePayment` records and keeps Horizon/localStorage as fallback cache.
+- Admin metrics prefer `PalengkePayment` records and use `VendorRegistry` counters only as a compatibility fallback.
 - Direct fee-bumped Stellar transfer remains available as a local-dev or missing-contract fallback.
 
-Cleanest architecture for the next hardening milestone:
+Remaining hardening:
 
-1. Have the payment contract events/records drive vendor stats and admin metrics.
-2. Keep the Horizon indexer as a fast UX cache only, not the business source of truth.
+1. Redeploy `PalengkePayment` with `get_customer_payments` so customer history can read the same contract source as vendor history.
+2. Retire or further restrict manual `VendorRegistry.increment_stats` once no dashboard depends on registry counters.
 3. Decide whether fee sponsorship should expand to tightly validated Soroban payment invocations.
 
 ---
 
 ## CI and Production Caveats
 
-- GitHub Actions runs contract tests on Ubuntu and frontend typecheck/build on Node 20. The frontend job now also runs `npm test -- api/fee-bump.test.ts src/lib/payment-routing.test.ts` for fee-bump abuse paths and payment routing.
+- GitHub Actions runs contract tests on Ubuntu and frontend typecheck/build on Node 20. The frontend job now also runs `npm test` for fee-bump abuse paths, payment routing, source-of-truth metrics/history helpers, and checkout quote logic.
 - Last upstream CI verified before this hardening: manual `workflow_dispatch` run `25807769027` passed on commit `7f24867` with `Contract Tests` and `Frontend Build` green.
-- Local frontend verification for this hardening passed: `npx tsc --noEmit`, `npm test -- api/fee-bump.test.ts`, `npm run lint`, and `npm run build`.
-- Local Windows contract tests now pass after installing Visual Studio Build Tools with the C++ workload. Last local check: `cargo test --workspace` passed 32 contract tests on 2026-05-13.
+- Local frontend verification for the previous hardening passed: `npx tsc --noEmit`, `npm test -- api/fee-bump.test.ts`, `npm run lint`, and `npm run build`.
+- Current local shell does not put `cargo` on PATH, but `C:\Users\Admin\.cargo\bin\cargo.exe test --workspace` passed 33 contract tests, including the new `get_customer_payments` path.
 - The app still runs on Stellar Testnet. Contract IDs, sponsor balances, and sponsor abuse controls must be rechecked before any mainnet deployment.
 
 ---

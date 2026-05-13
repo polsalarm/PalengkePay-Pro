@@ -1,12 +1,12 @@
 # PalengkePay Feature Inventory
 
-Last updated: 2026-05-13
+Last updated: 2026-05-14
 
 This document is the working list of what has already been built, what is present in the app today, and what should come next. It is based on the current repo state, README, roadmap, frontend routes/hooks, API functions, Soroban contract modules, and the workspace deep-research reports in `../../docs/`.
 
 ## 0. Product Summary
 
-PalengkePay is a Stellar Testnet web app for public-market vendors and customers. The app supports wallet onboarding, QR payments, vendor registration, customer/vendor transaction history, utang installment agreements, admin vendor management, gasless payment sponsorship, metrics, and operational health checks.
+PalengkePay is a Stellar Testnet web app for public-market vendors and customers. The app supports wallet onboarding, QR payments, stable PHP-first checkout, vendor registration, customer/vendor transaction history, utang installment agreements, admin vendor management, gasless payment sponsorship, metrics, and operational health checks.
 
 ## 1. Previous Work Completed
 
@@ -25,14 +25,16 @@ Evidence:
 - `frontend/src/pages/Onboard.tsx`
 - `frontend/src/App.tsx`
 
-### 1.2 Customer Payment Flow
+### 1.2 Customer Payment and Stable Checkout Flow
 
 - Built customer home, scan, history, and utang pages.
 - Added QR scan and manual vendor wallet entry.
 - Added vendor identity metadata in payment QR payloads.
 - Added signed Stellar payment transaction flow.
 - Routed live QR payments through the `PalengkePayment.pay` contract path when configured.
-- Added instant local history with background Horizon sync.
+- Added PHP-first locked checkout quote and dual-currency receipt display.
+- Added quote helper and production `/api/quote` rate endpoint with frontend fallback.
+- Added contract-first history with instant local Horizon cache fallback.
 
 Current caveat:
 
@@ -43,8 +45,11 @@ Evidence:
 - `frontend/src/pages/customer/CustomerHome.tsx`
 - `frontend/src/pages/customer/CustomerScan.tsx`
 - `frontend/src/pages/customer/CustomerHistory.tsx`
+- `frontend/src/components/PaymentForm.tsx`
 - `frontend/src/lib/hooks/usePayment.ts`
+- `frontend/src/lib/checkout-quote.ts`
 - `frontend/src/lib/hooks/useTransactions.ts`
+- `frontend/api/quote.ts`
 - `frontend/src/lib/indexer.ts`
 - `frontend/src/lib/stellar.ts`
 
@@ -53,7 +58,7 @@ Evidence:
 - Built vendor home, QR, transaction history, utang, profile, and application pages.
 - Added QR generation for payment requests.
 - Added vendor profile display and status handling.
-- Added vendor transaction history from Horizon/indexed cache.
+- Added vendor transaction history from `PalengkePayment` records with Horizon/indexed cache fallback.
 - Added vendor utang creation surface with QR/manual acceptance paths.
 
 Evidence:
@@ -80,7 +85,7 @@ Evidence:
 
 Current caveat:
 
-- Vendor stats are currently admin-controlled counters. The cleaner future design is to update stats from the canonical payment contract path.
+- Vendor stats counters are now a legacy fallback for metrics. The cleaner future design is to retire `increment_stats` or restrict it to an authorized payment-contract/event-normalizer path.
 
 Evidence:
 
@@ -96,10 +101,12 @@ Evidence:
 - Added metrics hook.
 - Added active vendor count, pending vendor count, total transaction count, total XLM volume, average transaction size, product breakdown, and top vendors.
 - Linked metrics from admin market workflow.
+- Wired metrics to prefer `PalengkePayment` records through `frontend/src/lib/payment-source.ts`.
+- Added visible dashboard source labeling for contract records vs registry fallback.
 
 Current caveat:
 
-- Metrics still read `VendorRegistry` counters. The payment path has moved toward `PalengkePayment.pay`, but metrics still need to read the canonical payment source.
+- Metrics fall back to `VendorRegistry` counters if payment contract reads are unavailable. This fallback should be removed after contract reads are verified live.
 
 Evidence:
 
@@ -137,12 +144,13 @@ Evidence:
 - Built `PalengkePayment` Soroban contract.
 - Added payment record storage.
 - Added vendor payment lookup.
+- Added customer payment lookup in source for unified customer history.
 - Added payment-completed events.
 - Added Rust tests for payment recording and retrieval.
 
 Current caveat:
 
-- This contract is now the preferred frontend QR payment execution path when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured.
+- This contract is now the preferred frontend QR payment execution, history, and metrics source when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured. Production still needs redeploy confirmation for `get_customer_payments`.
 
 Evidence:
 
@@ -188,11 +196,11 @@ Evidence:
 - Added Horizon cursor-based payment indexer.
 - Added localStorage cache.
 - Added last-cursor tracking.
-- Added vendor/customer history reads from cache with background sync.
+- Added vendor/customer history reads from `PalengkePayment` records with background Horizon cache fallback.
 
 Current caveat:
 
-- Horizon/localStorage is a UX cache and history layer, not the business source of truth.
+- Horizon/localStorage is a UX cache and fallback layer, not the business source of truth.
 
 Evidence:
 
@@ -298,7 +306,7 @@ Evidence:
 | Contract | Present role | Current limitation |
 | --- | --- | --- |
 | `VendorRegistry` | Vendor applications, admin approvals, vendor profiles, vendor counters | Stats should eventually be updated by canonical payment flow |
-| `PalengkePayment` | Payment records, vendor payment lookups, payment events, preferred QR payment execution | Metrics are not yet sourced from payment contract records |
+| `PalengkePayment` | Payment records, vendor/customer payment lookups, payment events, preferred QR payment execution/history/metrics source | Production needs redeploy confirmation for customer lookup |
 | `UtangEscrow` | Utang agreements, repayment tracking, completion/default status | Needs true vendor-offer/customer-accept architecture |
 
 ### 2.4 API and Runtime Functions
@@ -307,6 +315,7 @@ Evidence:
 | --- | --- |
 | `frontend/api/fee-bump.ts` | Sponsors approved Stellar Testnet payment/createAccount transactions with fee bump |
 | `frontend/api/health.ts` | Checks Horizon and Soroban RPC liveness |
+| `frontend/api/quote.ts` | Serves cached PHP/XLM quote rates for Stable Checkout |
 
 ### 2.5 Verification Commands
 
@@ -323,17 +332,16 @@ Evidence:
 
 ### 3.1 Highest Priority
 
-1. Move payment events and vendor stats to the same source-of-truth transaction path.
-2. Keep Horizon indexing as a cache/history layer only.
-3. Replace admin-only `increment_stats` with an authorized payment-contract path.
+1. Redeploy `PalengkePayment` and verify `get_customer_payments` against Testnet.
+2. Keep Horizon indexing as a cache/history fallback only.
+3. Replace or retire admin-only `increment_stats` after registry fallback is no longer needed.
 4. Keep `cargo test --workspace` green in CI and local release checks.
 
 ### 3.2 Product Architecture
 
-- Finish contract-first payment architecture by moving metrics and stats away from separate vendor counters.
+- Finish contract-first payment architecture by removing the registry metrics fallback after contract reads are proven live.
 - Redesign utang as vendor creates offer on-chain, customer accepts on-chain, and repayment follows that agreement.
-- Add a clearer data model for payment, vendor stats, and indexed history boundaries.
-- Add a dedicated architecture doc after canonical payment flow is chosen.
+- Add a clearer event-indexing model for payment, vendor stats, and indexed history boundaries.
 
 ### 3.3 Security and Abuse Controls
 
@@ -391,7 +399,7 @@ These items come from the workspace deep-research reports:
 
 | Priority | Feature | Why it matters | Research estimate |
 | --- | --- | --- | --- |
-| 1 | Stable Checkout with Price Lock and Dual-Currency Receipt | Makes crypto payments understandable to non-crypto users by centering PHP price, locked quote, and receipt proof | 16-22h |
+| 1 | Stable Checkout with Price Lock and Dual-Currency Receipt | First pass implemented: PHP-first price lock, XLM settlement amount, and dual-currency receipt proof | 16-22h |
 | 2 | PalengkeScore Credit Passport | Converts payment and repayment history into a financeable vendor trust profile | 20-28h |
 | 3 | Smart Collections for Utang | Adds reminders, partial pay, early settlement, and repayment receipts to the existing utang flow | 14-20h |
 | 4 | Receipt Pack, CSV Export, Print-Ready QR Kit | Low-risk proof/polish that helps vendors, judges, and demos | 8-12h |
@@ -402,7 +410,7 @@ These items come from the workspace deep-research reports:
 
 - Unify payment event truth before building analytics, PalengkeScore, or risk dashboards.
 - Prefer contract-first payments: route QR payments through `PalengkePayment.pay`, then make events and stats come from that path.
-- Treat Horizon/localStorage as history/cache, not the business source of truth.
+- Treat Horizon/localStorage as history/cache fallback, not the business source of truth.
 - Add a shared event/metrics model before expanding score, collections, or admin reporting.
 - Replace admin-only `increment_stats` with an authorized payment-contract or event-normalizer path.
 - Make QR payloads stronger over time: signed invoices, reusable checkout requests, basket budgets, and receipts instead of plain address metadata only.

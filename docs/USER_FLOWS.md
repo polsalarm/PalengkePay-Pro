@@ -1,6 +1,6 @@
 # PalengkePay User Flows
 
-Last updated: 2026-05-13
+Last updated: 2026-05-14
 
 This document turns the current feature inventory into skimmable end-to-end user journeys. It documents what each role can do today, the expected route path, the source modules, and the known caveats.
 
@@ -50,14 +50,15 @@ Current caveats:
 | Step | User action | App route/surface | Evidence |
 | --- | --- | --- | --- |
 | 1 | Scan vendor QR or enter vendor wallet manually | `/customer/scan` | `frontend/src/pages/customer/CustomerScan.tsx`, `frontend/src/components/QRScanner.tsx` |
-| 2 | Review vendor identity and payment form | Payment form | `frontend/src/components/PaymentForm.tsx` |
+| 2 | Review vendor identity and PHP-first locked quote | Payment form | `frontend/src/components/PaymentForm.tsx`, `frontend/src/lib/checkout-quote.ts`, `frontend/api/quote.ts` |
 | 3 | Sign `PalengkePayment.pay` contract transaction when configured | Wallet provider | `frontend/src/components/WalletProvider.tsx`, `frontend/src/lib/hooks/usePayment.ts` |
 | 4 | Submit contract transaction; fallback to fee-bump only if no payment contract ID is configured | Payment hook | `frontend/src/lib/stellar.ts`, `frontend/api/fee-bump.ts` |
-| 5 | Show transaction status/hash | Status tracker/toast | `frontend/src/components/TxStatusTracker.tsx`, `frontend/src/components/Toast.tsx` |
+| 5 | Show transaction status/hash and dual-currency receipt | Status tracker/toast | `frontend/src/components/TxStatusTracker.tsx`, `frontend/src/components/Toast.tsx` |
 
 Current caveat:
 
 - Live QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured.
+- Stable Checkout locks a one-minute PHP/XLM quote before sending the XLM amount.
 
 ### 2.3 Customer Transaction History
 
@@ -65,11 +66,13 @@ Current caveat:
 | --- | --- | --- | --- |
 | 1 | Open history | `/customer/history` | `frontend/src/pages/customer/CustomerHistory.tsx` |
 | 2 | App loads cached history first | Transaction hook | `frontend/src/lib/hooks/useTransactions.ts` |
-| 3 | App syncs Horizon payments in background | Indexer | `frontend/src/lib/indexer.ts` |
+| 3 | App reads `PalengkePayment` customer records when the deployed contract supports them | Payment source | `frontend/src/lib/payment-source.ts`, `contracts/palengke-payment/src/lib.rs` |
+| 4 | App merges Horizon payments as fallback/cache rows | Indexer | `frontend/src/lib/indexer.ts` |
 
 Current caveat:
 
 - Browser localStorage and Horizon indexing are UX/cache layers, not the business source of truth.
+- Production customer-history contract reads require a deployed `PalengkePayment` version with `get_customer_payments`.
 
 ### 2.4 Accept and Pay Utang
 
@@ -122,7 +125,8 @@ Security note:
 | --- | --- | --- | --- |
 | 1 | Open transaction history | `/vendor/transactions` | `frontend/src/pages/vendor/VendorTransactions.tsx` |
 | 2 | App loads vendor-side cached payments | Transactions hook | `frontend/src/lib/hooks/useTransactions.ts` |
-| 3 | App syncs Horizon payments in background | Indexer | `frontend/src/lib/indexer.ts` |
+| 3 | App reads `PalengkePayment` vendor records | Payment source | `frontend/src/lib/payment-source.ts`, `contracts/palengke-payment/src/lib.rs` |
+| 4 | App merges Horizon payments as fallback/cache rows | Indexer | `frontend/src/lib/indexer.ts` |
 
 ### 3.5 Vendor Utang Offers
 
@@ -162,10 +166,11 @@ Security note:
 | --- | --- | --- | --- |
 | 1 | Open metrics dashboard | `/admin/metrics` | `frontend/src/pages/admin/AdminMetrics.tsx` |
 | 2 | Review active/pending vendors, transaction count, volume, average size, product breakdown, and top vendors | Metrics hook | `frontend/src/lib/hooks/useMetrics.ts` |
+| 3 | Dashboard reads `PalengkePayment` records first and labels registry fallback when needed | Payment source | `frontend/src/lib/payment-source.ts`, `frontend/src/pages/admin/AdminMetrics.tsx` |
 
 Current caveat:
 
-- Metrics read `VendorRegistry` counters. The next architecture step is to unify metrics with the canonical payment source.
+- Metrics now prefer `PalengkePayment` records. `VendorRegistry` counters remain as compatibility fallback until contract reads are proven live.
 
 ## 5. Demo and Internal Utility Flows
 
@@ -177,8 +182,8 @@ Current caveat:
 
 ## 6. Flow Gaps to Resolve
 
-1. Replace admin-only vendor stat mutation with payment-driven stats.
-2. Move from browser-local transaction history to a shared event/read model for analytics.
+1. Redeploy `PalengkePayment` with customer-history lookup.
+2. Replace or retire admin-only vendor stat mutation after payment-driven metrics are live.
 3. Upgrade utang to true vendor-offer/customer-accept contract flow.
 4. Add durable fee-bump rate limiting before production.
 5. Add signed invoice or reusable checkout payloads for stronger QR semantics.

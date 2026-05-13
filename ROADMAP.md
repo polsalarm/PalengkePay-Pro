@@ -66,12 +66,14 @@
 - [x] Product breakdown + top vendors
 - [x] Link from AdminMarket header
 - [x] QR payments prefer `PalengkePayment.pay`
-- [ ] Next: unify metrics with the canonical payment source of truth
+- [x] Metrics prefer `PalengkePayment` records through `frontend/src/lib/payment-source.ts`
+- [x] Dashboard labels when it falls back to legacy registry counters
+- [ ] Next: redeploy payment contract with customer payment lookup and retire registry stat fallback
 
 ### 3. Data Indexing
 - [x] `frontend/src/lib/indexer.ts` — Horizon cursor-based indexer
 - [x] localStorage cache with last-cursor position
-- [x] Vendor/customer history pull from index/cache
+- [x] Vendor/customer history merge `PalengkePayment` records with Horizon cache fallback
 - [x] Background sync pattern
 
 ### 4. Monitoring
@@ -120,17 +122,18 @@
 Current state:
 
 - Live QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured.
-- Transaction history uses the Horizon indexer and localStorage cache.
-- Admin metrics use counters in `VendorRegistry`.
+- Stable Checkout now uses a PHP-first one-minute price lock and dual-currency receipt before Stellar XLM settlement.
+- Transaction history prefers `PalengkePayment` records and keeps the Horizon indexer/localStorage cache as fallback.
+- Admin metrics prefer `PalengkePayment` records and fall back to counters in `VendorRegistry` when payment contract reads are unavailable.
 - Direct Stellar transfers through `submitWithFeeBump()` remain as the missing-contract fallback.
 
 Recommended next architecture:
 
-- Make payment events and stats updates come from the same transaction path.
-- Let the dashboard read from the canonical payment/stat source, not browser cache.
+- Redeploy `PalengkePayment` with `get_customer_payments` so customer history has the same contract read path as vendor history.
+- Retire or further restrict `VendorRegistry.increment_stats` after registry fallback is no longer needed.
 - Keep Horizon indexing only as a fast read/cache layer for user history.
 
-Decision remaining: wire metrics/stats to the payment contract source of truth instead of keeping separate vendor counters.
+Decision remaining: choose whether vendor stats should live only in `PalengkePayment` reads or be copied into `VendorRegistry` through an authorized event bridge.
 
 ---
 

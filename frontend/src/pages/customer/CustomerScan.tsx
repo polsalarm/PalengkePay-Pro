@@ -11,6 +11,7 @@ import { usePayment } from '../../lib/hooks/usePayment';
 import { useCreateUtang } from '../../lib/hooks/useUtang';
 import type { UtangOfferPayload } from '../vendor/VendorUtang';
 import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
+import { formatPhp, formatXlm, type StableCheckoutQuote } from '../../lib/checkout-quote';
 
 const STROOPS = 10_000_000;
 
@@ -28,6 +29,7 @@ type Step = 'scan' | 'manual' | 'pay' | 'confirm' | 'done' | 'utang_offer' | 'ut
 interface PendingPayment {
   amount: string;
   memo: string;
+  quote: StableCheckoutQuote;
 }
 
 export function CustomerScan() {
@@ -88,8 +90,8 @@ export function CustomerScan() {
     }
   };
 
-  const handlePay = (amount: string, memo: string) => {
-    setPendingPayment({ amount, memo });
+  const handlePay = (amount: string, memo: string, quote: StableCheckoutQuote) => {
+    setPendingPayment({ amount, memo, quote });
     reset();
     setStep('confirm');
   };
@@ -393,14 +395,36 @@ export function CustomerScan() {
             <p
               className="font-black text-white leading-none mb-1"
               style={{
-                fontSize: pendingPayment.amount.length > 8 ? '2.2rem' : '3rem',
+                fontSize: formatPhp(pendingPayment.quote.phpAmount).length > 10 ? '2.1rem' : '3rem',
                 fontFamily: "'Syne', sans-serif",
-                letterSpacing: '-0.02em',
               }}
             >
-              {pendingPayment.amount}
+              {formatPhp(pendingPayment.quote.phpAmount)}
             </p>
-            <p className="text-base font-bold" style={{ color: 'rgba(255,255,255,0.4)' }}>XLM</p>
+            <p className="text-base font-bold" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {formatXlm(pendingPayment.quote.xlmAmount)}
+            </p>
+            <div
+              className="mt-4 pt-4 grid grid-cols-2 gap-3 text-left"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  Price lock
+                </p>
+                <p className="text-sm font-black text-white">
+                  ₱{pendingPayment.quote.phpPerXlm.toFixed(2)}/XLM
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  Expires
+                </p>
+                <p className="text-sm font-black text-white">
+                  {new Date(pendingPayment.quote.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
             {pendingPayment.memo && (
               <div
                 className="mt-4 pt-4 text-sm font-semibold"
@@ -478,10 +502,17 @@ export function CustomerScan() {
               {pendingPayment && (
                 <p
                   className="font-black text-white leading-none mt-3"
-                  style={{ fontSize: '2.5rem', fontFamily: "'Syne', sans-serif" }}
+                  style={{
+                    fontSize: formatPhp(pendingPayment.quote.phpAmount).length > 10 ? '2rem' : '2.5rem',
+                    fontFamily: "'Syne', sans-serif",
+                  }}
                 >
-                  {pendingPayment.amount}
-                  <span className="text-lg font-bold ml-2" style={{ color: 'rgba(255,255,255,0.5)' }}>XLM</span>
+                  {formatPhp(pendingPayment.quote.phpAmount)}
+                </p>
+              )}
+              {pendingPayment && (
+                <p className="text-sm mt-2 font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  {formatXlm(pendingPayment.quote.xlmAmount)} at ₱{pendingPayment.quote.phpPerXlm.toFixed(2)}/XLM
                 </p>
               )}
               {vendorDisplay && (
@@ -493,6 +524,26 @@ export function CustomerScan() {
 
             {/* Actions */}
             <div className="bg-white p-5 space-y-3">
+              {pendingPayment && (
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0' }}
+                >
+                  <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
+                    Dual-currency receipt
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-slate-400">Customer paid</p>
+                      <p className="text-sm font-black text-slate-900">{formatPhp(pendingPayment.quote.phpAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Settled on Stellar</p>
+                      <p className="text-sm font-black text-slate-900">{formatXlm(pendingPayment.quote.xlmAmount)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               {txHash && (
                 <a
                   href={stellarExpertUrl(txHash)}

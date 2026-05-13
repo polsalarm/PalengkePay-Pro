@@ -53,7 +53,7 @@ Source: `README.md` and `contracts/README.md`.
 
 ### 3.3 Caveat
 
-`increment_stats` is admin-only and not currently tied to the live QR payment path. The target architecture should update stats from `PalengkePayment.pay` or an authorized event-normalizer path.
+`increment_stats` is admin-only, positive-amount guarded, and now treated as a legacy fallback path. The frontend metrics layer prefers `PalengkePayment` records; the remaining hardening step is to retire this method or restrict it to an authorized payment-contract/event-normalizer path.
 
 ## 4. PalengkePayment
 
@@ -65,17 +65,21 @@ Source: `README.md` and `contracts/README.md`.
 | `pay(customer, vendor, amount, memo)` | Transfers/stores a payment and emits payment event | `customer.require_auth()` |
 | `get_payment(payment_id)` | Reads payment record | View |
 | `get_vendor_payments(vendor, limit, offset)` | Reads payment page for vendor | View |
+| `get_customer_payments(customer, limit, offset)` | Reads payment page for customer history | View |
 | `payment_count()` | Reads total payment count | View |
 
 ### 4.2 Current Frontend Usage
 
 - The contract ID is configured with `VITE_PALENGKE_PAYMENT_CONTRACT_ID`.
 - `frontend/src/lib/hooks/usePayment.ts` and `frontend/src/lib/contracts.ts` prefer `PalengkePayment.pay` when that contract ID is configured.
+- `frontend/src/lib/payment-source.ts` normalizes `get_vendor_payments` / `get_customer_payments` records for metrics and history.
+- `frontend/src/lib/hooks/useMetrics.ts` reads payment records first and falls back to registry counters only when payment reads are unavailable.
+- `frontend/src/lib/hooks/useTransactions.ts` merges payment records with Horizon/localStorage fallback history.
 - Direct Stellar payments via fee bump remain the missing-contract fallback.
 
 ### 4.3 Target Usage
 
-The remaining target is to make metrics, receipts, and future PalengkeScore inputs read from the `PalengkePayment` source of truth.
+Metrics, receipts, and future PalengkeScore inputs now have a shared `PalengkePayment` read model. The remaining deployment target is to redeploy the payment contract with `get_customer_payments`, then remove the registry metrics fallback.
 
 ## 5. UTangEscrow
 

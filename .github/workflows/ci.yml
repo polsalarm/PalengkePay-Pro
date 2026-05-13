@@ -52,9 +52,9 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
-      - name: API abuse-path tests
+      - name: Frontend unit tests
         working-directory: frontend
-        run: npm test -- api/fee-bump.test.ts src/lib/payment-routing.test.ts
+        run: npm test
 
       - name: Build
         working-directory: frontend

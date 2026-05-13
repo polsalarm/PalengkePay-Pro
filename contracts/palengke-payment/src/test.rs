@@ -88,6 +88,26 @@ fn test_get_vendor_payments() {
 }
 
 #[test]
+fn test_get_customer_payments() {
+    let (env, client, token) = setup_initialized();
+    let customer = Address::generate(&env);
+    let other_customer = Address::generate(&env);
+    let vendor = Address::generate(&env);
+    mint_to(&env, &token, &customer, 1_000_000_000i128);
+    mint_to(&env, &token, &other_customer, 1_000_000_000i128);
+    let memo = String::from_str(&env, "fish");
+
+    client.pay(&customer, &vendor, &10_000_000i128, &memo);
+    client.pay(&other_customer, &vendor, &20_000_000i128, &memo);
+    client.pay(&customer, &vendor, &30_000_000i128, &memo);
+
+    let payments = client.get_customer_payments(&customer, &10u32, &0u32);
+    assert_eq!(payments.len(), 2);
+    assert_eq!(payments.get(0).unwrap().amount, 10_000_000i128);
+    assert_eq!(payments.get(1).unwrap().amount, 30_000_000i128);
+}
+
+#[test]
 #[should_panic(expected = "amount must be positive")]
 fn test_zero_amount_panics() {
     let (env, client) = setup();

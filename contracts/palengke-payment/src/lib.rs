@@ -19,6 +19,7 @@ pub struct Payment {
 pub enum DataKey {
     Payment(u64),
     VendorPayments(Address),
+    CustomerPayments(Address),
 }
 
 #[contracttype]
@@ -89,6 +90,16 @@ impl PalengkePayment {
             .persistent()
             .set(&DataKey::VendorPayments(vendor.clone()), &vendor_payments);
 
+        let mut customer_payments: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::CustomerPayments(customer.clone()))
+            .unwrap_or(Vec::new(&env));
+        customer_payments.push_back(count);
+        env.storage()
+            .persistent()
+            .set(&DataKey::CustomerPayments(customer.clone()), &customer_payments);
+
         env.events().publish(
             (symbol_short!("payment"), symbol_short!("done")),
             PaymentCompletedEvent {
@@ -115,6 +126,27 @@ impl PalengkePayment {
             .storage()
             .persistent()
             .get(&DataKey::VendorPayments(vendor))
+            .unwrap_or(Vec::new(&env));
+
+        let mut result = Vec::new(&env);
+        let start = offset as usize;
+        let end = (offset + limit) as usize;
+
+        for i in start..end.min(ids.len() as usize) {
+            if let Some(id) = ids.get(i as u32) {
+                if let Some(p) = env.storage().persistent().get(&DataKey::Payment(id)) {
+                    result.push_back(p);
+                }
+            }
+        }
+        result
+    }
+
+    pub fn get_customer_payments(env: Env, customer: Address, limit: u32, offset: u32) -> Vec<Payment> {
+        let ids: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::CustomerPayments(customer))
             .unwrap_or(Vec::new(&env));
 
         let mut result = Vec::new(&env);

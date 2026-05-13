@@ -88,15 +88,17 @@ function TxRow({ tx }: { tx: TxRecord }) {
           </p>
           <p className="text-xs text-slate-400">XLM</p>
         </div>
-        <a
-          href={stellarExpertUrl(tx.id)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95"
-          style={{ backgroundColor: '#F8FAFC' }}
-        >
-          <ExternalLink size={12} style={{ color: '#94A3B8' }} />
-        </a>
+        {tx.txHash && (
+          <a
+            href={stellarExpertUrl(tx.txHash)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95"
+            style={{ backgroundColor: '#F8FAFC' }}
+          >
+            <ExternalLink size={12} style={{ color: '#94A3B8' }} />
+          </a>
+        )}
       </div>
     </div>
   );

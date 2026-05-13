@@ -1,6 +1,6 @@
 # PalengkePay Verification Gates
 
-Last updated: 2026-05-13
+Last updated: 2026-05-14
 
 This document maps each important quality gate to the command or evidence that proves it. Use this before claiming the app is working, ready, deployed, or production-ready.
 
@@ -8,7 +8,7 @@ This document maps each important quality gate to the command or evidence that p
 
 | Gate | Command/evidence | Required before |
 | --- | --- | --- |
-| Fee-bump and payment-routing tests | `cd frontend; npm test -- api/fee-bump.test.ts src/lib/payment-routing.test.ts` | Any fee-bump/security/payment-routing claim |
+| Frontend unit tests | `cd frontend; npm test` | Any fee-bump/security/payment-routing/history/metrics/quote claim |
 | TypeScript check | `cd frontend; npx tsc --noEmit` | Any frontend code claim |
 | Lint | `cd frontend; npm run lint` | Any frontend code claim |
 | Production build | `cd frontend; npm run build` | Deployment or release claim |
@@ -16,7 +16,7 @@ This document maps each important quality gate to the command or evidence that p
 | Contract tests | `cd contracts; cargo test --workspace` | Contract behavior/auth claim |
 | Health endpoint | `GET /api/health` locally or live | Runtime dependency claim |
 | Live payment smoke | Wallet-signed testnet payment with hash | End-to-end payment claim |
-| Admin metrics smoke | `/admin/metrics` loads with registry-derived data | Metrics claim |
+| Admin metrics smoke | `/admin/metrics` loads and labels `PalengkePayment` or registry fallback source | Metrics claim |
 | Deployment smoke | Live landing, connect, health, key routes | Live/deployed claim |
 
 ## 2. Frontend Commands
@@ -24,7 +24,7 @@ This document maps each important quality gate to the command or evidence that p
 Run from `Stellar-PalengkePay-Pro\frontend`.
 
 ```powershell
-npm test -- api/fee-bump.test.ts src/lib/payment-routing.test.ts
+npm test
 npx tsc --noEmit
 npm run lint
 npm run build
@@ -33,7 +33,7 @@ npm run qa:visual
 
 Expected:
 
-- Fee-bump and payment-routing test suites pass.
+- Fee-bump, payment-routing, payment-source, and checkout quote test suites pass.
 - TypeScript exits 0.
 - ESLint exits 0.
 - Vite build exits 0. Chunk-size warnings are acceptable unless they become a performance task.
@@ -45,6 +45,12 @@ Run from `Stellar-PalengkePay-Pro\contracts`.
 
 ```powershell
 cargo test --workspace
+```
+
+If this Windows shell cannot find `cargo` on PATH, use the installed binary directly:
+
+```powershell
+& "$env:USERPROFILE\.cargo\bin\cargo.exe" test --workspace
 ```
 
 Recommended additional gates:
@@ -121,7 +127,8 @@ Policy coverage expected:
 
 ## 7. Current Known Risks
 
-- Payment and metrics source-of-truth split remains unresolved.
+- Production must redeploy `PalengkePayment` with `get_customer_payments` before customer history can rely fully on contract reads.
+- Registry metrics fallback remains available and should be retired after contract reads are confirmed live.
 - Fee-bump rate limiting is in-memory and not durable.
 - Testnet reset can invalidate accounts/contracts.
 - Mobile behavior still needs real-device verification.
