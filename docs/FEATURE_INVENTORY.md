@@ -1,0 +1,352 @@
+# PalengkePay Feature Inventory
+
+Last updated: 2026-05-13
+
+This document is the working list of what has already been built, what is present in the app today, and what should come next. It is based on the current repo state, README, roadmap, frontend routes/hooks, API functions, and Soroban contract modules.
+
+## 0. Product Summary
+
+PalengkePay is a Stellar Testnet web app for public-market vendors and customers. The app supports wallet onboarding, QR payments, vendor registration, customer/vendor transaction history, utang installment agreements, admin vendor management, gasless payment sponsorship, metrics, and operational health checks.
+
+## 1. Previous Work Completed
+
+### 1.1 Wallet, Onboarding, and Testnet Setup
+
+- Built wallet connection through `@creit.tech/stellar-wallets-kit`.
+- Added desktop wallet support and mobile WalletConnect support.
+- Added `/connect` and `/onboard` flows.
+- Added testnet funding guidance and Friendbot faucet support in the onboarding path.
+- Added role-based entry points for vendor, customer, and admin flows.
+
+Evidence:
+
+- `frontend/src/components/WalletProvider.tsx`
+- `frontend/src/pages/Connect.tsx`
+- `frontend/src/pages/Onboard.tsx`
+- `frontend/src/App.tsx`
+
+### 1.2 Customer Payment Flow
+
+- Built customer home, scan, history, and utang pages.
+- Added QR scan and manual vendor wallet entry.
+- Added vendor identity metadata in payment QR payloads.
+- Added signed Stellar payment transaction flow.
+- Routed live QR payments through the fee-bump submit path.
+- Added instant local history with background Horizon sync.
+
+Current caveat:
+
+- Live QR payments currently settle as direct Stellar transfers wrapped by fee bump. The `PalengkePayment` contract exists and is tested, but it is not yet the live payment source of truth.
+
+Evidence:
+
+- `frontend/src/pages/customer/CustomerHome.tsx`
+- `frontend/src/pages/customer/CustomerScan.tsx`
+- `frontend/src/pages/customer/CustomerHistory.tsx`
+- `frontend/src/lib/hooks/usePayment.ts`
+- `frontend/src/lib/hooks/useTransactions.ts`
+- `frontend/src/lib/indexer.ts`
+- `frontend/src/lib/stellar.ts`
+
+### 1.3 Vendor Experience
+
+- Built vendor home, QR, transaction history, utang, profile, and application pages.
+- Added QR generation for payment requests.
+- Added vendor profile display and status handling.
+- Added vendor transaction history from Horizon/indexed cache.
+- Added vendor utang creation surface with QR/manual acceptance paths.
+
+Evidence:
+
+- `frontend/src/pages/vendor/VendorHome.tsx`
+- `frontend/src/pages/vendor/VendorQR.tsx`
+- `frontend/src/pages/vendor/VendorTransactions.tsx`
+- `frontend/src/pages/vendor/VendorUtang.tsx`
+- `frontend/src/pages/vendor/VendorProfile.tsx`
+- `frontend/src/pages/vendor/VendorApply.tsx`
+
+### 1.4 Vendor Registry Contract and Admin Vendor Management
+
+- Built `VendorRegistry` Soroban contract.
+- Added vendor application flow.
+- Added admin approve/reject flow.
+- Added admin direct registration.
+- Added vendor profile update.
+- Added vendor deactivation.
+- Added vendor stats counters for transaction count and volume.
+- Patched auth so vendor application requires applicant wallet auth.
+- Patched stats mutation so only the configured admin can increment stats.
+- Added negative tests for unauthorized vendor application and stats mutation paths.
+
+Current caveat:
+
+- Vendor stats are currently admin-controlled counters. The cleaner future design is to update stats from the canonical payment contract path.
+
+Evidence:
+
+- `contracts/vendor-registry/src/lib.rs`
+- `contracts/vendor-registry/src/test.rs`
+- `frontend/src/pages/admin/AdminMarket.tsx`
+- `frontend/src/pages/admin/AdminRegister.tsx`
+- `frontend/src/lib/hooks/useVendor.ts`
+
+### 1.5 Admin Metrics Dashboard
+
+- Built admin metrics page at `/admin/metrics`.
+- Added metrics hook.
+- Added active vendor count, pending vendor count, total transaction count, total XLM volume, average transaction size, product breakdown, and top vendors.
+- Linked metrics from admin market workflow.
+
+Current caveat:
+
+- Metrics read `VendorRegistry` counters, not the live QR payment path. This is useful for admin state, but it is not yet a single canonical payment source.
+
+Evidence:
+
+- `frontend/src/pages/admin/AdminMetrics.tsx`
+- `frontend/src/lib/hooks/useMetrics.ts`
+- `frontend/src/pages/admin/AdminMarket.tsx`
+
+### 1.6 Utang / Installment Credit
+
+- Built `UtangEscrow` Soroban contract.
+- Added customer/vendor utang lists.
+- Added create agreement flow.
+- Added installment repayment flow.
+- Added completed/defaulted status handling.
+- Added customer-side acceptance from QR/uploaded offer data.
+- Added vendor-side utang offer generation.
+- Patched auth so utang creation and repayment require the customer signature.
+- Patched defaulting so only admin can mark an agreement defaulted.
+- Added Rust negative tests for wrong customer repayment, missing admin auth, and non-admin default attempts.
+
+Current caveat:
+
+- The current flow is closer to a customer-authorized creation model. The future target should be a true on-chain vendor-offer/customer-accept model.
+
+Evidence:
+
+- `contracts/utang-escrow/src/lib.rs`
+- `contracts/utang-escrow/src/test.rs`
+- `frontend/src/pages/vendor/VendorUtang.tsx`
+- `frontend/src/pages/customer/CustomerUtang.tsx`
+- `frontend/src/lib/hooks/useUtang.ts`
+
+### 1.7 PalengkePayment Contract
+
+- Built `PalengkePayment` Soroban contract.
+- Added payment record storage.
+- Added vendor payment lookup.
+- Added payment-completed events.
+- Added Rust tests for payment recording and retrieval.
+
+Current caveat:
+
+- This contract is deployed/tested code, but the frontend does not yet use it as the live QR payment execution path.
+
+Evidence:
+
+- `contracts/palengke-payment/src/lib.rs`
+- `contracts/palengke-payment/src/test.rs`
+- `README.md`
+- `ROADMAP.md`
+
+### 1.8 Fee Sponsorship / Gasless Transactions
+
+- Built Vercel API function for fee-bump sponsorship.
+- Added client submit path through `submitWithFeeBump()`.
+- Added gasless payment integration in the payment hook.
+- Added Vercel routing so `/api/*` reaches serverless functions.
+- Added fee-bump environment configuration documentation.
+- Hardened fee-bump validation:
+  - signed inner transaction required
+  - Stellar Testnet network passphrase required
+  - `PP:` memo required
+  - only native XLM `payment` and `createAccount` operations sponsored
+  - operation count limited
+  - fee and amount bounded
+  - source account signature required
+  - optional destination allowlist via `FEE_BUMP_ALLOWED_DESTINATIONS`
+  - in-memory per-IP rate limiting
+- Added Vitest coverage for valid paths and abuse paths.
+
+Current caveat:
+
+- Serverless in-memory rate limits are best-effort only. Production should use durable rate limiting, firewall rules, or another shared limiter.
+
+Evidence:
+
+- `frontend/api/fee-bump.ts`
+- `frontend/api/fee-bump.test.ts`
+- `frontend/src/lib/stellar.ts`
+- `frontend/src/lib/hooks/usePayment.ts`
+- `frontend/vercel.json`
+- `frontend/.env.example`
+
+### 1.9 Data Indexing and Transaction History
+
+- Added Horizon cursor-based payment indexer.
+- Added localStorage cache.
+- Added last-cursor tracking.
+- Added vendor/customer history reads from cache with background sync.
+
+Current caveat:
+
+- Horizon/localStorage is a UX cache and history layer, not the business source of truth.
+
+Evidence:
+
+- `frontend/src/lib/indexer.ts`
+- `frontend/src/lib/hooks/useTransactions.ts`
+
+### 1.10 Monitoring, Health, and Security Hardening
+
+- Added Sentry integration.
+- Kept Sentry disabled when `VITE_SENTRY_DSN` is unset.
+- Added health endpoint for Horizon and Soroban RPC liveness.
+- Added CSP/security headers in Vercel config.
+- Added input sanitizer utility.
+- Added fee-bump abuse-path tests.
+- Added contract auth negative tests.
+
+Evidence:
+
+- `frontend/src/main.tsx`
+- `frontend/api/health.ts`
+- `frontend/vercel.json`
+- `frontend/src/lib/sanitize.ts`
+- `frontend/api/fee-bump.test.ts`
+- `contracts/vendor-registry/src/test.rs`
+- `contracts/utang-escrow/src/test.rs`
+
+### 1.11 Mobile and Responsive Surfaces
+
+- Built mobile-friendly customer and vendor surfaces.
+- Added mobile screenshots and usage guidance in README.
+- Added WalletConnect mobile connection guidance.
+- Added Playwright visual route checks across desktop and mobile viewports.
+
+Evidence:
+
+- `README.md`
+- `frontend/src/__tests__/visual-routes.spec.ts`
+- `frontend/playwright.config.ts`
+
+### 1.12 Documentation and Proof Assets
+
+- Added README feature documentation, screenshots, contract IDs, flow guides, environment notes, and proof sections.
+- Added roadmap status and checklist.
+- Added contracts README with deployment/testnet contract proof.
+- Added this feature inventory as a standalone complete present/future list.
+
+Evidence:
+
+- `README.md`
+- `ROADMAP.md`
+- `contracts/README.md`
+- `docs/FEATURE_INVENTORY.md`
+
+## 2. Present Feature Set
+
+### 2.1 User Roles
+
+| Role | Present capabilities |
+| --- | --- |
+| Customer | Connect wallet, fund testnet wallet, scan/pay vendor QR, manual pay, view history, accept/pay utang |
+| Vendor | Apply, view vendor dashboard, generate payment QR, view transaction history, manage profile, create utang offers |
+| Admin | Approve/reject vendors, direct-register vendors, deactivate vendors, view market dashboard, view metrics |
+
+### 2.2 Frontend Routes
+
+| Area | Routes |
+| --- | --- |
+| Public/onboarding | `/`, `/connect`, `/onboard`, `/market` |
+| General | `/dashboard`, `/test-send` |
+| Customer | `/customer/home`, `/customer/scan`, `/customer/history`, `/customer/utang` |
+| Vendor | `/vendor/home`, `/vendor/qr`, `/vendor/transactions`, `/vendor/utang`, `/vendor/profile`, `/vendor/apply` |
+| Admin | `/admin/market`, `/admin/register`, `/admin/metrics` |
+
+### 2.3 Contracts
+
+| Contract | Present role | Current limitation |
+| --- | --- | --- |
+| `VendorRegistry` | Vendor applications, admin approvals, vendor profiles, vendor counters | Stats should eventually be updated by canonical payment flow |
+| `PalengkePayment` | Payment records, vendor payment lookups, payment events | Not yet the live frontend QR payment path |
+| `UtangEscrow` | Utang agreements, repayment tracking, completion/default status | Needs true vendor-offer/customer-accept architecture |
+
+### 2.4 API and Runtime Functions
+
+| API | Present behavior |
+| --- | --- |
+| `frontend/api/fee-bump.ts` | Sponsors approved Stellar Testnet payment/createAccount transactions with fee bump |
+| `frontend/api/health.ts` | Checks Horizon and Soroban RPC liveness |
+
+### 2.5 Verification Commands
+
+| Command | Purpose | Last known status |
+| --- | --- | --- |
+| `cd frontend; npm test -- api/fee-bump.test.ts` | Fee-bump validation and abuse-path tests | Passing: 10 tests |
+| `cd frontend; npx tsc --noEmit` | TypeScript verification | Passing |
+| `cd frontend; npm run lint` | Frontend lint | Passing |
+| `cd frontend; npm run build` | Production build | Passing with Vite chunk-size warning |
+| `cd frontend; npm run qa:visual` | Playwright desktop/mobile route checks | Passing: 16 tests |
+| `cd contracts; cargo test --workspace` | Rust contract test suite | Blocked locally by missing Windows MSVC `link.exe` |
+
+## 3. Future Work
+
+### 3.1 Highest Priority
+
+1. Install Windows Visual Studio Build Tools/C++ linker and run `cargo test --workspace`.
+2. Make `PalengkePayment.pay` the canonical QR payment path.
+3. Move payment events and vendor stats to the same source-of-truth transaction path.
+4. Keep Horizon indexing as a cache/history layer only.
+5. Replace admin-only `increment_stats` with an authorized payment-contract path.
+
+### 3.2 Product Architecture
+
+- Decide and implement contract-first payments instead of direct Stellar transfer plus separate metrics.
+- Redesign utang as vendor creates offer on-chain, customer accepts on-chain, and repayment follows that agreement.
+- Add a clearer data model for payment, vendor stats, and indexed history boundaries.
+- Add a dedicated architecture doc after canonical payment flow is chosen.
+
+### 3.3 Security and Abuse Controls
+
+- Add durable fee-bump rate limiting for production.
+- Add `SECURITY.md`.
+- Document threat model and sponsorship abuse limits.
+- Review deployed contract admin/key rotation workflow.
+- Audit all env var requirements before production deploy.
+
+### 3.4 Deployment and Operations
+
+- Add `docs/DEPLOYMENT.md`.
+- Add production deployment checklist.
+- Add uptime monitor for deployed `/api/health`.
+- Verify Vercel env values without exposing secrets.
+- Add release checklist for contract IDs, RPC URLs, fee-bump sponsor account, and Sentry DSN.
+
+### 3.5 Community and Submission Readiness
+
+- Add `CONTRIBUTING.md`.
+- Add issue templates and good-first-issue labels.
+- Collect and document 30+ verified active users.
+- Document at least one community contribution.
+- Refresh screenshots after final flow changes.
+- Record final demo proof after production/live deployment.
+
+### 3.6 Nice-to-Have Polish
+
+- Add vendor search/filter improvements in market directory.
+- Add clearer customer payment receipt view.
+- Add exportable admin metrics.
+- Add richer error messages for wallet rejection and insufficient funds.
+- Split large frontend chunks if bundle size becomes a production concern.
+
+## 4. Open Blockers
+
+- Rust contract test suite cannot be locally verified until the Windows MSVC linker is installed.
+- Production fee sponsorship needs real server-side env values:
+  - `SPONSOR_SECRET`
+  - `FEE_BUMP_ALLOWED_DESTINATIONS`
+  - optional rate/limit tuning variables
+- Mainnet launch should wait until contract architecture is finalized and audited.

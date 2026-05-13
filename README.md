@@ -32,6 +32,12 @@ Beta users were onboarded via a Google Form collecting name, email, wallet addre
 
 **[View Feedback Responses (Google Sheets) →](https://docs.google.com/spreadsheets/d/1g0AYRCwqc1-zcxy2q5UnIGHtllJHsXSaUvTCD7POI-g/edit?usp=sharing)**
 
+## Project Docs
+
+- **[Feature Inventory](docs/FEATURE_INVENTORY.md)** — complete previous work, present features, current caveats, and future work.
+- **[Roadmap](ROADMAP.md)** — build status, requirements checklist, and next architecture decisions.
+- **[Contracts Guide](contracts/README.md)** — deployed contract IDs, interfaces, and Soroban commands.
+
 ---
 
 ## Live Walkthrough

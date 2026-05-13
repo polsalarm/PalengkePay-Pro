@@ -9,6 +9,7 @@
 - [x] Monitoring active
 - [x] Data indexing implemented
 - [x] README documentation refreshed
+- [x] Feature inventory documented
 - [ ] 1 community contribution
 - [x] 1 advanced feature implemented — Fee Sponsorship (gasless)
 - [ ] 15+ meaningful commits
@@ -25,7 +26,7 @@
 | Data Indexing | ✅ Built | ✅ Checkpointed |
 | Monitoring (Sentry + health) | ✅ Built | ✅ Checkpointed |
 | Security (CSP + sanitizer + contract auth) | 🟡 Partial | ✅ Checkpointed |
-| Full Documentation | 🟡 README refreshed; standalone docs pending | ✅ Checkpointed |
+| Full Documentation | 🟡 README + feature inventory refreshed; architecture/deployment docs pending | ✅ Checkpointed |
 | Friendbot faucet button | ✅ Built on `/connect` and onboarding | ✅ Checkpointed |
 | CONTRIBUTING.md | ⬜ Not started | — |
 
@@ -89,6 +90,7 @@
 - [ ] `SECURITY.md` — checklist documented
 
 ### 6. Full Documentation
+- [x] `docs/FEATURE_INVENTORY.md` — previous work, present features, future work, and blockers
 - [ ] `docs/ARCHITECTURE.md` — system diagram
 - [ ] `docs/CONTRACTS.md` — all 3 contract interfaces + deployed IDs
 - [ ] `docs/DEPLOYMENT.md` — step-by-step deploy guide
