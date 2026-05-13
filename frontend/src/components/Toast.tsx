@@ -29,7 +29,7 @@ const TOAST_CONFIG: Record<ToastType, {
   iconBg: string; textColor: string; actionBg: string; actionColor: string;
 }> = {
   success: {
-    bg: '#0A3D38', border: 'rgba(20,184,166,0.3)',
+    bg: '#00284B', border: 'rgba(20,184,166,0.3)',
     iconColor: '#4ADE80', iconBg: 'rgba(74,222,128,0.15)',
     textColor: 'white', actionBg: 'rgba(74,222,128,0.15)', actionColor: '#4ADE80',
   },

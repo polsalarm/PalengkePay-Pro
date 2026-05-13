@@ -29,7 +29,7 @@ export function Dashboard() {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center gap-4"
-      style={{ backgroundColor: '#0A3D38' }}
+      style={{ backgroundColor: '#00284B' }}
     >
       <div
         className="absolute pointer-events-none"
@@ -46,7 +46,7 @@ export function Dashboard() {
       >
         <span
           className="font-black text-white text-2xl"
-          style={{ fontFamily: "'Syne', sans-serif" }}
+          style={{ fontFamily: "'Montserrat', sans-serif" }}
         >₱</span>
       </div>
       <div className="flex items-center gap-2.5 relative">

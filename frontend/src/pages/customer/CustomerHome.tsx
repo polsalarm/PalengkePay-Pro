@@ -89,14 +89,14 @@ function RecentTxRow({ tx }: { tx: TxRecord }) {
             {vendorName || truncateAddress(tx.to)}
           </p>
           {tx.memo && (
-            <p className="text-xs font-semibold truncate mt-0.5" style={{ color: '#0F766E' }}>{tx.memo}</p>
+            <p className="text-xs font-semibold truncate mt-0.5" style={{ color: '#008055' }}>{tx.memo}</p>
           )}
           <p className="text-xs text-slate-400 mt-0.5">{relativeTime(tx.createdAt)}</p>
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0 ml-2">
         <div className="text-right">
-          <span className="text-sm font-black block" style={{ color: '#F43F5E', fontFamily: "'Syne', sans-serif" }}>
+          <span className="text-sm font-black block" style={{ color: '#F43F5E', fontFamily: "'Montserrat', sans-serif" }}>
             -{tx.amountXlm.toFixed(2)}
           </span>
           <span className="text-xs text-slate-400">XLM</span>
@@ -144,7 +144,7 @@ export function CustomerHome() {
       {/* ── BALANCE HERO ── */}
       <div
         className="relative mx-4 mt-4 rounded-3xl"
-        style={{ backgroundColor: '#0A3D38', overflow: 'clip' }}
+        style={{ backgroundColor: '#00284B', overflow: 'clip' }}
       >
         {/* Banig-weave diagonal texture */}
         <div
@@ -177,7 +177,7 @@ export function CustomerHome() {
             fontSize: '12rem', lineHeight: 1,
             color: 'rgba(255,255,255,0.04)',
             bottom: -20, right: -10,
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "'Montserrat', sans-serif",
           }}
         >₱</div>
 
@@ -200,7 +200,7 @@ export function CustomerHome() {
                   onClick={() => setLang(l)}
                   className="text-xs font-bold px-3 py-1 rounded-full transition-all"
                   style={lang === l
-                    ? { backgroundColor: '#0F766E', color: 'white' }
+                    ? { backgroundColor: '#008055', color: 'white' }
                     : { color: 'rgba(255,255,255,0.45)' }
                   }
                 >
@@ -217,7 +217,7 @@ export function CustomerHome() {
                 className="font-black text-white leading-none"
                 style={{
                   fontSize: balanceFontSize,
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'Montserrat', sans-serif",
                   letterSpacing: '-0.02em',
                   lineHeight: 1.05,
                 }}
@@ -226,7 +226,7 @@ export function CustomerHome() {
               </span>
               <span
                 className="text-base font-bold shrink-0"
-                style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Syne', sans-serif" }}
+                style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Montserrat', sans-serif" }}
               >XLM</span>
             </div>
           </div>
@@ -247,7 +247,7 @@ export function CustomerHome() {
               <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.totalSpent}</p>
               <p
                 className="text-base font-black text-white leading-tight"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 {totalSpent.toFixed(2)} <span className="text-xs font-semibold opacity-50">XLM</span>
               </p>
@@ -256,7 +256,7 @@ export function CustomerHome() {
               <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.transactions}</p>
               <p
                 className="text-base font-black text-white leading-tight"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
                 {transactions.length}
               </p>
@@ -293,14 +293,14 @@ export function CustomerHome() {
               {/* Label + amount in one column */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-black text-slate-800 leading-tight truncate" style={{ fontFamily: "'Syne', sans-serif" }}>
+                  <p className="text-sm font-black text-slate-800 leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     {overdueCount > 0 ? t.utangOverdue : t.utangBalance}
                   </p>
                   <p
                     className="font-black leading-tight shrink-0"
                     style={{
                       fontSize: '1rem',
-                      fontFamily: "'Syne', sans-serif",
+                      fontFamily: "'Montserrat', sans-serif",
                       color: overdueCount > 0 ? '#F43F5E' : '#92400E',
                     }}
                   >
@@ -324,7 +324,7 @@ export function CustomerHome() {
           onClick={() => navigate('/customer/scan')}
           className="w-full relative overflow-hidden flex items-center gap-4 text-white rounded-3xl transition-all active:scale-95"
           style={{
-            backgroundColor: '#0F766E',
+            backgroundColor: '#008055',
             minHeight: '76px',
             padding: '0 20px',
             boxShadow: '0 8px 32px rgba(15,118,110,0.4)',
@@ -356,7 +356,7 @@ export function CustomerHome() {
           <div className="relative text-left flex-1 min-w-0">
             <p
               className="font-black text-lg leading-tight"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "'Montserrat', sans-serif" }}
             >
               {t.scanBtn}
             </p>
@@ -376,10 +376,10 @@ export function CustomerHome() {
           style={{ minHeight: '64px', borderColor: '#F1F5F9' }}
         >
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#F0FDFA' }}>
-            <Store size={19} style={{ color: '#0F766E' }} />
+            <Store size={19} style={{ color: '#008055' }} />
           </div>
           <div className="text-left min-w-0">
-            <p className="text-sm font-black text-slate-900 leading-tight truncate" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-sm font-black text-slate-900 leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {t.vendors}
             </p>
             <p className="text-xs text-slate-500 mt-0.5 truncate">{t.vendorsSub}</p>
@@ -395,7 +395,7 @@ export function CustomerHome() {
             <ShoppingBag size={19} style={{ color: '#D97706' }} />
           </div>
           <div className="text-left min-w-0">
-            <p className="text-sm font-black text-slate-900 leading-tight truncate" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-sm font-black text-slate-900 leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {t.history}
             </p>
             <p className="text-xs text-slate-500 mt-0.5 truncate">{t.historySub}</p>
@@ -408,14 +408,14 @@ export function CustomerHome() {
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1.5px solid #F8FAFC' }}>
           <h2
             className="text-base font-black text-slate-900"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
             {t.recentPayments}
           </h2>
           <button
             onClick={() => navigate('/customer/history')}
             className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full active:scale-95"
-            style={{ color: '#0F766E', backgroundColor: '#F0FDFA' }}
+            style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
           >
             {t.viewAll} <ArrowRight size={11} />
           </button>
@@ -445,14 +445,14 @@ export function CustomerHome() {
               >
                 <ShoppingBag size={26} style={{ color: '#14B8A6' }} />
               </div>
-              <p className="text-base font-black text-slate-700 mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-base font-black text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {t.emptyTitle}
               </p>
               <p className="text-sm text-slate-500 mb-5">{t.emptyDesc}</p>
               <button
                 onClick={() => navigate('/customer/scan')}
                 className="inline-flex items-center gap-2 text-sm font-bold px-5 py-3 rounded-2xl active:scale-95"
-                style={{ color: 'white', backgroundColor: '#0F766E' }}
+                style={{ color: 'white', backgroundColor: '#008055' }}
               >
                 <ScanLine size={15} /> {t.scanNow}
               </button>
