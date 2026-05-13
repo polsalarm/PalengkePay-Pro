@@ -208,4 +208,8 @@ export function stellarExpertUrl(txHash: string): string {
   return `https://stellar.expert/explorer/testnet/tx/${txHash}`;
 }
 
+export function stellarExpertAccountUrl(address: string): string {
+  return `https://stellar.expert/explorer/testnet/account/${address}`;
+}
+
 export { NETWORK_PASSPHRASE };

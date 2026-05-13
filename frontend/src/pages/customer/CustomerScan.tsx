@@ -11,7 +11,7 @@ import { useVendor } from '../../lib/hooks/useVendor';
 import { usePayment } from '../../lib/hooks/usePayment';
 import { useCreateUtang } from '../../lib/hooks/useUtang';
 import type { UtangOfferPayload } from '../vendor/VendorUtang';
-import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
+import { stellarExpertAccountUrl, stellarExpertUrl, truncateAddress } from '../../lib/stellar';
 import { formatPhp, formatXlm, type StableCheckoutQuote } from '../../lib/checkout-quote';
 import { ESCROW_CONTRACT_ID } from '../../lib/contracts';
 
@@ -51,7 +51,7 @@ export function CustomerScan() {
   const { vendor, isLoading: vendorLoading } = useVendor(
     step === 'pay' || step === 'confirm' || step === 'done' ? vendorAddress : null
   );
-  const { status, txHash, error, settlementMode, sendPayment, reset } = usePayment();
+  const { status, txHash, error, diagnostic, settlementMode, sendPayment, reset } = usePayment();
   const { createUtang, isCreating } = useCreateUtang();
 
   useEffect(() => {
@@ -105,6 +105,11 @@ export function CustomerScan() {
 
   const handleRetryPayment = () => {
     void handleConfirm();
+  };
+
+  const handleEditPayment = () => {
+    reset();
+    setStep('pay');
   };
 
   const handleAcceptUtang = async () => {
@@ -452,9 +457,13 @@ export function CustomerScan() {
               status={status}
               txHash={txHash}
               error={error}
+              diagnostic={diagnostic}
               amount={pendingPayment.amount}
               recipientName={vendorDisplay}
+              receiptLookupUrl={stellarExpertAccountUrl(address)}
               onRetry={handleRetryPayment}
+              onEdit={handleEditPayment}
+              onScanAgain={backToScan}
             />
           )}
         </div>

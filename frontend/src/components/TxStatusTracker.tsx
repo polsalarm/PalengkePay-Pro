@@ -1,4 +1,4 @@
-import { Loader2, Lock, CheckCircle, XCircle, ExternalLink, Zap } from 'lucide-react';
+import { Edit3, Loader2, Lock, CheckCircle, XCircle, ExternalLink, RotateCcw, Search, Zap } from 'lucide-react';
 import type { TxStatus } from '../lib/hooks/usePayment';
 import { stellarExpertUrl } from '../lib/stellar';
 
@@ -9,12 +9,28 @@ interface Props {
   amount?: string;
   recipientName?: string;
   fee?: string;
+  diagnostic?: string | null;
+  receiptLookupUrl?: string;
   onRetry?: () => void;
+  onEdit?: () => void;
+  onScanAgain?: () => void;
 }
 
 const BASE_FEE = '0.00001';
 
-export function TxStatusTracker({ status, txHash, error, amount, recipientName, fee, onRetry }: Props) {
+export function TxStatusTracker({
+  status,
+  txHash,
+  error,
+  amount,
+  recipientName,
+  fee,
+  diagnostic,
+  receiptLookupUrl,
+  onRetry,
+  onEdit,
+  onScanAgain,
+}: Props) {
   if (status === 'idle') return null;
 
   const displayFee = fee ?? BASE_FEE;
@@ -149,20 +165,56 @@ export function TxStatusTracker({ status, txHash, error, amount, recipientName, 
             <p className="text-sm font-black" style={{ color: '#BE123C', fontFamily: "'Montserrat', sans-serif" }}>
               Transaction failed
             </p>
-            {error && (
-              <p className="text-xs mt-0.5 font-mono" style={{ color: '#F43F5E' }}>{error}</p>
+            {error && <p className="text-xs mt-0.5 font-semibold" style={{ color: '#F43F5E' }}>{error}</p>}
+            {diagnostic && (
+              <p className="text-xs mt-2 leading-relaxed" style={{ color: '#9F1239' }}>
+                {diagnostic}
+              </p>
             )}
           </div>
         </div>
-        {onRetry && (
-          <div className="px-5 py-3 bg-white" style={{ borderTop: '1px solid #FECDD3' }}>
-            <button
-              onClick={onRetry}
-              className="text-sm font-bold px-5 py-2 rounded-xl active:scale-95 transition-all text-white"
-              style={{ backgroundColor: '#F43F5E' }}
-            >
-              Try Again
-            </button>
+        {(onRetry || onEdit || onScanAgain || receiptLookupUrl) && (
+          <div className="px-5 py-3 bg-white space-y-2" style={{ borderTop: '1px solid #FECDD3' }}>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="w-full flex items-center justify-center gap-2 text-sm font-bold px-5 py-3 rounded-xl active:scale-95 transition-all text-white"
+                style={{ backgroundColor: '#F43F5E' }}
+              >
+                <RotateCcw size={14} /> Retry same payment
+              </button>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              {onEdit && (
+                <button
+                  onClick={onEdit}
+                  className="flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-xl active:scale-95 transition-all"
+                  style={{ color: '#475569', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
+                >
+                  <Edit3 size={12} /> Edit details
+                </button>
+              )}
+              {onScanAgain && (
+                <button
+                  onClick={onScanAgain}
+                  className="flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-xl active:scale-95 transition-all"
+                  style={{ color: '#475569', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
+                >
+                  <Search size={12} /> Scan again
+                </button>
+              )}
+            </div>
+            {receiptLookupUrl && (
+              <a
+                href={receiptLookupUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-xl active:scale-95"
+                style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
+              >
+                <ExternalLink size={12} /> Check recent receipts
+              </a>
+            )}
           </div>
         )}
       </div>

@@ -13,6 +13,7 @@ This document maps each important quality gate to the command or evidence that p
 | Lint | `cd frontend; npm run lint` | Any frontend code claim |
 | Production build | `cd frontend; npm run build` | Deployment or release claim |
 | Visual route QA | `cd frontend; npm run qa:visual` | UI/responsive route claim |
+| Dependency audit | `cd frontend; npm audit --audit-level=high` | Production-readiness or dependency-hardening claim |
 | Contract tests | `cd contracts; cargo test --workspace` | Contract behavior/auth claim |
 | Health endpoint | `GET /api/health` locally or live | Runtime dependency claim |
 | Live payment smoke | Wallet-signed testnet payment with hash | End-to-end payment claim |
@@ -29,6 +30,7 @@ npx tsc --noEmit
 npm run lint
 npm run build
 npm run qa:visual
+npm audit --audit-level=high
 ```
 
 Expected:
@@ -38,6 +40,7 @@ Expected:
 - ESLint exits 0.
 - Vite build exits 0. Chunk-size warnings are acceptable unless they become a performance task.
 - Playwright route checks pass on desktop/mobile viewports.
+- Audit exits 0 at `high` threshold. Low-severity transitive wallet findings must be tracked in `docs/DEPENDENCY_AUDIT.md`.
 
 ## 3. Contract Commands
 
@@ -122,7 +125,7 @@ Policy coverage expected:
 - Say "built" only when the code/docs exist in the repo.
 - Say "passing" only when the command was run and exited 0.
 - Say "deployed" only when a live URL was checked.
-- Say "end-to-end working" only when browser/API/chain flow was actually exercised.
+- Say "end-to-end working" only when browser/API/chain flow was actually exercised. Use `docs/MANUAL_E2E_RUNBOOK.md` for the wallet-signed proof path.
 - Say "production-ready" only after secrets, durable rate limiting, deployment checks, contract tests, and live smoke checks pass.
 
 ## 7. Current Known Risks
@@ -132,4 +135,5 @@ Policy coverage expected:
 - Fee-bump rate limiting is in-memory and not durable.
 - Testnet reset can invalidate accounts/contracts.
 - Mobile behavior still needs real-device verification.
+- Wallet-backed E2E requires a signed Testnet transaction hash; automated Playwright route checks alone are not enough.
 - Mainnet is not appropriate until contracts and deployment flow are audited.

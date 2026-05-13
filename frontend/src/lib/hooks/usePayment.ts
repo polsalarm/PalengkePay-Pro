@@ -13,6 +13,7 @@ import {
   resolvePaymentSettlementMode,
   xlmToStroops,
 } from '../payment-routing';
+import { getPaymentFailureDetails } from '../payment-diagnostics';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 
 export type TxStatus = 'idle' | 'building' | 'signing' | 'submitting' | 'confirmed' | 'failed';
@@ -21,6 +22,7 @@ export interface PaymentState {
   status: TxStatus;
   txHash: string | null;
   error: string | null;
+  diagnostic: string | null;
 }
 
 export function usePayment() {
@@ -30,6 +32,7 @@ export function usePayment() {
     status: 'idle',
     txHash: null,
     error: null,
+    diagnostic: null,
   });
 
   const sendPayment = useCallback(async (
@@ -39,7 +42,7 @@ export function usePayment() {
     memo?: string
   ) => {
     try {
-      setState({ status: 'building', txHash: null, error: null });
+      setState({ status: 'building', txHash: null, error: null, diagnostic: null });
       const xdr = settlementMode === 'contract' && paymentContractId
         ? await prepareContractTx(from, paymentContractId, 'pay', [
           addressToScVal(from),
@@ -60,50 +63,16 @@ export function usePayment() {
         ? await submitSorobanTx(signedTxXdr)
         : (await submitWithFeeBump(signedTxXdr)).hash;
 
-      setState({ status: 'confirmed', txHash, error: null });
+      setState({ status: 'confirmed', txHash, error: null, diagnostic: null });
     } catch (err: unknown) {
-      const message = parseWalletError(err);
-      setState({ status: 'failed', txHash: null, error: message });
+      const details = getPaymentFailureDetails(err);
+      setState({ status: 'failed', txHash: null, error: details.message, diagnostic: details.diagnostic });
     }
   }, [paymentContractId, settlementMode]);
 
   const reset = useCallback(() => {
-    setState({ status: 'idle', txHash: null, error: null });
+    setState({ status: 'idle', txHash: null, error: null, diagnostic: null });
   }, []);
 
   return { ...state, settlementMode, sendPayment, reset };
-}
-
-function parseWalletError(err: unknown): string {
-  if (!err) return 'Unknown error';
-
-  // Extract Horizon result_codes from stellar-sdk 400 errors
-  type HorizonErr = { response?: { data?: { extras?: { result_codes?: { transaction?: string; operations?: string[] } } } } };
-  const rc = (err as HorizonErr).response?.data?.extras?.result_codes;
-  if (rc) {
-    const tx = rc.transaction;
-    const ops = rc.operations ?? [];
-    if (tx === 'tx_bad_seq')         return 'Sequence error — please try again';
-    if (tx === 'tx_insufficient_fee') return 'Network fee too low — please try again';
-    if (tx === 'tx_bad_auth')        return 'Invalid signature — reconnect wallet';
-    if (ops.includes('op_no_destination')) return 'Vendor account not activated on Stellar testnet';
-    if (ops.includes('op_underfunded'))    return 'Insufficient XLM balance';
-    if (ops.includes('op_low_reserve'))    return 'Account below minimum XLM reserve';
-    return `Transaction failed: ${tx ?? ops.join(', ') ?? 'unknown'}`;
-  }
-
-  const msg = (err as { message?: string }).message ?? String(err);
-  if (msg.includes('rejected') || msg.includes('cancel') || msg.includes('denied')) {
-    return 'Transaction cancelled — no funds sent';
-  }
-  if (msg.includes('network') || msg.includes('Network')) {
-    return 'Please switch to Stellar Testnet';
-  }
-  if (msg.includes('balance') || msg.includes('insufficient')) {
-    return 'Insufficient XLM balance';
-  }
-  if (msg.includes('timeout') || msg.includes('Timeout')) {
-    return 'Transaction timed out — tap to retry';
-  }
-  return msg.slice(0, 120);
 }
