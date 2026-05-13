@@ -8,6 +8,7 @@ import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransact
 import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, stellarExpertUrl, getServer } from '../../lib/stellar';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
 
 const STRINGS = {
   en: {
@@ -154,6 +155,10 @@ export function VendorHome() {
   const earningsStr = earnings.toFixed(2);
   const earningsFontSize = earningsStr.length >= 10 ? '1.6rem' : earningsStr.length >= 8 ? '2rem' : earningsStr.length >= 6 ? '2.6rem' : '3.2rem';
   const balanceStr = balance ? parseFloat(balance).toFixed(2) : '—';
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your vendor wallet to view earnings, show your QR, and manage installment credit." />;
+  }
 
   return (
     <div className="animate-page-in" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, ShoppingBag, ScanLine } from 'lucide-react';
+import { AlertTriangle, ExternalLink, RefreshCw, ShoppingBag, ScanLine } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useCustomerTransactions, relativeTime } from '../../lib/hooks/useTransactions';
 import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
 import { useVendorName } from '../../lib/hooks/useVendor';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
 
 const STRINGS = {
   en: {
@@ -107,12 +108,16 @@ function TxRow({ tx }: { tx: TxRecord }) {
 export function CustomerHistory() {
   const navigate = useNavigate();
   const { address } = useWallet();
-  const { transactions, isLoading } = useCustomerTransactions(address);
+  const { transactions, isLoading, error, retry } = useCustomerTransactions(address);
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
   const t = STRINGS[lang];
 
   const totalSpent = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
   const groups = groupByDate(transactions, t);
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your wallet to load your payment history and receipts." />;
+  }
 
   return (
     <div className="space-y-4 animate-page-in">
@@ -240,7 +245,29 @@ export function CustomerHistory() {
           </div>
         )}
 
-        {!isLoading && transactions.length === 0 && (
+        {!isLoading && error && (
+          <div className="bg-white p-8 text-center">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}
+            >
+              <AlertTriangle size={24} style={{ color: '#F43F5E' }} />
+            </div>
+            <p className="text-sm font-black text-slate-800 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              Hindi ma-load ang history
+            </p>
+            <p className="text-xs text-slate-500 mb-5">{error}</p>
+            <button
+              onClick={retry}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-5 py-2.5 rounded-xl active:scale-95"
+              style={{ color: '#BE123C', backgroundColor: '#FFF1F2', border: '1px solid #FECDD3' }}
+            >
+              <RefreshCw size={12} /> Retry
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !error && transactions.length === 0 && (
           <div className="bg-white p-10 text-center">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
@@ -262,7 +289,7 @@ export function CustomerHistory() {
           </div>
         )}
 
-        {!isLoading && groups.length > 0 && (
+        {!isLoading && !error && groups.length > 0 && (
           <div className="bg-white p-5 space-y-5">
             {groups.map(({ label, txs }) => (
               <div key={label}>

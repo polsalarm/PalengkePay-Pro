@@ -8,6 +8,7 @@ import { UtangCard } from '../../components/UtangCard';
 import { QRScanner } from '../../components/QRScanner';
 import { buildPaymentTx, submitTx } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
 
 const ESCROW_ID = import.meta.env.VITE_UTANG_ESCROW_CONTRACT_ID as string | undefined;
 const FEE_XLM = import.meta.env.VITE_UTANG_FEE_XLM ?? '1';
@@ -60,7 +61,7 @@ const FILTER_LABELS: Record<string, { en: string; tl: string }> = {
 
 export function VendorUtang() {
   const { address } = useWallet();
-  const { utangs, isLoading } = useVendorUtangs(address);
+  const { utangs, isLoading, error, refetch } = useVendorUtangs(address);
 
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
   const [showPanel, setShowPanel] = useState(false);
@@ -88,6 +89,10 @@ export function VendorUtang() {
 
   const owedStr = totalOwed.toFixed(2);
   const owedFontSize = owedStr.length >= 10 ? '1.8rem' : owedStr.length >= 8 ? '2.2rem' : owedStr.length >= 6 ? '2.8rem' : '3.4rem';
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your vendor wallet to create and manage installment agreements." />;
+  }
 
   function validate(): boolean {
     setFormError(null);
@@ -232,6 +237,29 @@ export function VendorUtang() {
         </div>
       )}
 
+      {/* ── Load error ── */}
+      {!isLoading && error && ESCROW_ID && (
+        <div
+          className="rounded-2xl p-4 flex gap-3"
+          style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}
+        >
+          <AlertTriangle size={18} style={{ color: '#F43F5E' }} className="shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-slate-800">
+              {lang === 'tl' ? 'Hindi ma-load ang mga kasunduan' : 'Could not load agreements'}
+            </p>
+            <p className="text-xs font-medium text-rose-600 mt-0.5">{error}</p>
+          </div>
+          <button
+            onClick={refetch}
+            className="text-xs font-bold px-3 py-2 rounded-xl active:scale-95 self-start"
+            style={{ backgroundColor: 'white', color: '#BE123C', border: '1px solid #FECDD3' }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* ── Outstanding hero ── */}
       {active.length > 0 && (
         <div
@@ -323,7 +351,7 @@ export function VendorUtang() {
       )}
 
       {/* ── Empty state ── */}
-      {!isLoading && filtered.length === 0 && ESCROW_ID && (
+      {!isLoading && !error && filtered.length === 0 && ESCROW_ID && (
         <div
           className="rounded-3xl p-8 text-center"
           style={{ backgroundColor: 'white', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}
@@ -364,7 +392,7 @@ export function VendorUtang() {
       )}
 
       {/* ── Utang cards ── */}
-      {!isLoading && filtered.length > 0 && (
+      {!isLoading && !error && filtered.length > 0 && (
         <div className="space-y-3">
           {filtered.map((u) => <UtangCard key={String(u.id)} utang={u} perspective="vendor" />)}
         </div>

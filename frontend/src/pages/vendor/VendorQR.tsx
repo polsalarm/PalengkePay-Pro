@@ -1,24 +1,23 @@
-import { ArrowLeft } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Store } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { QRGenerator } from '../../components/QRGenerator';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { REGISTRY_CONTRACT_ID } from '../../lib/contracts';
 
 export function VendorQR() {
-  const { address, isConnected } = useWallet();
+  const { address } = useWallet();
   const { vendor, isLoading } = useVendor(address);
   const navigate = useNavigate();
 
-  if (!isConnected) {
+  if (!address) {
     return (
-      <div
-        className="min-h-screen flex flex-col items-center justify-center px-6"
-        style={{ backgroundColor: '#00284B' }}
-      >
-        <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          Connect wallet to see your QR code.
-        </p>
-      </div>
+      <WalletRequiredState
+        detail="Connect your vendor wallet to display the QR code customers use for payment."
+        fullScreen
+        tone="dark"
+      />
     );
   }
 
@@ -73,7 +72,7 @@ export function VendorQR() {
             className="text-base font-black text-white leading-tight"
             style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
-            {vendor?.name ?? 'My QR Code'}
+            {vendor?.name ?? (isLoading ? 'My QR Code' : 'Register first')}
           </h1>
         </div>
       </div>
@@ -89,7 +88,7 @@ export function VendorQR() {
             <div className="h-5 w-40 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
             <div className="h-4 w-28 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} />
           </div>
-        ) : (
+        ) : vendor ? (
           <div
             className="w-full rounded-3xl p-6"
             style={{
@@ -106,18 +105,59 @@ export function VendorQR() {
               downloadable
             />
           </div>
+        ) : (
+          <div
+            className="w-full rounded-3xl p-6 text-center"
+            style={{
+              backgroundColor: 'white',
+              maxWidth: '320px',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
+            }}
+          >
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{
+                backgroundColor: REGISTRY_CONTRACT_ID ? '#F0FDFA' : '#FFFBEB',
+                border: `1.5px solid ${REGISTRY_CONTRACT_ID ? '#CCFBF1' : '#FDE68A'}`,
+              }}
+            >
+              {REGISTRY_CONTRACT_ID
+                ? <Store size={28} style={{ color: '#008055' }} />
+                : <AlertTriangle size={28} style={{ color: '#D97706' }} />
+              }
+            </div>
+            <p className="text-base font-black text-slate-900 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              {REGISTRY_CONTRACT_ID ? 'Register your stall first' : 'Vendor registry unavailable'}
+            </p>
+            <p className="text-sm text-slate-500 mb-5">
+              {REGISTRY_CONTRACT_ID
+                ? 'Your customer QR appears after your vendor profile is registered.'
+                : 'Set the vendor registry contract ID before QR profiles can load.'}
+            </p>
+            {REGISTRY_CONTRACT_ID && (
+              <button
+                onClick={() => navigate('/vendor/apply')}
+                className="w-full flex items-center justify-center gap-2 text-sm font-black rounded-2xl active:scale-95 text-white"
+                style={{ backgroundColor: '#008055', minHeight: '52px' }}
+              >
+                Apply as Vendor <ArrowRight size={15} />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
       {/* Bottom hint */}
-      <div
-        className="relative px-6 py-5 text-center shrink-0"
-        style={{ paddingBottom: 'calc(20px + env(safe-area-inset-bottom))' }}
-      >
-        <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          I-scan ng customer para magbayad · works offline
-        </p>
-      </div>
+      {vendor && (
+        <div
+          className="relative px-6 py-5 text-center shrink-0"
+          style={{ paddingBottom: 'calc(20px + env(safe-area-inset-bottom))' }}
+        >
+          <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            I-scan ng customer para magbayad · works offline
+          </p>
+        </div>
+      )}
     </div>
   );
 }

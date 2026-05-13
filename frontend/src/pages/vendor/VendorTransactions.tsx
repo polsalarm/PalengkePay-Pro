@@ -5,6 +5,7 @@ import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
 import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
 
 const STRINGS = {
   en: {
@@ -117,6 +118,10 @@ export function VendorTransactions() {
   const count = todayCount();
   const allTimeTotal = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
   const groups = groupByDate(transactions, t);
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your vendor wallet to load earnings history and receipt links." />;
+  }
 
   return (
     <div className="space-y-4 animate-page-in">

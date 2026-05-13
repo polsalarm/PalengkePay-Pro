@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Edit2, Check, X, Loader2, MapPin, Tag, Phone, BarChart2, Coins } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Edit2, Check, X, Loader2, MapPin, Tag, Phone, BarChart2, Coins, Store } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, prepareContractTx, submitSorobanTx, addressToScVal, stringToScVal } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
 
 const REGISTRY_ID = import.meta.env.VITE_VENDOR_REGISTRY_CONTRACT_ID as string | undefined;
 const PRODUCT_TYPES = ['fish', 'meat', 'vegetables', 'fruits', 'rice & grains', 'spices', 'other'];
@@ -15,6 +17,7 @@ const PRODUCT_EMOJIS: Record<string, string> = {
 };
 
 export function VendorProfile() {
+  const navigate = useNavigate();
   const { address } = useWallet();
   const { vendor, isLoading } = useVendor(address);
   const { showToast } = useToast();
@@ -53,6 +56,10 @@ export function VendorProfile() {
   };
 
   const emoji = vendor ? (PRODUCT_EMOJIS[vendor.productType] ?? '🛒') : '🛒';
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your vendor wallet to view or update your stall profile." />;
+  }
 
   return (
     <div className="space-y-4 animate-page-in max-w-md">
@@ -194,9 +201,37 @@ export function VendorProfile() {
           )}
 
           {!isLoading && !vendor && (
-            <p className="text-sm text-slate-400 py-2">
-              {REGISTRY_ID ? 'Not registered as vendor.' : 'VendorRegistry contract not deployed.'}
-            </p>
+            <div className="text-center py-6 px-2">
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                style={{
+                  backgroundColor: REGISTRY_ID ? '#F0FDFA' : '#FFFBEB',
+                  border: `1.5px solid ${REGISTRY_ID ? '#CCFBF1' : '#FDE68A'}`,
+                }}
+              >
+                {REGISTRY_ID
+                  ? <Store size={28} style={{ color: '#008055' }} />
+                  : <AlertTriangle size={28} style={{ color: '#D97706' }} />
+                }
+              </div>
+              <p className="text-sm font-black text-slate-800 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {REGISTRY_ID ? 'No vendor profile yet' : 'Vendor registry unavailable'}
+              </p>
+              <p className="text-xs text-slate-500 mb-5">
+                {REGISTRY_ID
+                  ? 'Create your stall profile before showing QR codes or appearing in the market.'
+                  : 'Set the VendorRegistry contract ID before vendor profiles can load.'}
+              </p>
+              {REGISTRY_ID && (
+                <button
+                  onClick={() => navigate('/vendor/apply')}
+                  className="inline-flex items-center justify-center gap-2 text-sm font-bold px-5 py-3 rounded-2xl active:scale-95 text-white"
+                  style={{ backgroundColor: '#008055' }}
+                >
+                  Apply as Vendor <ArrowRight size={15} />
+                </button>
+              )}
+            </div>
           )}
 
           {!isLoading && vendor && editing && (

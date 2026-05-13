@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { CheckCircle, Loader2, QrCode, ExternalLink, MapPin, Phone, Tag, Wallet } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Loader2, QrCode, ExternalLink, MapPin, Phone, Tag, Wallet } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useApplyVendor } from '../../lib/hooks/useVendor';
 import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress } from '../../lib/stellar';
 
 const PRODUCT_TYPES = ['fish', 'meat', 'vegetables', 'fruits', 'rice & grains', 'spices', 'other'];
+const REGISTRY_ID = import.meta.env.VITE_VENDOR_REGISTRY_CONTRACT_ID as string | undefined;
 
 const PRODUCT_META: Record<string, { emoji: string; color: string; bg: string }> = {
   fish:           { emoji: '🐟', color: '#2563EB', bg: '#EFF6FF' },
@@ -139,6 +140,7 @@ export function VendorApply() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConnected) { connect(); return; }
+    if (!REGISTRY_ID) { showToast('Vendor registry contract is not configured.', 'error'); return; }
     if (!address) return;
     if (!form.stallNumber) { showToast('Select a stall number first.', 'error'); return; }
     const ok = await apply(address, form.name, form.stallNumber, form.phone, form.productType);
@@ -291,6 +293,21 @@ export function VendorApply() {
         </div>
       </div>
 
+      {!REGISTRY_ID && (
+        <div
+          className="rounded-2xl p-4 flex gap-3"
+          style={{ backgroundColor: '#FFFBEB', border: '1.5px solid #FDE68A' }}
+        >
+          <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: '#D97706' }} />
+          <div>
+            <p className="text-sm font-black text-slate-800">Vendor registry not configured</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Set VITE_VENDOR_REGISTRY_CONTRACT_ID before new vendor applications can be submitted.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Form ── */}
       <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -385,7 +402,7 @@ export function VendorApply() {
         {/* Submit */}
         <button
           type="submit"
-          disabled={isSubmitting || !isConnected}
+          disabled={isSubmitting || !isConnected || !REGISTRY_ID}
           className="w-full text-white font-black rounded-2xl active:scale-95 transition-all disabled:opacity-40"
           style={{
             backgroundColor: '#008055',
@@ -399,6 +416,8 @@ export function VendorApply() {
             <span className="flex items-center justify-center gap-2">
               <Loader2 size={18} className="animate-spin" /> Isinusumite…
             </span>
+          ) : !REGISTRY_ID ? (
+            'Registry not configured'
           ) : !isConnected ? (
             'I-connect ang Wallet'
           ) : (

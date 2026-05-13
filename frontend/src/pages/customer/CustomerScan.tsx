@@ -5,6 +5,7 @@ import { QRScanner } from '../../components/QRScanner';
 import type { QRScanMeta } from '../../components/QRScanner';
 import { PaymentForm } from '../../components/PaymentForm';
 import { TxStatusTracker } from '../../components/TxStatusTracker';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { usePayment } from '../../lib/hooks/usePayment';
@@ -12,6 +13,7 @@ import { useCreateUtang } from '../../lib/hooks/useUtang';
 import type { UtangOfferPayload } from '../vendor/VendorUtang';
 import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
 import { formatPhp, formatXlm, type StableCheckoutQuote } from '../../lib/checkout-quote';
+import { ESCROW_CONTRACT_ID } from '../../lib/contracts';
 
 const STROOPS = 10_000_000;
 
@@ -34,7 +36,7 @@ interface PendingPayment {
 
 export function CustomerScan() {
   const navigate = useNavigate();
-  const { address, isConnected, connect } = useWallet();
+  const { address } = useWallet();
 
   const [step, setStep] = useState<Step>('scan');
   const [vendorAddress, setVendorAddress] = useState('');
@@ -101,6 +103,10 @@ export function CustomerScan() {
     await sendPayment(address, vendorAddress, pendingPayment.amount, pendingPayment.memo);
   };
 
+  const handleRetryPayment = () => {
+    void handleConfirm();
+  };
+
   const handleAcceptUtang = async () => {
     if (!utangOffer || !address) return;
     if (utangOffer.c && utangOffer.c !== address) {
@@ -151,35 +157,13 @@ export function CustomerScan() {
 
   const vendorDisplay = vendor?.name ?? scannedMeta?.name ?? truncateAddress(vendorAddress);
 
-  if (!isConnected) {
+  if (!address) {
     return (
-      <div
-        className="min-h-[60vh] flex flex-col items-center justify-center px-6 animate-page-in"
-        style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
-      >
-        <div
-          className="w-20 h-20 rounded-3xl flex items-center justify-center mb-5"
-          style={{ backgroundColor: '#F0FDFA', border: '2px solid #CCFBF1' }}
-        >
-          <ScanLine size={36} style={{ color: '#008055' }} />
-        </div>
-        <h2
-          className="text-xl font-black text-slate-900 mb-2 text-center"
-          style={{ fontFamily: "'Montserrat', sans-serif" }}
-        >
-          Connect your wallet
-        </h2>
-        <p className="text-sm text-slate-500 text-center mb-6">
-          Kailangan ng wallet para mag-scan at magbayad.
-        </p>
-        <button
-          onClick={connect}
-          className="w-full text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-base"
-          style={{ backgroundColor: '#008055', maxWidth: '320px' }}
-        >
-          I-connect ang Wallet
-        </button>
-      </div>
+      <WalletRequiredState
+        detail="Connect your wallet before scanning payment QRs or accepting installment offers."
+        fullScreen
+        tone="dark"
+      />
     );
   }
 
@@ -470,7 +454,7 @@ export function CustomerScan() {
               error={error}
               amount={pendingPayment.amount}
               recipientName={vendorDisplay}
-              onRetry={() => { reset(); }}
+              onRetry={handleRetryPayment}
             />
           )}
         </div>
@@ -659,19 +643,35 @@ export function CustomerScan() {
             </div>
           </div>
 
+          {!ESCROW_CONTRACT_ID && (
+            <div
+              className="rounded-2xl p-4 flex gap-3"
+              style={{ backgroundColor: '#FFFBEB', border: '1.5px solid #FDE68A' }}
+            >
+              <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: '#D97706' }} />
+              <div>
+                <p className="text-sm font-black text-slate-800">Installment contract not configured</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  This offer can be reviewed, but it cannot be accepted until VITE_UTANG_ESCROW_CONTRACT_ID is set.
+                </p>
+              </div>
+            </div>
+          )}
+
           {utangAcceptStatus === 'idle' && (
             <button
               onClick={handleAcceptUtang}
+              disabled={!ESCROW_CONTRACT_ID}
               className="w-full text-white font-black rounded-2xl active:scale-95 transition-all"
               style={{
-                backgroundColor: '#008055',
+                backgroundColor: ESCROW_CONTRACT_ID ? '#008055' : '#94A3B8',
                 minHeight: '60px',
                 fontSize: '1.05rem',
                 fontFamily: "'Montserrat', sans-serif",
                 boxShadow: '0 6px 24px rgba(15,118,110,0.4)',
               }}
             >
-              Tanggapin at I-sign
+              {ESCROW_CONTRACT_ID ? 'Tanggapin at I-sign' : 'Contract not configured'}
             </button>
           )}
 

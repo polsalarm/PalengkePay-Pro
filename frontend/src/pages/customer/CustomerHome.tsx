@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ScanLine, ExternalLink, AlertTriangle, HandCoins, Store, ShoppingBag, ArrowRight, TrendingDown, ChevronRight } from 'lucide-react';
+import { ScanLine, ExternalLink, AlertTriangle, HandCoins, Store, ShoppingBag, ArrowRight, TrendingDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useBalance } from '../../lib/hooks/useBalance';
 import { useCustomerTransactions, relativeTime } from '../../lib/hooks/useTransactions';
@@ -8,6 +8,7 @@ import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { useCustomerUtangs, isOverdue } from '../../lib/hooks/useUtang';
 import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
 import { useVendorName } from '../../lib/hooks/useVendor';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
 
 const STRINGS = {
   en: {
@@ -119,8 +120,8 @@ export function CustomerHome() {
   const navigate = useNavigate();
   const { address } = useWallet();
   const { balance } = useBalance(address);
-  const { transactions, isLoading } = useCustomerTransactions(address);
-  const { utangs } = useCustomerUtangs(address);
+  const { transactions, isLoading, error: txError, retry: retryTransactions } = useCustomerTransactions(address);
+  const { utangs, error: utangError, refetch: refetchUtangs } = useCustomerUtangs(address);
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
   const t = STRINGS[lang];
 
@@ -137,6 +138,10 @@ export function CustomerHome() {
   const balanceNum = balance ? parseFloat(balance) : null;
   const balanceStr = balanceNum !== null ? balanceNum.toFixed(2) : '—';
   const balanceFontSize = balanceStr.length >= 10 ? '1.6rem' : balanceStr.length >= 8 ? '2rem' : balanceStr.length >= 6 ? '2.6rem' : '3.2rem';
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your wallet to view your balance, recent payments, and installment plans." />;
+  }
 
   return (
     <div className="animate-page-in" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
@@ -318,6 +323,30 @@ export function CustomerHome() {
         </button>
       )}
 
+      {/* ── UTANG LOAD ERROR ── */}
+      {utangError && (
+        <div className="px-4 mt-3">
+          <div
+            className="rounded-2xl p-4 flex items-center gap-3"
+            style={{ backgroundColor: '#FFFBEB', border: '1.5px solid #FDE68A' }}
+          >
+            <AlertTriangle size={18} className="shrink-0" style={{ color: '#D97706' }} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-slate-800">Installments unavailable</p>
+              <p className="text-xs font-medium text-amber-700 truncate">{utangError}</p>
+            </div>
+            <button
+              onClick={refetchUtangs}
+              className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-95 shrink-0"
+              style={{ backgroundColor: 'white', color: '#D97706', border: '1px solid #FDE68A' }}
+              aria-label="Retry loading installments"
+            >
+              <RefreshCw size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── SCAN TO PAY — PRIMARY CTA ── */}
       <div className="px-4 mt-3">
         <button
@@ -437,7 +466,29 @@ export function CustomerHome() {
             </div>
           )}
 
-          {!isLoading && recent.length === 0 && (
+          {!isLoading && txError && (
+            <div className="text-center py-10 px-4">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}
+              >
+                <AlertTriangle size={24} style={{ color: '#F43F5E' }} />
+              </div>
+              <p className="text-base font-black text-slate-800 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                Hindi ma-load ang recent payments
+              </p>
+              <p className="text-sm text-slate-500 mb-5">{txError}</p>
+              <button
+                onClick={retryTransactions}
+                className="inline-flex items-center gap-2 text-sm font-bold px-5 py-3 rounded-2xl active:scale-95"
+                style={{ color: '#BE123C', backgroundColor: '#FFF1F2', border: '1px solid #FECDD3' }}
+              >
+                <RefreshCw size={15} /> Retry
+              </button>
+            </div>
+          )}
+
+          {!isLoading && !txError && recent.length === 0 && (
             <div className="text-center py-12 px-4">
               <div
                 className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-4"
@@ -459,7 +510,7 @@ export function CustomerHome() {
             </div>
           )}
 
-          {!isLoading && groups.length > 0 && (
+          {!isLoading && !txError && groups.length > 0 && (
             <div className="space-y-4">
               {groups.map(({ label, txs }) => (
                 <div key={label}>

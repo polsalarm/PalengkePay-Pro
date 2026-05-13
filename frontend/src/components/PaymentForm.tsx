@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, Store, Zap } from 'lucide-react';
+import { AlertTriangle, Clock, Store, Zap } from 'lucide-react';
 import type { VendorProfile } from '../lib/hooks/useVendor';
 import type { PaymentSettlementMode } from '../lib/payment-routing';
 import {
@@ -247,12 +247,18 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
       {/* ── Settlement badge ── */}
       <div
         className="flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold"
-        style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}
+        style={settlementMode === 'contract'
+          ? { backgroundColor: '#F0FDF4', color: '#16A34A' }
+          : { backgroundColor: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A' }
+        }
       >
-        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22C55E' }} />
+        {settlementMode === 'contract'
+          ? <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22C55E' }} />
+          : <AlertTriangle size={13} style={{ color: '#D97706' }} />
+        }
         {settlementMode === 'contract'
           ? 'On-chain receipt — recorded by PalengkePayment'
-          : 'Gasless — fees sponsored, zero cost sa iyo'}
+          : 'Payment contract not configured — using sponsored Stellar transfer'}
       </div>
 
       {/* ── Submit ── */}
