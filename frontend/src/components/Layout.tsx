@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, QrCode, ScanLine, List, User, UserPlus, Users, HandCoins, Store, ChevronLeft, ChevronRight, ArrowUp, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Home, QrCode, ScanLine, List, User, UserPlus, Users, HandCoins, Store, ChevronLeft, ChevronRight, ArrowUp } from 'lucide-react';
 import { WalletButton } from './WalletButton';
 import logoImg from '../assets/logo.png';
 

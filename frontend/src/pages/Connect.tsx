@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, ShieldCheck, Loader2, Zap } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
-import logoImg from '../assets/logo.png';
 import logoImg2 from '../assets/logo-2.png';
 
 const WALLETS = [
