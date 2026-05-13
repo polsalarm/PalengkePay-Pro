@@ -2,7 +2,7 @@
 
 Last updated: 2026-05-13
 
-This document is the working list of what has already been built, what is present in the app today, and what should come next. It is based on the current repo state, README, roadmap, frontend routes/hooks, API functions, and Soroban contract modules.
+This document is the working list of what has already been built, what is present in the app today, and what should come next. It is based on the current repo state, README, roadmap, frontend routes/hooks, API functions, Soroban contract modules, and the workspace deep-research reports in `../../docs/`.
 
 ## 0. Product Summary
 
@@ -342,7 +342,91 @@ Evidence:
 - Add richer error messages for wallet rejection and insufficient funds.
 - Split large frontend chunks if bundle size becomes a production concern.
 
-## 4. Open Blockers
+## 4. Deep-Research Recommendations
+
+These items come from the workspace deep-research reports:
+
+- `../../docs/deep-research-report-01.md`
+- `../../docs/deep-research-report-02.md`
+- `../../docs/deep-research-report-03.md`
+- `../../docs/deep-research-report-04.md`
+
+### 4.1 Judge-Facing Product Thesis
+
+- Do not spend hackathon time on generic inventory, AI chat, or another landing-page pass.
+- Keep the story tight: PalengkePay turns payment and repayment history into trust, and trust into merchant growth.
+- Demo as a chain, not a feature tour:
+  1. vendor receives a simple local-currency payment,
+  2. customer accepts or repays utang,
+  3. admin/lender sees a trust or credit passport,
+  4. monetization is explained as monthly merchant software.
+
+### 4.2 Recommended Feature Portfolio
+
+| Priority | Feature | Why it matters | Research estimate |
+| --- | --- | --- | --- |
+| 1 | Stable Checkout with Price Lock and Dual-Currency Receipt | Makes crypto payments understandable to non-crypto users by centering PHP price, locked quote, and receipt proof | 16-22h |
+| 2 | PalengkeScore Credit Passport | Converts payment and repayment history into a financeable vendor trust profile | 20-28h |
+| 3 | Smart Collections for Utang | Adds reminders, partial pay, early settlement, and repayment receipts to the existing utang flow | 14-20h |
+| 4 | Receipt Pack, CSV Export, Print-Ready QR Kit | Low-risk proof/polish that helps vendors, judges, and demos | 8-12h |
+| 5 | Collections and Risk Dashboard for Market Admins | Turns admin metrics into a platform workflow around delinquency and risk | 12-18h |
+| 6 | Family Basket / Remittance Sponsor | Stretch feature: remote family/sponsor prepays grocery budget for approved redemption | 24-36h |
+
+### 4.3 Architecture Recommendations
+
+- Unify payment event truth before building analytics, PalengkeScore, or risk dashboards.
+- Prefer contract-first payments: route QR payments through `PalengkePayment.pay`, then make events and stats come from that path.
+- Treat Horizon/localStorage as history/cache, not the business source of truth.
+- Add a shared event/metrics model before expanding score, collections, or admin reporting.
+- Replace admin-only `increment_stats` with an authorized payment-contract or event-normalizer path.
+- Make QR payloads stronger over time: signed invoices, reusable checkout requests, basket budgets, and receipts instead of plain address metadata only.
+
+### 4.4 Security, Abuse, and CI Recommendations
+
+- Keep the fee-bump sponsorship flow; it is a real adoption advantage.
+- Continue hardening fee-bump sponsorship with abuse-path tests and allowlists.
+- Add or keep these regression tests in the backlog:
+  - sponsor rejects non-payment XDR,
+  - sponsor rejects unknown vendor destination,
+  - vendor offer creation requires vendor auth,
+  - customer acceptance requires customer auth,
+  - stats mutation rejects unauthorized callers,
+  - default marking is only allowed under valid overdue/admin conditions,
+  - real payment updates metrics once,
+  - manual wallet/address validation uses SDK checks,
+  - CSP does not allow unsafe runtime behavior.
+- Expand CI toward lint, TypeScript, Vitest coverage, production build, Rust fmt/clippy/test, CodeQL, and dependency scanning.
+- Run a dynamic abuse review with malformed inner transactions and testnet wallets.
+- Audit dependency and lockfile risk for frontend and Rust workspaces.
+- Verify testnet reset resilience by redeploying contracts/accounts from a clean reset scenario.
+
+### 4.5 Mobile Strategy Recommendations
+
+- Do not treat mobile as just another frontend; verify backend readiness first.
+- If building a durable mobile app, default to React Native plus Expo/native modules because the current team and app are TypeScript/React-heavy.
+- Use Capacitor only for a quick web-first shell, not as the default long-term mobile architecture.
+- Plan a mobile architecture around local database/cache, repository/sync layer, typed API client, backend/BFF, push provider, analytics, crash reporting, and release telemetry.
+- Make offline persistence, idempotent mutations, background sync, secure storage, privacy disclosures, and app-store policy part of the first planning pass.
+- Treat the deep-research mobile estimate as a separate product track: roughly 20-28 weeks for a serious medium-complexity mobile rollout with mobile, backend, design, QA, and release ownership.
+
+### 4.6 Monetization Recommendations
+
+- Do not price PalengkePay as SGD 8-10 per transaction.
+- Use monthly merchant software pricing instead:
+  - Growth: SGD 8/user/month for stable checkout, receipts, QR kit, CSV export, reminders, and partial-pay support.
+  - Pro: SGD 10/user/month for PalengkeScore, reports, collections dashboard, Family Basket sponsor flow, and advanced analytics.
+- Position the wedge around time saved, better records, collections, and credit readiness.
+- Treat 1,000 paying vendors as a hackathon-realistic first commercial milestone, not a massive first-year adoption claim.
+
+### 4.7 Research Open Questions
+
+- Are deployed contract IDs and WASM hashes aligned with this source tree?
+- Is the active payment path intentionally direct Stellar transfer, or should it now move fully to `PalengkePayment.pay`?
+- Are vendor/admin/customer forms consistently validating wallet addresses, amounts, memo fields, and uploaded QR payloads?
+- What is the chosen mobile target: web PWA only, quick mobile shell, or durable store-ready mobile app?
+- Which features are actually needed for the next submission: judge demo, production pilot, or mobile expansion?
+
+## 5. Open Blockers
 
 - Rust contract test suite cannot be locally verified until the Windows MSVC linker is installed.
 - Production fee sponsorship needs real server-side env values:
