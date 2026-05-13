@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, ShieldCheck, Loader2, Zap } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
+import logoImg from '../assets/logo.png';
+import logoImg2 from '../assets/logo-2.png';
 
 const WALLETS = [
   { id: 'freighter',     letter: 'F', color: '#4F46E5', bg: '#EEF2FF', name: 'Freighter',     sub: 'Browser extension wallet' },
   { id: 'lobstr',        letter: 'L', color: '#0EA5E9', bg: '#F0F9FF', name: 'Lobstr',         sub: 'Mobile wallet' },
-  { id: 'xbull',         letter: 'X', color: '#7C3AED', bg: '#F5F3FF', name: 'xBull',          sub: 'Advanced wallet' },
+  { id: 'xbull',         letter: 'X', color: '#042E80', bg: '#F5F3FF', name: 'xBull',          sub: 'Advanced wallet' },
   { id: 'albedo',        letter: 'A', color: '#D97706', bg: '#FFFBEB', name: 'Albedo',          sub: 'Web-based, no install needed' },
-  { id: 'walletconnect', letter: 'W', color: '#0F766E', bg: '#F0FDFA', name: 'WalletConnect',   sub: 'Connect mobile wallet' },
+  { id: 'walletconnect', letter: 'W', color: '#008055', bg: '#F0FDFA', name: 'WalletConnect',   sub: 'Connect mobile wallet' },
 ];
 
 async function fundWithFriendbot(address: string): Promise<void> {
@@ -57,26 +59,26 @@ export function Connect() {
       {/* ── Left panel ─────────────────────────────────────────────────── */}
       <div
         className="hidden lg:flex flex-col justify-between w-[42%] shrink-0 p-10 xl:p-14"
-        style={{ backgroundColor: '#0A3D38' }}
+        style={{ backgroundColor: '#00284B' }}
       >
         {/* Logo */}
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white"
-            style={{ backgroundColor: 'rgba(255,255,255,0.12)', fontSize: '1.1rem' }}
-          >
-            ₱
-          </div>
-          <span className="font-black text-white text-lg" style={{ fontFamily: "'Syne', sans-serif" }}>
-            PalengkePay
-          </span>
-        </div>
+  <img 
+    src={logoImg2} 
+    alt="PalengkePay" 
+    className="w-9 h-9 rounded-xl object-cover"
+  />
+  <span className="font-black text-lg" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+    <span style={{ color: '#FFFFFF' }}>Palengke</span>
+    <span style={{ color: '#008055' }}>Pay</span>
+  </span>
+</div>
 
         {/* Center content */}
         <div>
           <h2
             className="font-black text-white mb-5 leading-tight"
-            style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontFamily: "'Syne', sans-serif" }}
+            style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontFamily: "'Montserrat', sans-serif" }}
           >
             Step into the<br />digital palengke.
           </h2>
@@ -142,7 +144,7 @@ export function Connect() {
           <div className="w-full max-w-md">
             <h1
               className="font-black text-slate-900 mb-2 tracking-tight"
-              style={{ fontSize: '2rem', fontFamily: "'Syne', sans-serif" }}
+              style={{ fontSize: '2rem', fontFamily: "'Montserrat', sans-serif" }}
             >
               Connect Your Wallet
             </h1>
@@ -187,20 +189,20 @@ export function Connect() {
                 style={{ backgroundColor: '#F0FDFA', borderColor: '#CCFBF1' }}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <Zap size={14} style={{ color: '#0F766E' }} />
+                  <Zap size={14} style={{ color: '#008055' }} />
                   <p className="text-sm font-bold text-slate-800">Get Testnet XLM (Free)</p>
                 </div>
                 <p className="text-xs text-slate-500 mb-3">
                   Fund your wallet with free testnet XLM via Stellar Friendbot. One-time per account.
                 </p>
                 {funded ? (
-                  <p className="text-xs font-bold" style={{ color: '#0F766E' }}>✓ Wallet funded with 10,000 testnet XLM!</p>
+                  <p className="text-xs font-bold" style={{ color: '#008055' }}>✓ Wallet funded with 10,000 testnet XLM!</p>
                 ) : (
                   <button
                     onClick={handleFriendbot}
                     disabled={funding}
                     className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all active:scale-95 disabled:opacity-60"
-                    style={{ backgroundColor: '#0F766E', color: 'white' }}
+                    style={{ backgroundColor: '#008055', color: 'white' }}
                   >
                     {funding ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
                     {funding ? 'Funding…' : 'Fund with Friendbot'}
@@ -216,7 +218,7 @@ export function Connect() {
               <button
                 onClick={() => navigate('/onboard')}
                 className="text-xs font-semibold hover:underline transition-colors"
-                style={{ color: '#0F766E' }}
+                style={{ color: '#008055' }}
               >
                 Get started with Freighter →
               </button>

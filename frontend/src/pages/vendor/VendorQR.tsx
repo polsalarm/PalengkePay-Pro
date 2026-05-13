@@ -13,7 +13,7 @@ export function VendorQR() {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center px-6"
-        style={{ backgroundColor: '#0A3D38' }}
+        style={{ backgroundColor: '#00284B' }}
       >
         <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
           Connect wallet to see your QR code.
@@ -29,7 +29,7 @@ export function VendorQR() {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ backgroundColor: '#0A3D38' }}
+      style={{ backgroundColor: '#00284B' }}
     >
       {/* Banig texture */}
       <div
@@ -71,7 +71,7 @@ export function VendorQR() {
           </p>
           <h1
             className="text-base font-black text-white leading-tight"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
             {vendor?.name ?? 'My QR Code'}
           </h1>

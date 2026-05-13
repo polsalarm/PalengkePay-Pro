@@ -27,7 +27,7 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
   const isMono = perspective === 'vendor' || !resolvedVendorName;
 
   const statusStyle = {
-    active: { bg: '#F0FDFA', color: '#0F766E', border: '#CCFBF1', label: overdue ? 'overdue' : 'active' },
+    active: { bg: '#F0FDFA', color: '#008055', border: '#CCFBF1', label: overdue ? 'overdue' : 'active' },
     completed: { bg: '#F0FDF4', color: '#16A34A', border: '#BBF7D0', label: 'completed' },
     defaulted: { bg: '#FFF1F2', color: '#F43F5E', border: '#FECDD3', label: 'defaulted' },
   }[utang.status];
@@ -41,7 +41,7 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
   const barColor = utang.status === 'completed' ? '#22C55E'
     : utang.status === 'defaulted' ? '#F43F5E'
     : overdue ? '#F59E0B'
-    : '#0F766E';
+    : '#008055';
 
   const cardBorder = utang.status === 'defaulted'
     ? '#FECDD3'
@@ -108,7 +108,7 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
         {/* Amount + progress */}
         <div className="px-5 pb-3">
           <div className="flex items-baseline justify-between mb-3">
-            <p className="font-black text-slate-900" style={{ fontSize: '1.5rem', fontFamily: "'Syne', sans-serif" }}>
+            <p className="font-black text-slate-900" style={{ fontSize: '1.5rem', fontFamily: "'Montserrat', sans-serif" }}>
               {utang.totalAmountXlm.toFixed(2)}
               <span className="text-sm font-semibold text-slate-400 ml-1.5">XLM</span>
             </p>
@@ -174,7 +174,7 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-xs font-semibold active:scale-95"
-                style={{ color: '#0F766E' }}
+                style={{ color: '#008055' }}
               >
                 View tx <ExternalLink size={11} />
               </a>
@@ -184,7 +184,7 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
                 onClick={() => onPayInstallment(utang)}
                 className="px-4 py-1.5 rounded-xl text-xs font-bold text-white transition-all active:scale-95"
                 style={{
-                  backgroundColor: overdue ? '#D97706' : '#0F766E',
+                  backgroundColor: overdue ? '#D97706' : '#008055',
                   boxShadow: overdue
                     ? '0 2px 8px rgba(217,119,6,0.3)'
                     : '0 2px 8px rgba(15,118,110,0.3)',

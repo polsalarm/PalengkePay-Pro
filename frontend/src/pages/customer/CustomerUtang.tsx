@@ -122,7 +122,7 @@ export function CustomerUtang() {
         <div>
           <h1
             className="text-xl font-black text-slate-900 leading-tight"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
             My Utang
           </h1>
@@ -134,7 +134,7 @@ export function CustomerUtang() {
           className="flex items-center gap-2 text-sm font-bold px-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50"
           style={{
             minHeight: '44px',
-            color: '#0F766E',
+            color: '#008055',
             backgroundColor: '#F0FDFA',
             border: '1.5px solid #CCFBF1',
           }}
@@ -177,7 +177,7 @@ export function CustomerUtang() {
               fontSize: '9rem', lineHeight: 1,
               color: 'rgba(255,255,255,0.08)',
               bottom: -15, right: -5,
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "'Montserrat', sans-serif",
             }}
           >₱</div>
 
@@ -193,7 +193,7 @@ export function CustomerUtang() {
                 className="font-black text-white leading-none"
                 style={{
                   fontSize: totalDue.toFixed(2).length >= 8 ? '2.4rem' : '3rem',
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'Montserrat', sans-serif",
                   letterSpacing: '-0.02em',
                 }}
               >
@@ -263,7 +263,7 @@ export function CustomerUtang() {
           </div>
           <p
             className="text-base font-black text-slate-800 mb-1"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
             {filter === 'active' ? 'Walang aktibong plan' : `Walang ${filter} na plans`}
           </p>
@@ -273,7 +273,7 @@ export function CustomerUtang() {
           <div className="flex items-center justify-center gap-4">
             <div
               className="flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl"
-              style={{ color: '#0F766E', backgroundColor: '#F0FDFA' }}
+              style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
             >
               <ScanLine size={14} /> Scan QR
             </div>
@@ -320,7 +320,7 @@ export function CustomerUtang() {
                 <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#D97706' }}>
                   Installment Credit Offer
                 </p>
-                <p className="text-base font-black text-slate-900 mt-0.5" style={{ fontFamily: "'Syne', sans-serif" }}>
+                <p className="text-base font-black text-slate-900 mt-0.5" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                   Suriin bago tanggapin
                 </p>
               </div>
@@ -346,19 +346,19 @@ export function CustomerUtang() {
                 )}
                 <div className="grid grid-cols-3 divide-x divide-slate-100">
                   <div className="p-4 text-center">
-                    <p className="text-xl font-black text-slate-900 leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+                    <p className="text-xl font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                       {(uploadedOffer.a / STROOPS).toFixed(2)}
                     </p>
                     <p className="text-xs text-slate-400 mt-0.5">XLM total</p>
                   </div>
                   <div className="p-4 text-center">
-                    <p className="text-xl font-black text-slate-900 leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+                    <p className="text-xl font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                       {uploadedOffer.n}×
                     </p>
                     <p className="text-xs text-slate-400 mt-0.5">{(uploadedOffer.a / STROOPS / uploadedOffer.n).toFixed(2)} XLM</p>
                   </div>
                   <div className="p-4 text-center">
-                    <p className="text-base font-black text-slate-900 leading-tight capitalize" style={{ fontFamily: "'Syne', sans-serif" }}>
+                    <p className="text-base font-black text-slate-900 leading-tight capitalize" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                       {intervalLabel(uploadedOffer.i)}
                     </p>
                     <p className="text-xs text-slate-400 mt-0.5">interval</p>
@@ -376,10 +376,10 @@ export function CustomerUtang() {
                   onClick={handleAcceptOffer}
                   className="w-full text-white font-black rounded-2xl active:scale-95 transition-all"
                   style={{
-                    backgroundColor: '#0F766E',
+                    backgroundColor: '#008055',
                     minHeight: '56px',
                     fontSize: '1rem',
-                    fontFamily: "'Syne', sans-serif",
+                    fontFamily: "'Montserrat', sans-serif",
                     boxShadow: '0 6px 20px rgba(15,118,110,0.35)',
                   }}
                 >
@@ -388,7 +388,7 @@ export function CustomerUtang() {
               )}
               {(offerAcceptStatus === 'signing' || isCreating) && (
                 <div className="text-center py-5 space-y-2 rounded-2xl" style={{ backgroundColor: '#F8FAFC' }}>
-                  <Loader2 className="animate-spin mx-auto" size={26} style={{ color: '#0F766E' }} />
+                  <Loader2 className="animate-spin mx-auto" size={26} style={{ color: '#008055' }} />
                   <p className="text-sm font-bold text-slate-600">Kumpirmahin sa iyong wallet…</p>
                   <p className="text-xs text-slate-400">Sa mobile: buksan ang LOBSTR at i-approve.</p>
                 </div>
@@ -408,7 +408,7 @@ export function CustomerUtang() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full"
-                      style={{ color: '#0F766E', backgroundColor: '#F0FDFA' }}
+                      style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
                     >
                       <ExternalLink size={12} /> Tingnan sa Stellar Expert
                     </a>
@@ -434,7 +434,7 @@ export function CustomerUtang() {
                   <button
                     onClick={handleAcceptOffer}
                     className="w-full text-white font-bold rounded-2xl active:scale-95"
-                    style={{ backgroundColor: '#0F766E', minHeight: '52px' }}
+                    style={{ backgroundColor: '#008055', minHeight: '52px' }}
                   >
                     Subukan Ulit
                   </button>
@@ -459,7 +459,7 @@ export function CustomerUtang() {
             </div>
 
             <div className="px-5 pt-2 pb-2 flex items-center justify-between">
-              <p className="text-base font-black text-slate-900" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 Bayad ng Installment
               </p>
               {status !== 'building' && status !== 'signing' && status !== 'submitting' && (
@@ -487,7 +487,7 @@ export function CustomerUtang() {
               {/* Amount hero */}
               <div
                 className="rounded-2xl p-5 text-center"
-                style={{ backgroundColor: '#0A3D38' }}
+                style={{ backgroundColor: '#00284B' }}
               >
                 <p
                   className="text-xs font-bold uppercase tracking-widest mb-2"
@@ -497,7 +497,7 @@ export function CustomerUtang() {
                 </p>
                 <p
                   className="font-black text-white leading-none"
-                  style={{ fontSize: '2.6rem', fontFamily: "'Syne', sans-serif", letterSpacing: '-0.02em' }}
+                  style={{ fontSize: '2.6rem', fontFamily: "'Montserrat', sans-serif", letterSpacing: '-0.02em' }}
                 >
                   {(() => {
                     const remaining = paying.installmentsTotal - paying.installmentsPaid;
@@ -513,10 +513,10 @@ export function CustomerUtang() {
                   onClick={confirmPay}
                   className="w-full text-white font-black rounded-2xl active:scale-95 transition-all"
                   style={{
-                    backgroundColor: '#0F766E',
+                    backgroundColor: '#008055',
                     minHeight: '56px',
                     fontSize: '1rem',
-                    fontFamily: "'Syne', sans-serif",
+                    fontFamily: "'Montserrat', sans-serif",
                     boxShadow: '0 6px 20px rgba(15,118,110,0.35)',
                   }}
                 >
@@ -525,7 +525,7 @@ export function CustomerUtang() {
               )}
               {(status === 'building' || status === 'signing' || status === 'submitting') && (
                 <div className="text-center py-5 space-y-2 rounded-2xl" style={{ backgroundColor: '#F8FAFC' }}>
-                  <Loader2 className="animate-spin mx-auto" size={26} style={{ color: '#0F766E' }} />
+                  <Loader2 className="animate-spin mx-auto" size={26} style={{ color: '#008055' }} />
                   <p className="text-sm font-bold text-slate-600">
                     {status === 'building' ? 'Inihahanda…' : status === 'signing' ? 'Kumpirmahin sa wallet…' : 'Pinoproseso…'}
                   </p>
@@ -546,7 +546,7 @@ export function CustomerUtang() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full"
-                      style={{ color: '#0F766E', backgroundColor: '#F0FDFA' }}
+                      style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
                     >
                       <ExternalLink size={12} /> Tingnan sa Stellar Expert
                     </a>
@@ -572,7 +572,7 @@ export function CustomerUtang() {
                   <button
                     onClick={confirmPay}
                     className="w-full text-white font-bold rounded-2xl active:scale-95"
-                    style={{ backgroundColor: '#0F766E', minHeight: '52px' }}
+                    style={{ backgroundColor: '#008055', minHeight: '52px' }}
                   >
                     Subukan Ulit
                   </button>

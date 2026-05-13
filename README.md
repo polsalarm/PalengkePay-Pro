@@ -3,7 +3,7 @@
 > Stellar-powered micropayment PWA for Philippine wet market vendors. No bank account required.
 
 ![Stellar](https://img.shields.io/badge/Stellar-Testnet-00B4D8?style=flat&logo=stellar&logoColor=white)
-![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contracts-0F766E?style=flat)
+![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contracts-008055?style=flat)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Rust](https://img.shields.io/badge/Rust-1.80+-DEA584?style=flat&logo=rust&logoColor=black)

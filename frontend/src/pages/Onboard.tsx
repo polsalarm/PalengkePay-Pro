@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
 import { useBalance } from '../lib/hooks/useBalance';
+import logoImg from '../assets/logo.png';
 
 const STEPS = ['Get wallet', 'Connect', 'Fund', "Let's go!"];
 
@@ -69,25 +70,27 @@ export function Onboard() {
   const LeftPanel = () => (
     <div
       className="hidden lg:flex flex-col justify-between w-[42%] shrink-0 p-10 xl:p-14"
-      style={{ backgroundColor: '#0A3D38' }}
+      style={{ backgroundColor: '#00284B' }}
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5">
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white"
-          style={{ backgroundColor: 'rgba(255,255,255,0.12)', fontSize: '1.1rem' }}
-        >₱</div>
-        <span className="font-black text-white text-lg" style={{ fontFamily: "'Syne', sans-serif" }}>
-          PalengkePay
-        </span>
-      </div>
+  <img 
+    src={logoImg} 
+    alt="PalengkePay" 
+    className="w-9 h-9 rounded-xl object-cover"
+  />
+  <span className="font-black text-lg" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+    <span style={{ color: '#00284B' }}>Palengke</span>
+    <span style={{ color: '#008055' }}>Pay</span>
+  </span>
+</div>
 
       {/* Step 0: checklist */}
       {step === 0 && (
         <div>
           <h2
             className="font-black text-white mb-4 leading-tight"
-            style={{ fontSize: 'clamp(1.8rem, 3vw, 2.5rem)', fontFamily: "'Syne', sans-serif" }}
+            style={{ fontSize: 'clamp(1.8rem, 3vw, 2.5rem)', fontFamily: "'Montserrat', sans-serif" }}
           >
             Four steps.<br />Three minutes.
           </h2>
@@ -123,7 +126,7 @@ export function Onboard() {
         <div>
           <h2
             className="font-black text-white mb-4 leading-tight"
-            style={{ fontSize: 'clamp(1.8rem, 3vw, 2.5rem)', fontFamily: "'Syne', sans-serif" }}
+            style={{ fontSize: 'clamp(1.8rem, 3vw, 2.5rem)', fontFamily: "'Montserrat', sans-serif" }}
           >
             Step into the<br />digital palengke.
           </h2>
@@ -173,7 +176,7 @@ export function Onboard() {
             className="h-1 rounded-full transition-all duration-500"
             style={{
               width: i === step ? 28 : 18,
-              backgroundColor: i <= step ? '#0F766E' : '#CBD5E1',
+              backgroundColor: i <= step ? '#008055' : '#CBD5E1',
               opacity: i > step ? 0.45 : 1,
             }}
           />
@@ -207,7 +210,7 @@ export function Onboard() {
               <div>
                 <h1
                   className="font-black text-slate-900 mb-2 tracking-tight"
-                  style={{ fontSize: '2rem', fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontSize: '2rem', fontFamily: "'Montserrat', sans-serif" }}
                 >First, get a wallet</h1>
                 <p className="text-sm text-slate-500 mb-8 leading-relaxed">
                   A wallet is where your payments go. It takes 2 minutes to set up.
@@ -225,7 +228,7 @@ export function Onboard() {
                         <p className="text-sm font-bold text-slate-900">Freighter</p>
                         <span
                           className="text-xs font-bold px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1' }}
+                          style={{ backgroundColor: '#F0FDFA', color: '#008055', border: '1px solid #CCFBF1' }}
                         >Recommended</span>
                       </div>
                       <p className="text-xs text-slate-400">Best for desktop and laptop</p>
@@ -235,7 +238,7 @@ export function Onboard() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl text-white transition-all hover:opacity-90 active:scale-95"
-                      style={{ backgroundColor: '#0F766E' }}
+                      style={{ backgroundColor: '#008055' }}
                     >
                       Install <ExternalLink size={11} />
                     </a>
@@ -266,14 +269,14 @@ export function Onboard() {
                   <button
                     onClick={() => setStep(1)}
                     className="text-sm font-semibold transition-colors hover:opacity-80"
-                    style={{ color: '#0F766E' }}
+                    style={{ color: '#008055' }}
                   >
                     I already have a wallet
                   </button>
                   <button
                     onClick={() => setStep(1)}
                     className="flex items-center gap-2 font-bold px-6 py-3 rounded-2xl text-white transition-all hover:opacity-90 active:scale-95"
-                    style={{ backgroundColor: '#0F766E' }}
+                    style={{ backgroundColor: '#008055' }}
                   >
                     Next <ArrowRight size={16} />
                   </button>
@@ -290,14 +293,14 @@ export function Onboard() {
                   style={{ backgroundColor: '#F0FDFA', border: '2px dashed #99F6E4' }}
                 >
                   <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M16 22C17.657 24.343 21.343 24.343 23 22L27 18C28.657 15.657 28.657 12.343 27 10C25.343 7.657 22.029 7.657 20 10L18.5 11.5" stroke="#0F766E" strokeWidth="2.5" strokeLinecap="round"/>
-                    <path d="M22 16C20.343 13.657 16.657 13.657 15 16L11 20C9.343 22.343 9.343 25.657 11 28C12.657 30.343 15.971 30.343 18 28L19.5 26.5" stroke="#0F766E" strokeWidth="2.5" strokeLinecap="round"/>
+                    <path d="M16 22C17.657 24.343 21.343 24.343 23 22L27 18C28.657 15.657 28.657 12.343 27 10C25.343 7.657 22.029 7.657 20 10L18.5 11.5" stroke="#008055" strokeWidth="2.5" strokeLinecap="round"/>
+                    <path d="M22 16C20.343 13.657 16.657 13.657 15 16L11 20C9.343 22.343 9.343 25.657 11 28C12.657 30.343 15.971 30.343 18 28L19.5 26.5" stroke="#008055" strokeWidth="2.5" strokeLinecap="round"/>
                   </svg>
                 </div>
 
                 <h1
                   className="font-black text-slate-900 mb-2 tracking-tight text-center"
-                  style={{ fontSize: '2rem', fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontSize: '2rem', fontFamily: "'Montserrat', sans-serif" }}
                 >Connect your wallet</h1>
                 <p className="text-sm text-slate-500 mb-8 leading-relaxed text-center">
                   PalengkePay can see your balance and send payments —<br />
@@ -308,7 +311,7 @@ export function Onboard() {
                   onClick={handleConnect}
                   disabled={isConnecting}
                   className="w-full flex items-center justify-center gap-2.5 font-bold py-4 rounded-2xl text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 mb-3"
-                  style={{ backgroundColor: '#0F766E', fontSize: '1rem' }}
+                  style={{ backgroundColor: '#008055', fontSize: '1rem' }}
                 >
                   {isConnecting
                     ? <Loader2 size={18} className="animate-spin" />
@@ -342,7 +345,7 @@ export function Onboard() {
                   <button
                     onClick={() => setStep(2)}
                     className="flex items-center gap-2 font-bold px-6 py-3 rounded-2xl text-white transition-all hover:opacity-90 active:scale-95"
-                    style={{ backgroundColor: '#0F766E' }}
+                    style={{ backgroundColor: '#008055' }}
                   >
                     Next <ArrowRight size={16} />
                   </button>
@@ -359,15 +362,15 @@ export function Onboard() {
                   style={{ backgroundColor: '#F0FDFA', border: '2px dashed #99F6E4' }}
                 >
                   <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="19" cy="19" r="11" stroke="#0F766E" strokeWidth="2.5"/>
-                    <path d="M19 10V28" stroke="#0F766E" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M14 14.5C14 14.5 15.5 12 19 12C22.5 12 25 14 25 16.5C25 19 22.5 20 19 20C15.5 20 13 21.5 13 24.5C13 27 15.5 28.5 19 28.5C22.5 28.5 25 26.5 25 26.5" stroke="#0F766E" strokeWidth="2" strokeLinecap="round"/>
+                    <circle cx="19" cy="19" r="11" stroke="#008055" strokeWidth="2.5"/>
+                    <path d="M19 10V28" stroke="#008055" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M14 14.5C14 14.5 15.5 12 19 12C22.5 12 25 14 25 16.5C25 19 22.5 20 19 20C15.5 20 13 21.5 13 24.5C13 27 15.5 28.5 19 28.5C22.5 28.5 25 26.5 25 26.5" stroke="#008055" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
                 </div>
 
                 <h1
                   className="font-black text-slate-900 mb-2 tracking-tight text-center"
-                  style={{ fontSize: '2rem', fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontSize: '2rem', fontFamily: "'Montserrat', sans-serif" }}
                 >Get free test money</h1>
                 <p className="text-sm text-slate-500 mb-6 leading-relaxed text-center">
                   We're on Stellar Testnet — this is play money for testing.<br />Real payments come later.
@@ -381,7 +384,7 @@ export function Onboard() {
                       <button
                         onClick={copyAddress}
                         className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-slate-100"
-                        style={{ color: copied ? '#0F766E' : '#94A3B8' }}
+                        style={{ color: copied ? '#008055' : '#94A3B8' }}
                       >
                         {copied ? <Check size={14} /> : <Copy size={14} />}
                       </button>
@@ -407,7 +410,7 @@ export function Onboard() {
                     onClick={fundWallet}
                     disabled={funding || !address}
                     className="w-full flex items-center justify-center gap-2.5 font-bold py-4 rounded-2xl text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 mb-2"
-                    style={{ backgroundColor: '#0F766E', fontSize: '1rem' }}
+                    style={{ backgroundColor: '#008055', fontSize: '1rem' }}
                   >
                     {funding ? <Loader2 size={18} className="animate-spin" /> : '💧'}
                     {funding ? 'Funding wallet…' : 'Get Test XLM'}
@@ -422,7 +425,7 @@ export function Onboard() {
                   <button
                     onClick={() => setStep(3)}
                     className="flex items-center gap-2 font-bold px-6 py-3 rounded-2xl text-white transition-all hover:opacity-90 active:scale-95"
-                    style={{ backgroundColor: '#0F766E' }}
+                    style={{ backgroundColor: '#008055' }}
                   >
                     {hasBalance ? 'Continue' : 'Skip for now'} <ArrowRight size={16} />
                   </button>
@@ -442,7 +445,7 @@ export function Onboard() {
 
                 <h1
                   className="font-black text-slate-900 mb-2 tracking-tight text-center"
-                  style={{ fontSize: '2rem', fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontSize: '2rem', fontFamily: "'Montserrat', sans-serif" }}
                 >You're ready!</h1>
                 <p className="text-sm text-slate-500 mb-6 text-center leading-relaxed">
                   PalengkePay is set up. Choose your role to get started.
@@ -478,11 +481,11 @@ export function Onboard() {
                     onClick={() => navigate('/vendor/apply')}
                     className="flex flex-col items-start gap-3 p-5 rounded-2xl border-2 bg-white transition-all hover:shadow-md active:scale-95 text-left"
                     style={{ borderColor: '#CCFBF1' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0F766E'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#008055'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#CCFBF1'; }}
                   >
                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#F0FDFA' }}>
-                      <QrCode size={22} style={{ color: '#0F766E' }} />
+                      <QrCode size={22} style={{ color: '#008055' }} />
                     </div>
                     <div>
                       <p className="text-sm font-black text-slate-900">I'm a Vendor</p>
@@ -490,7 +493,7 @@ export function Onboard() {
                         I sell goods at the palengke and want to accept payments
                       </p>
                     </div>
-                    <p className="text-xs font-semibold" style={{ color: '#0F766E' }}>e.g. Aling Nena</p>
+                    <p className="text-xs font-semibold" style={{ color: '#008055' }}>e.g. Aling Nena</p>
                   </button>
 
                   <button

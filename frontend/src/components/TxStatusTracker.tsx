@@ -23,7 +23,7 @@ export function TxStatusTracker({ status, txHash, error, amount, recipientName, 
     return (
       <div
         className="rounded-3xl p-5 flex items-center gap-4"
-        style={{ backgroundColor: '#0A3D38', border: '1.5px solid rgba(255,255,255,0.06)' }}
+        style={{ backgroundColor: '#00284B', border: '1.5px solid rgba(255,255,255,0.06)' }}
       >
         <div
           className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
@@ -45,7 +45,7 @@ export function TxStatusTracker({ status, txHash, error, amount, recipientName, 
     return (
       <div
         className="rounded-3xl p-5 flex items-center gap-4 animate-border-pulse"
-        style={{ backgroundColor: '#0A3D38', border: '1.5px solid #14B8A6' }}
+        style={{ backgroundColor: '#00284B', border: '1.5px solid #14B8A6' }}
       >
         <div
           className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
@@ -99,7 +99,7 @@ export function TxStatusTracker({ status, txHash, error, amount, recipientName, 
             <CheckCircle size={20} style={{ color: '#16A34A' }} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-black" style={{ color: '#15803D', fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-sm font-black" style={{ color: '#15803D', fontFamily: "'Montserrat', sans-serif" }}>
               Bayad na!
             </p>
             {amount && recipientName && (
@@ -122,7 +122,7 @@ export function TxStatusTracker({ status, txHash, error, amount, recipientName, 
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs font-bold active:scale-95"
-              style={{ color: '#0F766E' }}
+              style={{ color: '#008055' }}
             >
               <ExternalLink size={11} /> Stellar Expert
             </a>
@@ -146,7 +146,7 @@ export function TxStatusTracker({ status, txHash, error, amount, recipientName, 
             <XCircle size={20} style={{ color: '#F43F5E' }} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-black" style={{ color: '#BE123C', fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-sm font-black" style={{ color: '#BE123C', fontFamily: "'Montserrat', sans-serif" }}>
               Transaction failed
             </p>
             {error && (

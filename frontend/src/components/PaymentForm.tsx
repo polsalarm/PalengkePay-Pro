@@ -58,7 +58,7 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
       >
         <div
           className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-          style={{ backgroundColor: '#0F766E' }}
+          style={{ backgroundColor: '#008055' }}
         >
           <Store size={20} className="text-white" />
         </div>
@@ -70,10 +70,10 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
             </>
           ) : displayName ? (
             <>
-              <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: '#0F766E' }}>
+              <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: '#008055' }}>
                 Nagbabayad kay
               </p>
-              <p className="text-base font-black text-slate-900 truncate" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-base font-black text-slate-900 truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {displayName}
               </p>
               {displayStall && (
@@ -82,7 +82,7 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
             </>
           ) : (
             <>
-              <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: '#0F766E' }}>
+              <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: '#008055' }}>
                 Nagbabayad sa
               </p>
               <p className="text-sm font-mono text-slate-500 truncate">{vendorAddress}</p>
@@ -111,16 +111,16 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
               padding: '16px',
               fontSize: '1.6rem',
               letterSpacing: '-0.02em',
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "'Montserrat', sans-serif",
             }}
-            onFocus={(e) => { e.target.style.borderColor = '#0F766E'; }}
+            onFocus={(e) => { e.target.style.borderColor = '#008055'; }}
             onBlur={(e) => { e.target.style.borderColor = '#E2E8F0'; }}
             autoFocus
           />
         </div>
         {phpEst && (
           <p className="text-xs text-right mt-1.5 font-medium" style={{ color: '#64748B' }}>
-            ≈ <span className="font-black" style={{ color: '#0F766E' }}>₱{phpEst}</span>
+            ≈ <span className="font-black" style={{ color: '#008055' }}>₱{phpEst}</span>
             <span className="text-slate-300 ml-1">(approx)</span>
           </p>
         )}
@@ -147,7 +147,7 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
           maxLength={MEMO_MAX}
           className="w-full rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-800 focus:outline-none transition-all placeholder:font-normal placeholder:text-slate-300"
           style={{ border: '2px solid #E2E8F0' }}
-          onFocus={(e) => { e.target.style.borderColor = '#0F766E'; }}
+          onFocus={(e) => { e.target.style.borderColor = '#008055'; }}
           onBlur={(e) => { e.target.style.borderColor = '#E2E8F0'; }}
         />
       </div>
@@ -171,10 +171,10 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
         disabled={disabled}
         className="w-full text-white font-black rounded-2xl active:scale-95 transition-all disabled:opacity-40"
         style={{
-          backgroundColor: '#0F766E',
+          backgroundColor: '#008055',
           minHeight: '60px',
           fontSize: '1.05rem',
-          fontFamily: "'Syne', sans-serif",
+          fontFamily: "'Montserrat', sans-serif",
           boxShadow: '0 6px 24px rgba(15,118,110,0.35)',
         }}
       >
