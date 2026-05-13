@@ -9,7 +9,7 @@ use soroban_sdk::{
 fn setup() -> (Env, PalengkePaymentClient<'static>) {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register_contract(None, PalengkePayment);
+    let contract_id = env.register(PalengkePayment, ());
     let client = PalengkePaymentClient::new(&env, &contract_id);
     (env, client)
 }
@@ -22,7 +22,7 @@ fn setup_initialized() -> (Env, PalengkePaymentClient<'static>, Address) {
     let asset = env.register_stellar_asset_contract_v2(token_admin);
     let token_address = asset.address();
 
-    let contract_id = env.register_contract(None, PalengkePayment);
+    let contract_id = env.register(PalengkePayment, ());
     let client = PalengkePaymentClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);

@@ -10,7 +10,7 @@ fn setup() -> (Env, UTangEscrowClient<'static>, Address) {
     let asset = env.register_stellar_asset_contract_v2(token_admin);
     let token_address = asset.address();
 
-    let contract_id = env.register_contract(None, UTangEscrow);
+    let contract_id = env.register(UTangEscrow, ());
     let client = UTangEscrowClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -26,7 +26,7 @@ fn setup_without_global_auth() -> (Env, UTangEscrowClient<'static>, Address) {
     let asset = env.register_stellar_asset_contract_v2(token_admin);
     let token_address = asset.address();
 
-    let contract_id = env.register_contract(None, UTangEscrow);
+    let contract_id = env.register(UTangEscrow, ());
     let client = UTangEscrowClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -46,7 +46,7 @@ fn desc(env: &Env, s: &str) -> String {
 #[test]
 fn test_utang_count_starts_zero() {
     let (env, _, token_address) = setup();
-    let contract_id = env.register_contract(None, UTangEscrow);
+    let contract_id = env.register(UTangEscrow, ());
     let client2 = UTangEscrowClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     client2.initialize(&admin, &token_address);
@@ -200,7 +200,7 @@ fn test_get_vendor_utangs() {
 #[test]
 fn test_mark_default() {
     let (env, _, token_address) = setup();
-    let contract_id = env.register_contract(None, UTangEscrow);
+    let contract_id = env.register(UTangEscrow, ());
     let client = UTangEscrowClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     client.initialize(&admin, &token_address);
