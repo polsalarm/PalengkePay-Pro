@@ -33,10 +33,17 @@ export interface ProofReadiness {
   liveProofMissing: boolean;
 }
 
+export interface ProofDateRange {
+  from: string | null;
+  to: string | null;
+  label: string;
+}
+
 export interface ProofSummary {
   generatedAt: string;
   vendor: ProofVendor;
   period: ProofPeriod;
+  dateRange: ProofDateRange;
   transactions: PaymentHistoryRecord[];
   totalXlm: number;
   transactionCount: number;
@@ -105,6 +112,7 @@ export function buildProofSummary(input: ProofSummaryInput): ProofSummary {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
     vendor: input.vendor,
     period: input.period,
+    dateRange: buildDateRange(input.transactions, input.period),
     transactions: [...input.transactions],
     totalXlm,
     transactionCount,
@@ -144,6 +152,7 @@ export function buildProofBundle(summary: ProofSummary) {
     generatedAt: summary.generatedAt,
     vendor: summary.vendor,
     period: summary.period,
+    dateRange: summary.dateRange,
     totals: {
       totalXlm: summary.totalXlm,
       transactionCount: summary.transactionCount,
@@ -203,8 +212,37 @@ export function buildCollectionsSummary(utangs: UtangRecord[], now = new Date())
 function getSourceLabel(transactions: PaymentHistoryRecord[]): string {
   if (transactions.length === 0) return 'Unavailable';
   const sources = new Set(transactions.map((payment) => payment.source));
-  if (sources.size > 1) return 'Mixed contract and fallback records';
+  if (sources.size > 1) return 'Mixed/unverified records';
   return sources.has('palengke-payment') ? 'Contract records' : 'Horizon/cache fallback';
+}
+
+function buildDateRange(transactions: PaymentHistoryRecord[], period: ProofPeriod): ProofDateRange {
+  if (transactions.length === 0) {
+    return { from: null, to: null, label: `No records in ${period.label}` };
+  }
+
+  const times = transactions
+    .map((payment) => new Date(payment.createdAt).getTime())
+    .filter(Number.isFinite);
+  if (times.length === 0) {
+    return { from: null, to: null, label: period.label };
+  }
+
+  const from = new Date(Math.min(...times)).toISOString();
+  const to = new Date(Math.max(...times)).toISOString();
+  return {
+    from,
+    to,
+    label: `${formatDate(from)} - ${formatDate(to)}`,
+  };
+}
+
+function formatDate(isoDate: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(isoDate));
 }
 
 function shortenWallet(wallet: string): string {

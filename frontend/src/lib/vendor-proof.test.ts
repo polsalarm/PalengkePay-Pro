@@ -89,7 +89,7 @@ describe('buildProofSummary', () => {
       generatedAt: '2026-05-14T04:00:00.000Z',
     });
 
-    expect(summary.sourceLabel).toBe('Mixed contract and fallback records');
+    expect(summary.sourceLabel).toBe('Mixed/unverified records');
     expect(summary.hasFallbackCaveat).toBe(true);
     expect(summary.caveats).toContain('Includes Horizon/cache fallback rows; fallback rows are not the canonical payment contract source.');
     expect(summary.caveats).toContain('Live wallet-signed payment smoke is not attached to this export.');
@@ -133,6 +133,31 @@ describe('proof exports', () => {
       generatedAt: '2026-05-14T04:00:00.000Z',
       vendor: { name: 'Aling Nena', wallet: vendorWallet },
       totals: { totalXlm: 2, transactionCount: 1 },
+    });
+  });
+
+  it('includes a concrete generated date range and optional PHP estimate', () => {
+    const summary = buildProofSummary({
+      vendor: { name: 'Aling Nena', wallet: vendorWallet },
+      transactions: [
+        tx({ id: 'newer', amountXlm: 2, createdAt: '2026-05-12T08:30:00.000Z' }),
+        tx({ id: 'older', amountXlm: 3, createdAt: '2026-05-10T01:15:00.000Z' }),
+      ],
+      period: { kind: '7d', label: '7 days' },
+      generatedAt: '2026-05-14T04:00:00.000Z',
+      phpPerXlm: 6.5,
+    });
+
+    expect(summary.dateRange).toEqual({
+      from: '2026-05-10T01:15:00.000Z',
+      to: '2026-05-12T08:30:00.000Z',
+      label: 'May 10, 2026 - May 12, 2026',
+    });
+    expect(summary.estimatedPhpTotal).toBe(32.5);
+    expect(buildProofBundle(summary)).toMatchObject({
+      period: { kind: '7d', label: '7 days' },
+      dateRange: { label: 'May 10, 2026 - May 12, 2026' },
+      totals: { estimatedPhpTotal: 32.5 },
     });
   });
 });

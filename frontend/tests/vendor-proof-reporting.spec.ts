@@ -15,6 +15,8 @@ test('/vendor/transactions exposes income proof exports and caveats', async ({ p
   await expect(page.getByRole('heading', { name: 'Income Proof Pack' })).toBeVisible();
   await expect(page.getByText(/Exportable vendor proof with source labels and Testnet caveats/i)).toBeVisible();
   await expect(page.getByText(/Live wallet-signed payment smoke is not attached/i)).toBeVisible();
+  await expect(page.getByText('PHP est.')).toBeVisible();
+  await expect(page.getByText('Date range')).toBeVisible();
   await expect(page.getByRole('button', { name: /CSV/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /JSON/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Print/i })).toBeVisible();

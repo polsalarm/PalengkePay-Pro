@@ -326,12 +326,17 @@ export function VendorTransactions() {
             {[
               { label: 'Transactions', value: String(proofSummary.transactionCount) },
               { label: 'Total XLM', value: proofSummary.totalXlm.toFixed(2) },
-              { label: 'Avg XLM', value: proofSummary.averageXlm.toFixed(2) },
-              { label: 'Customers', value: String(proofSummary.uniqueCustomers) },
+              { label: 'PHP est.', value: proofSummary.estimatedPhpTotal ? `PHP ${proofSummary.estimatedPhpTotal.toFixed(2)}` : 'Unavailable' },
+              { label: 'Date range', value: proofSummary.dateRange.label },
             ].map(({ label, value }) => (
               <div key={label} className="rounded-2xl p-3" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
                 <p className="text-xs font-bold text-slate-400 mb-1">{label}</p>
-                <p className="text-lg font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{value}</p>
+                <p
+                  className="text-base font-black text-slate-900 break-words"
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
+                >
+                  {value}
+                </p>
               </div>
             ))}
           </div>
@@ -345,7 +350,7 @@ export function VendorTransactions() {
               <p className="text-slate-500">Payment data: <span className="font-bold text-slate-700">{proofSummary.readiness.paymentDataPresent ? 'Present' : 'Missing'}</span></p>
               <p className="text-slate-500">Repayment data: <span className="font-bold text-slate-700">{proofSummary.readiness.repaymentDataPresent ? 'Present' : 'Not attached'}</span></p>
               <p className="text-slate-500">Live proof: <span className="font-bold text-slate-700">{proofSummary.readiness.liveProofMissing ? 'Missing' : 'Attached'}</span></p>
-              <p className="text-slate-500">PHP total: <span className="font-bold text-slate-700">Unavailable</span></p>
+              <p className="text-slate-500">Customers: <span className="font-bold text-slate-700">{proofSummary.uniqueCustomers}</span></p>
             </div>
           </div>
 
