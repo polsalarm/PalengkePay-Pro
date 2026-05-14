@@ -39,7 +39,7 @@ Expected:
 - TypeScript exits 0.
 - ESLint exits 0.
 - Vite build exits 0. Chunk-size warnings are acceptable unless they become a performance task.
-- Playwright route checks pass on desktop/mobile viewports.
+- Playwright route checks pass on desktop/mobile viewports. The QA command builds first, then runs route checks against the Vite dev server with service workers blocked to avoid stale worker state during repeated local browser contexts.
 - Audit exits 0 at `high` threshold. Low-severity transitive wallet findings must be tracked in `docs/DEPENDENCY_AUDIT.md`.
 
 ## 3. Contract Commands
