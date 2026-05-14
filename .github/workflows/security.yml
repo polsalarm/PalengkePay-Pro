@@ -27,6 +27,10 @@ jobs:
             --exclude-dir=node_modules \
             --exclude-dir=dist \
             --exclude-dir=target \
+            --exclude-dir=coverage \
+            --exclude-dir=playwright-report \
+            --exclude-dir=test-results \
+            --exclude-dir=qa-artifacts \
             --exclude=package-lock.json \
             --exclude='*.png' \
             --exclude='*.jpg' \

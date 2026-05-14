@@ -184,12 +184,12 @@ Evidence:
   - fee and amount bounded
   - source account signature required
   - optional destination allowlist via `FEE_BUMP_ALLOWED_DESTINATIONS`
-  - in-memory per-IP rate limiting
+  - durable Redis REST per-IP rate limiting when configured, with local in-memory fallback
 - Added Vitest coverage for valid paths and abuse paths.
 
 Current caveat:
 
-- Serverless in-memory rate limits are best-effort only. Production should use durable rate limiting, firewall rules, or another shared limiter.
+- Production rate limiting requires Redis REST env and Vercel proof. Local development can still use an in-memory fallback, but that fallback is not a production control.
 
 Evidence:
 
@@ -220,7 +220,7 @@ Evidence:
 
 - Added Sentry integration.
 - Kept Sentry disabled when `VITE_SENTRY_DSN` is unset.
-- Added health endpoint for Horizon and Soroban RPC liveness.
+- Added health endpoint for Horizon, Soroban RPC, and sponsor rate-limit readiness.
 - Added admin system health route with API check status and public client env readiness.
 - Added CSP/security headers in Vercel config.
 - Added input sanitizer utility.
@@ -231,6 +231,7 @@ Evidence:
 
 - `frontend/src/main.tsx`
 - `frontend/api/health.ts`
+- `frontend/api/health.test.ts`
 - `frontend/src/pages/admin/AdminHealth.tsx`
 - `frontend/vercel.json`
 - `frontend/src/lib/sanitize.ts`
@@ -324,15 +325,15 @@ Evidence:
 
 | API | Present behavior |
 | --- | --- |
-| `frontend/api/fee-bump.ts` | Sponsors approved Stellar Testnet payment/createAccount transactions with fee bump |
-| `frontend/api/health.ts` | Checks Horizon and Soroban RPC liveness |
+| `frontend/api/fee-bump.ts` | Sponsors approved Stellar Testnet payment/createAccount transactions with fee bump and durable Redis REST rate limiting when configured |
+| `frontend/api/health.ts` | Checks Horizon, Soroban RPC, and sponsor rate-limit readiness |
 | `frontend/api/quote.ts` | Serves cached PHP/XLM quote rates for Stable Checkout |
 
 ### 2.5 Verification Commands
 
 | Command | Purpose | Last known status |
 | --- | --- | --- |
-| `cd frontend; npm test -- api/fee-bump.test.ts` | Fee-bump validation and abuse-path tests | Passing: 10 tests |
+| `cd frontend; npm test -- api/fee-bump.test.ts api/health.test.ts` | Fee-bump validation, durable limiter, and health-readiness tests | Passing: 15 tests |
 | `cd frontend; npx tsc --noEmit` | TypeScript verification | Passing |
 | `cd frontend; npm run lint` | Frontend lint | Passing |
 | `cd frontend; npm run build` | Production build | Passing with Vite chunk-size warning |
@@ -356,8 +357,7 @@ Evidence:
 
 ### 3.3 Security and Abuse Controls
 
-- Add durable fee-bump rate limiting for production.
-- Add `SECURITY.md`.
+- Verify durable fee-bump rate limiting in Vercel production env.
 - Document threat model and sponsorship abuse limits.
 - Review deployed contract admin/key rotation workflow.
 - Audit all env var requirements before production deploy.
@@ -366,7 +366,7 @@ Evidence:
 
 - Keep `docs/DEPLOYMENT.md` current as env vars, contract IDs, and deployment flow change.
 - Keep the production deployment checklist current.
-- Add uptime monitor for deployed `/api/health`.
+- Add uptime monitor for deployed `/api/health` and alert on sponsor limiter degradation.
 - Verify Vercel env values without exposing secrets.
 - Add release checklist for contract IDs, RPC URLs, fee-bump sponsor account, and Sentry DSN.
 
@@ -474,7 +474,8 @@ These items come from the workspace deep-research reports:
 ## 5. Open Blockers
 
 - Production fee sponsorship needs real server-side env values:
-  - `SPONSOR_SECRET`
-  - `FEE_BUMP_ALLOWED_DESTINATIONS`
-  - optional rate/limit tuning variables
+- `SPONSOR_SECRET`
+- `FEE_BUMP_ALLOWED_DESTINATIONS`
+- durable Redis REST limiter env (`UPSTASH_REDIS_REST_*` or `KV_REST_API_*`)
+- optional rate/limit tuning variables
 - Mainnet launch should wait until contract architecture is finalized and audited.

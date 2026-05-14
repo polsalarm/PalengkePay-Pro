@@ -42,6 +42,7 @@ Beta users were onboarded via a Google Form collecting name, email, wallet addre
 - **[Verification Gates](docs/VERIFICATION.md)** — commands and evidence required before claiming built, passing, deployed, or production-ready.
 - **[Manual E2E Runbook](docs/MANUAL_E2E_RUNBOOK.md)** — wallet-backed payment, history, metrics, and utang proof steps.
 - **[Dependency Audit Notes](docs/DEPENDENCY_AUDIT.md)** — npm audit remediation, overrides, and remaining transitive risk.
+- **[Operations Readiness](docs/OPERATIONS_READINESS.md)** — sponsor limiter, monitoring, Vercel env proof, and release-readiness checks.
 - **[Contributing](CONTRIBUTING.md)** — setup, quality gates, good first issue ideas, and PR checklist.
 - **[Security](SECURITY.md)** — reporting scope, current controls, known risks, and pre-release checklist.
 - **[Roadmap](ROADMAP.md)** — build status, requirements checklist, and next architecture decisions.
@@ -156,7 +157,7 @@ Fee sponsorship remains available as the fallback path for classic Stellar trans
 - `frontend/api/fee-bump.ts` — Vercel serverless function wraps inner XDR with FeeBumpTransaction
 - `SPONSOR_SECRET` stays server-only; never shipped to the client
 - Sponsorship is restricted to signed Stellar Testnet inner transactions with `PP:` PalengkePay memos, native XLM `payment` / `createAccount` operations only, approved destinations when `FEE_BUMP_ALLOWED_DESTINATIONS` is configured, bounded fees, bounded amounts, and matching source signatures
-- The endpoint includes a best-effort in-memory per-IP rate limit. For production, pair it with durable storage, Vercel Firewall, or another edge/WAF limiter because serverless memory is not shared across instances.
+- The endpoint uses Upstash Redis / Vercel KV-compatible REST counters when configured. Production fee sponsorship fails closed unless durable limiter env is present; local development keeps an in-memory fallback.
 - Current deployed QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured, giving an on-chain contract receipt and shared payment source of truth.
 
 ### 📊 Metrics Dashboard
@@ -179,6 +180,7 @@ Contract-first payment history with Horizon/localStorage fallback.
 ### 🔍 Monitoring
 - Sentry error tracking initialized in `main.tsx` — disabled automatically if `VITE_SENTRY_DSN` is unset
 - `frontend/api/health.ts` — `/api/health` endpoint checks Horizon + Soroban RPC liveness, returns `{status: 'ok'|'degraded'}`
+- `/api/health` also reports sponsor rate-limit readiness without exposing Redis tokens or sponsor secrets
 - `/admin/health` shows the health payload and public client env readiness without exposing secrets
 
 ![Sentry Dashboard](assets/sentry-dashboard.png)
@@ -467,13 +469,16 @@ SPONSOR_SECRET=SA...
 FEE_BUMP_ALLOWED_DESTINATIONS=G...,G...
 FEE_BUMP_RATE_LIMIT_WINDOW_MS=60000
 FEE_BUMP_RATE_LIMIT_MAX=20
+FEE_BUMP_REQUIRE_DURABLE_RATE_LIMIT=true
+UPSTASH_REDIS_REST_URL=https://...
+UPSTASH_REDIS_REST_TOKEN=...
 FEE_BUMP_MAX_INNER_XDR_BYTES=20000
 FEE_BUMP_MAX_INNER_FEE_STROOPS=1000
 FEE_BUMP_MAX_SPONSORED_OPS=1
 FEE_BUMP_MAX_SPONSORED_XLM=100
 ```
 
-`SPONSOR_SECRET` must be configured only in the deployment environment. Rate-limit and sponsorship limits have safe defaults, but production should use durable rate limiting because serverless in-memory buckets reset per instance. Set `FEE_BUMP_ALLOWED_DESTINATIONS` to a comma-separated allow list when sponsorship should be locked to known PalengkePay treasury/vendor accounts.
+`SPONSOR_SECRET` must be configured only in the deployment environment. Production sponsorship requires durable Redis REST rate limiting through `UPSTASH_REDIS_REST_*` or Vercel KV's `KV_REST_API_*` aliases. Set `FEE_BUMP_ALLOWED_DESTINATIONS` to a comma-separated allow list when sponsorship should be locked to known PalengkePay treasury/vendor accounts.
 
 ---
 
@@ -498,7 +503,7 @@ Remaining hardening:
 
 ## CI and Production Caveats
 
-- GitHub Actions runs contract tests, contract fmt/clippy, frontend typecheck, lint, high-severity dependency audit, unit tests, build, and Playwright route QA on Node 20.
+- GitHub Actions runs contract tests, contract fmt/clippy, frontend typecheck, lint, high-severity dependency audit, unit tests, build, Playwright route QA, secret-pattern scanning, and CodeQL semantic analysis.
 - Last upstream CI verified before this hardening: manual `workflow_dispatch` run `25807769027` passed on commit `7f24867` with `Contract Tests` and `Frontend Build` green.
 - Local frontend verification for the previous hardening passed: `npx tsc --noEmit`, `npm test -- api/fee-bump.test.ts`, `npm run lint`, and `npm run build`.
 - Current local shell does not put `cargo` on PATH, but `C:\Users\Admin\.cargo\bin\cargo.exe test --workspace` passed 33 contract tests, including the new `get_customer_payments` path.
@@ -515,8 +520,8 @@ Remaining hardening:
 | Blockchain | Stellar Testnet + Soroban smart contracts (Rust, `soroban-sdk` 22.x) |
 | QR | `qrcode.react` (generate + download) · `html5-qrcode` (camera scan + image upload) |
 | PWA | `vite-plugin-pwa` + Workbox |
-| Fee Sponsorship | Vercel serverless function (`api/fee-bump.ts`) + Stellar FeeBumpTransaction |
-| Monitoring | `@sentry/react` + `/api/health` Horizon + RPC liveness check |
+| Fee Sponsorship | Vercel serverless function (`api/fee-bump.ts`) + Stellar FeeBumpTransaction + durable Redis REST limiter |
+| Monitoring | `@sentry/react` + `/api/health` Horizon/RPC/sponsor-limiter readiness check |
 | Security | CSP + X-Frame-Options headers in `vercel.json` · input sanitization in `src/lib/sanitize.ts` · fee-bump XDR policy checks · Soroban signer auth on protected mutations |
 
 ---

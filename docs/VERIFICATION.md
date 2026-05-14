@@ -14,6 +14,8 @@ This document maps each important quality gate to the command or evidence that p
 | Production build | `cd frontend; npm run build` | Deployment or release claim |
 | Visual route QA | `cd frontend; npm run qa:visual` | UI/responsive route claim |
 | Dependency audit | `cd frontend; npm audit --audit-level=high` | Production-readiness or dependency-hardening claim |
+| Secret pattern scan | `.github/workflows/security.yml` or equivalent local scan | Secret-scanning claim |
+| CodeQL semantic scan | GitHub Security Scans workflow | Semantic/code-scanning claim |
 | Contract tests | `cd contracts; cargo test --workspace` | Contract behavior/auth claim |
 | Contract fmt/clippy | `cd contracts; cargo fmt --all -- --check`; `cargo clippy --workspace -- -D warnings` | Contract hardening claim |
 | Health endpoint | `GET /api/health` locally or live | Runtime dependency claim |
@@ -84,6 +86,8 @@ Invoke-WebRequest http://localhost:5173/api/health
 Expected:
 
 - JSON response reports `ok` when Horizon and Soroban RPC are reachable.
+- JSON response includes `sponsor_rate_limit`.
+- Production fee sponsorship readiness requires `sponsor_rate_limit` to report durable Redis REST configured.
 - `degraded` is acceptable only when the failed dependency is explicitly documented.
 
 ### 4.2 Fee Bump
@@ -99,7 +103,7 @@ Policy coverage expected:
 - amount and fee bounds,
 - source signature check,
 - optional destination allowlist,
-- rate limiting.
+- durable Redis REST rate limiting in production, with in-memory fallback only for local development.
 
 ## 5. Manual Route Smoke Matrix
 
@@ -137,7 +141,8 @@ Policy coverage expected:
 
 - Production must redeploy `PalengkePayment` with `get_customer_payments` before customer history can rely fully on contract reads.
 - Registry metrics fallback remains available and should be retired after contract reads are confirmed live.
-- Fee-bump rate limiting is in-memory and not durable.
+- Fee-bump rate limiting is durable only when Redis REST env is configured; local in-memory fallback is not a production control.
+- Production fee-bump rate limiting now fails closed unless durable Redis REST env is configured; this still needs Vercel env proof before production claims.
 - Testnet reset can invalidate accounts/contracts.
 - Mobile behavior still needs real-device verification.
 - Wallet-backed E2E requires a signed Testnet transaction hash; automated Playwright route checks alone are not enough.

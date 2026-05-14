@@ -59,8 +59,11 @@ These are server-side only. Do not expose raw values in frontend code, README ex
 | --- | --- | --- |
 | `SPONSOR_SECRET` | Yes for fee sponsorship | Funded Stellar Testnet sponsor secret |
 | `FEE_BUMP_ALLOWED_DESTINATIONS` | Strongly recommended | Comma-separated approved destination accounts |
-| `FEE_BUMP_RATE_LIMIT_WINDOW_MS` | Optional | Per-IP in-memory rate-limit window |
-| `FEE_BUMP_RATE_LIMIT_MAX` | Optional | Per-IP in-memory max requests per window |
+| `FEE_BUMP_RATE_LIMIT_WINDOW_MS` | Optional | Per-IP durable or local fallback rate-limit window |
+| `FEE_BUMP_RATE_LIMIT_MAX` | Optional | Per-IP max requests per window |
+| `FEE_BUMP_REQUIRE_DURABLE_RATE_LIMIT` | Required for production | Set `true` to fail closed unless Redis REST limiter env is present |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Required for production sponsorship | Durable Upstash Redis-compatible limiter |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Alternative production limiter env | Vercel KV REST names, supported as an alias for the same Redis REST limiter |
 | `FEE_BUMP_MAX_INNER_XDR_BYTES` | Optional | Max inner transaction payload size |
 | `FEE_BUMP_MAX_INNER_FEE_STROOPS` | Optional | Max inner fee |
 | `FEE_BUMP_MAX_SPONSORED_OPS` | Optional | Max sponsored operation count |
@@ -81,11 +84,12 @@ Deployment checklist:
 
 1. Set client env vars in Vercel.
 2. Set server-only fee-bump env vars in Vercel.
-3. Confirm `frontend/vercel.json` preserves `/api/*` routing.
-4. Build with Testnet contract IDs.
-5. Check `/api/health`.
-6. Smoke-test connect, vendor QR, customer scan, fee-bump payment, transaction history, admin market, and metrics.
-7. Verify no raw secrets appear in build logs or frontend bundle.
+3. Set durable Redis REST limiter env (`UPSTASH_REDIS_REST_*` or `KV_REST_API_*`) and `FEE_BUMP_REQUIRE_DURABLE_RATE_LIMIT=true` for production.
+4. Confirm `frontend/vercel.json` preserves `/api/*` routing.
+5. Build with Testnet contract IDs.
+6. Check `/api/health`; production should report `sponsor_rate_limit` as `ok` only when durable limiter env is configured.
+7. Smoke-test connect, vendor QR, customer scan, fee-bump payment, transaction history, admin market, and metrics.
+8. Verify no raw secrets appear in build logs or frontend bundle.
 
 ## 7. PalengkePayment-Only Redeploy
 
@@ -205,6 +209,7 @@ After deployment:
 | `GET /` | Landing page loads |
 | `GET /connect` | Wallet connect page loads |
 | `GET /api/health` | Returns `ok` or clearly reports degraded dependency |
+| `/api/health` sponsor limiter check | Reports `sponsor_rate_limit` as durable Redis REST configured before production fee sponsorship |
 | Customer QR payment | Wallet signs `PalengkePayment.pay`, transaction hash appears |
 | Customer transaction history | Recent payment appears from `PalengkePayment` customer records |
 | Vendor transaction history | Recent payment appears from `PalengkePayment` vendor records |
@@ -214,7 +219,7 @@ After deployment:
 ## 10. Production Caveats
 
 - Direct Stellar transfer plus fee bump remains available only as the missing-contract fallback.
-- Serverless in-memory rate limits are not durable across instances.
+- Production fee sponsorship fails closed unless durable Redis REST rate limiting is configured. Local development can still use the in-memory fallback.
 - Testnet resets can invalidate contract IDs, account state, and sponsor balances.
 - Mainnet deployment should wait for architecture finalization, contract audit, durable rate limiting, and full deployment runbook proof.
 
