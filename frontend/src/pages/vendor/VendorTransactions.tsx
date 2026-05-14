@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CalendarDays, Database, Download, ExternalLink, FileJson, Printer, QrCode, RefreshCw, Search, ShieldCheck, TrendingUp, Zap } from 'lucide-react';
+import { AlertCircle, CalendarDays, Database, Download, ExternalLink, FileJson, FileText, Printer, QrCode, RefreshCw, Search, ShieldCheck, TrendingUp, Zap } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
@@ -11,8 +11,10 @@ import { formatPhp } from '../../lib/checkout-quote';
 import {
   buildVendorRecoverySummary,
   getTransactionReceiptReference,
+  lookupTransactionReceipt,
 } from '../../lib/vendor-transaction-recovery';
 import {
+  buildIncomeProofCertificate,
   buildProofBundle,
   buildProofSummary,
   filterTransactionsBySearch,
@@ -140,6 +142,7 @@ export function VendorTransactions() {
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
   const [periodKind, setPeriodKind] = useState<ProofPeriodKind>('30d');
   const [searchTerm, setSearchTerm] = useState('');
+  const [receiptLookupTerm, setReceiptLookupTerm] = useState('');
   const t = STRINGS[lang];
   const selectedPeriod = PROOF_PERIODS.find((period) => period.kind === periodKind) ?? PROOF_PERIODS[1];
   const searchedTransactions = useMemo(
@@ -164,6 +167,14 @@ export function VendorTransactions() {
   const recoverySummary = useMemo(
     () => buildVendorRecoverySummary(searchedTransactions, error),
     [searchedTransactions, error],
+  );
+  const certificate = useMemo(
+    () => buildIncomeProofCertificate(proofSummary),
+    [proofSummary],
+  );
+  const receiptLookup = useMemo(
+    () => lookupTransactionReceipt(transactions, receiptLookupTerm),
+    [transactions, receiptLookupTerm],
   );
 
   const earnings = todayEarnings();
@@ -388,6 +399,33 @@ export function VendorTransactions() {
             </ul>
           </div>
 
+          <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#ECFDF5' }}>
+                <FileText size={18} style={{ color: '#008055' }} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  {certificate.title}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">{certificate.audience}</p>
+                <p className="text-sm font-black text-slate-800 mt-3 break-words">{certificate.vendorLine}</p>
+                <p className="text-xs text-slate-500 mt-1">{certificate.generatedLine}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              {certificate.highlights.map((item) => (
+                <div key={item.label} className="rounded-xl p-3 bg-white" style={{ border: '1px solid #E2E8F0' }}>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">{item.label}</p>
+                  <p className="text-sm font-black text-slate-900 mt-1 break-words">{item.value}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs font-semibold mt-3" style={{ color: proofSummary.readiness.liveProofMissing ? '#C2410C' : '#047857' }}>
+              {certificate.attestation}
+            </p>
+          </div>
+
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => downloadProof('csv')}
@@ -488,6 +526,39 @@ export function VendorTransactions() {
               <p className="inline-flex items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 py-2" style={{ color: '#C2410C', backgroundColor: '#FFEDD5' }}>
                 <AlertCircle size={12} /> {recoverySummary.feeBumpDiagnostic.actionLabel}
               </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+            <label htmlFor="receipt-reference-lookup" className="text-xs font-black uppercase tracking-widest text-slate-400">
+              Lookup by hash/reference
+            </label>
+            <div className="mt-2 flex items-center gap-2 rounded-2xl px-3 bg-white" style={{ minHeight: 48, border: '1px solid #E2E8F0' }}>
+              <Search size={16} style={{ color: '#64748B' }} />
+              <input
+                id="receipt-reference-lookup"
+                value={receiptLookupTerm}
+                onChange={(event) => setReceiptLookupTerm(event.target.value)}
+                placeholder="Transaction hash, #42, or local proof ref"
+                className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
+              />
+            </div>
+            <div className="mt-3 rounded-xl p-3 bg-white" style={{ border: '1px solid #E2E8F0' }}>
+              <p className="text-xs font-black text-slate-700">
+                {receiptLookup.status === 'found' ? `${receiptLookup.reference?.label}: ${receiptLookup.reference?.value}` : 'Receipt lookup'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">{receiptLookup.message}</p>
+              {receiptLookup.reference?.lookupUrl && (
+                <a
+                  href={receiptLookup.reference.lookupUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 py-2"
+                  style={{ color: '#008055', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}
+                >
+                  <ExternalLink size={12} /> Open matched receipt
+                </a>
+              )}
             </div>
           </div>
         </div>

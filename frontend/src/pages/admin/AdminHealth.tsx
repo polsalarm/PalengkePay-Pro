@@ -54,6 +54,7 @@ export function AdminHealth() {
   }, []);
 
   const apiOk = health?.status === 'ok';
+  const sponsorRateLimit = health?.checks.find((check) => check.name === 'sponsor_rate_limit');
 
   return (
     <div className="min-h-screen px-4 py-5" style={{ backgroundColor: '#F8FAFC' }}>
@@ -76,7 +77,7 @@ export function AdminHealth() {
           </button>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-4">
           <StatusCard
             title="Runtime health"
             value={health?.status ?? 'unknown'}
@@ -88,6 +89,12 @@ export function AdminHealth() {
             value={missingClientVars.length === 0 ? 'configured' : `${missingClientVars.length} missing`}
             ok={missingClientVars.length === 0}
             detail="Only public VITE variables are displayed here."
+          />
+          <StatusCard
+            title="Fee sponsor"
+            value={sponsorRateLimit?.ok ? 'ready' : 'needs limiter'}
+            ok={!!sponsorRateLimit?.ok}
+            detail={sponsorRateLimit?.detail ?? 'Production fee-bump requests fail closed until durable Redis/KV limiter env is configured.'}
           />
           <StatusCard
             title="Payment proof"

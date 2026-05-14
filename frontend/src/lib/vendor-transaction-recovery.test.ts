@@ -3,6 +3,7 @@ import type { PaymentHistoryRecord } from './payment-source';
 import {
   buildVendorRecoverySummary,
   getTransactionReceiptReference,
+  lookupTransactionReceipt,
 } from './vendor-transaction-recovery';
 
 const vendorWallet = 'GVENDOR000000000000000000000000000000000000000000000000';
@@ -71,5 +72,38 @@ describe('buildVendorRecoverySummary', () => {
 
     expect(summary.feeBumpDiagnostic.title).toBe('Sponsor not configured');
     expect(summary.feeBumpDiagnostic.detail).toContain('No vendor funds are confirmed');
+  });
+});
+
+describe('lookupTransactionReceipt', () => {
+  it('finds a receipt by hash, contract payment id, or fallback reference', () => {
+    const rows = [
+      tx({ id: 'palengke-payment:42', paymentId: 42, txHash: undefined }),
+      tx({ id: 'fallback-row', source: 'fee-bump', txHash: 'fallback-hash' }),
+    ];
+
+    expect(lookupTransactionReceipt(rows, 'fallback-hash')).toMatchObject({
+      status: 'found',
+      reference: { value: 'fallback-hash', label: 'Transaction hash' },
+    });
+    expect(lookupTransactionReceipt(rows, '#42')).toMatchObject({
+      status: 'found',
+      reference: { value: '#42', label: 'Contract payment ID' },
+    });
+    expect(lookupTransactionReceipt(rows, 'fallback-row')).toMatchObject({
+      status: 'found',
+      reference: { value: 'fallback-hash' },
+    });
+  });
+
+  it('returns operator-safe empty and missing states', () => {
+    expect(lookupTransactionReceipt([], '')).toMatchObject({
+      status: 'empty',
+      message: 'Enter a transaction hash, payment ID, or local proof reference.',
+    });
+    expect(lookupTransactionReceipt([], 'missing')).toMatchObject({
+      status: 'not_found',
+      message: 'No local receipt matched that reference. Ask the customer for the hash, then refresh history.',
+    });
   });
 });

@@ -131,8 +131,9 @@ Security note:
 | 4 | App merges Horizon payments as fallback/cache rows | Indexer | `frontend/src/lib/indexer.ts` |
 | 5 | Vendor searches receipt rows by hash, customer, memo, source, receipt reference, lookup URL, or amount | Receipt search | `frontend/src/lib/vendor-proof.ts`, `frontend/src/pages/vendor/VendorTransactions.tsx` |
 | 6 | Vendor exports CSV/JSON proof for the selected period and current search filter, including receipt references | Income Proof Pack | `frontend/src/lib/vendor-proof.ts`, `frontend/src/pages/vendor/VendorTransactions.tsx` |
-| 7 | Vendor checks receipt references by transaction hash, contract payment ID, or fallback reference | Recovery desk | `frontend/src/lib/vendor-transaction-recovery.ts`, `frontend/src/pages/vendor/VendorTransactions.tsx` |
-| 8 | Vendor shares QR again when a customer needs to resend a failed payment | Recovery desk to QR route | `frontend/src/pages/vendor/VendorTransactions.tsx`, `frontend/src/pages/vendor/VendorQR.tsx` |
+| 7 | Vendor reviews a lender/co-op-friendly income proof certificate summary | Income Proof Pack | `frontend/src/lib/vendor-proof.ts`, `frontend/src/pages/vendor/VendorTransactions.tsx` |
+| 8 | Vendor checks exact receipt references by transaction hash, contract payment ID, or fallback reference | Recovery desk | `frontend/src/lib/vendor-transaction-recovery.ts`, `frontend/src/pages/vendor/VendorTransactions.tsx` |
+| 9 | Vendor shares QR again when a customer needs to resend a failed payment | Recovery desk to QR route | `frontend/src/pages/vendor/VendorTransactions.tsx`, `frontend/src/pages/vendor/VendorQR.tsx` |
 
 Current caveat:
 
@@ -193,6 +194,19 @@ Current caveat:
 Current caveat:
 
 - Vite local dev may not serve Vercel API functions directly; deployed or Vercel-linked checks are still needed for release claims.
+
+### 4.5 Proof Dashboard
+
+| Step | Admin action | App route/surface | Evidence |
+| --- | --- | --- | --- |
+| 1 | Open proof operations dashboard | `/admin/proofs` | `frontend/src/pages/admin/AdminProofs.tsx` |
+| 2 | Review Testnet payment smoke checklist and captured hash status | Smoke guide | `frontend/src/lib/payment-smoke.ts` |
+| 3 | Review recent saved receipts and source mix | Proof dashboard | `frontend/src/lib/admin-proof-dashboard.ts`, `frontend/src/lib/payment-proof.ts` |
+| 4 | Review sponsor limiter status and failed payment diagnostics | Proof dashboard | `frontend/src/lib/admin-proof-dashboard.ts`, `frontend/api/health.ts` |
+
+Current caveat:
+
+- `/admin/proofs` reads locally saved receipt proof on the current browser/device; it does not replace Vercel env proof or a real wallet-signed Testnet smoke.
 
 ## 5. Demo and Internal Utility Flows
 

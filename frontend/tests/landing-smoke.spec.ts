@@ -22,6 +22,7 @@ const smokeRoutes = [
   { path: '/admin/register', text: /register|admin|vendor|wallet|connect/i },
   { path: '/admin/metrics', text: /metrics|dashboard|admin|wallet|connect/i },
   { path: '/admin/health', text: /system health|runtime|environment/i },
+  { path: '/admin/proofs', text: /proof dashboard|testnet payment smoke/i },
   { path: '/market', text: /market|vendor|connect/i },
 ];
 

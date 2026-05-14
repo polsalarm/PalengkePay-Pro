@@ -32,6 +32,13 @@ export interface VendorRecoverySummary {
   feeBumpDiagnostic: FeeBumpDiagnostic;
 }
 
+export interface ReceiptLookupResult {
+  status: 'empty' | 'found' | 'not_found';
+  message: string;
+  payment: PaymentHistoryRecord | null;
+  reference: ReceiptReference | null;
+}
+
 export function getTransactionReceiptReference(payment: PaymentHistoryRecord): ReceiptReference {
   if (payment.txHash) {
     return {
@@ -56,6 +63,49 @@ export function getTransactionReceiptReference(payment: PaymentHistoryRecord): R
     value: payment.id,
     lookupUrl: null,
     detail: 'Use this fallback reference when comparing local history and sponsor logs.',
+  };
+}
+
+export function lookupTransactionReceipt(
+  transactions: PaymentHistoryRecord[],
+  query: string,
+): ReceiptLookupResult {
+  const normalized = normalizeLookupQuery(query);
+  if (!normalized) {
+    return {
+      status: 'empty',
+      message: 'Enter a transaction hash, payment ID, or local proof reference.',
+      payment: null,
+      reference: null,
+    };
+  }
+
+  const payment = transactions.find((row) => {
+    const receipt = getTransactionReceiptReference(row);
+    return [
+      row.id,
+      row.txHash,
+      row.paymentId !== undefined ? String(row.paymentId) : undefined,
+      row.paymentId !== undefined ? `#${row.paymentId}` : undefined,
+      receipt.value,
+      receipt.value.replace(/^#/, ''),
+    ].some((value) => normalizeLookupQuery(value ?? '') === normalized);
+  }) ?? null;
+
+  if (!payment) {
+    return {
+      status: 'not_found',
+      message: 'No local receipt matched that reference. Ask the customer for the hash, then refresh history.',
+      payment: null,
+      reference: null,
+    };
+  }
+
+  return {
+    status: 'found',
+    message: 'Local receipt reference found.',
+    payment,
+    reference: getTransactionReceiptReference(payment),
   };
 }
 
@@ -119,4 +169,8 @@ function getFeeBumpDiagnostic(loadError: string | null | undefined, fallbackCoun
     detail: 'Use the contract payment ID or transaction hash shown on each row when a customer asks about a missing receipt.',
     actionLabel: 'Review history',
   };
+}
+
+function normalizeLookupQuery(value: string): string {
+  return value.trim().toLowerCase();
 }

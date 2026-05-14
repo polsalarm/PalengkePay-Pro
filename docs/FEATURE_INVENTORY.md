@@ -66,6 +66,8 @@ Evidence:
 - Added vendor transaction recovery desk with receipt lookup by hash/reference, QR resend guidance, and fee-bump fallback diagnostics.
 - Added vendor receipt search across hash, customer, memo, source, receipt reference, lookup URL, and amount; income proof CSV/JSON exports use the selected period plus the current search filter.
 - Added receipt reference type, value, and lookup URL to vendor proof CSV/JSON rows.
+- Added lender/co-op-friendly income proof certificate summary beside the vendor export pack.
+- Added exact receipt lookup by transaction hash, contract payment ID, or local proof reference.
 - Added vendor utang creation surface with QR/manual acceptance paths.
 
 Evidence:
@@ -221,7 +223,8 @@ Evidence:
 - Added Sentry integration.
 - Kept Sentry disabled when `VITE_SENTRY_DSN` is unset.
 - Added health endpoint for Horizon, Soroban RPC, and sponsor rate-limit readiness.
-- Added admin system health route with API check status and public client env readiness.
+- Added admin system health route with API check status, fee-sponsor limiter status, and public client env readiness.
+- Added admin proof dashboard with Testnet smoke checklist, recent local receipt proof, source mix, sponsor status, and failed-payment diagnostics.
 - Added CSP/security headers in Vercel config.
 - Added input sanitizer utility.
 - Added fee-bump abuse-path tests.
@@ -233,6 +236,9 @@ Evidence:
 - `frontend/api/health.ts`
 - `frontend/api/health.test.ts`
 - `frontend/src/pages/admin/AdminHealth.tsx`
+- `frontend/src/pages/admin/AdminProofs.tsx`
+- `frontend/src/lib/admin-proof-dashboard.ts`
+- `frontend/src/lib/payment-smoke.ts`
 - `frontend/vercel.json`
 - `frontend/src/lib/sanitize.ts`
 - `frontend/api/fee-bump.test.ts`
@@ -300,8 +306,8 @@ Evidence:
 | Role | Present capabilities |
 | --- | --- |
 | Customer | Connect wallet, fund testnet wallet, scan/pay vendor QR, manual pay, view saved receipt proof, view history, accept/pay utang |
-| Vendor | Apply, view vendor dashboard, generate payment QR, print poster/sticker QR kit, view transaction history, manage profile, create utang offers |
-| Admin | Approve/reject vendors, direct-register vendors, deactivate vendors, view market dashboard, view metrics, view system health |
+| Vendor | Apply, view vendor dashboard, generate payment QR, print poster/sticker QR kit, view transaction history, export income proof certificate, manage profile, create utang offers |
+| Admin | Approve/reject vendors, direct-register vendors, deactivate vendors, view market dashboard, view metrics, view system health, review payment proof dashboard |
 
 ### 2.2 Frontend Routes
 
@@ -311,7 +317,7 @@ Evidence:
 | General/demo | `/dashboard`, `/test-send` |
 | Customer | `/customer/home`, `/customer/scan`, `/customer/history`, `/customer/utang`, `/receipt/:txHash` |
 | Vendor | `/vendor/home`, `/vendor/qr`, `/vendor/transactions`, `/vendor/utang`, `/vendor/profile`, `/vendor/apply` |
-| Admin | `/admin/market`, `/admin/register`, `/admin/metrics`, `/admin/health` |
+| Admin | `/admin/market`, `/admin/register`, `/admin/metrics`, `/admin/health`, `/admin/proofs` |
 
 ### 2.3 Contracts
 

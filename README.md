@@ -182,6 +182,7 @@ Contract-first payment history with Horizon/localStorage fallback.
 - `frontend/api/health.ts` — `/api/health` endpoint checks Horizon + Soroban RPC liveness, returns `{status: 'ok'|'degraded'}`
 - `/api/health` also reports sponsor rate-limit readiness without exposing Redis tokens or sponsor secrets
 - `/admin/health` shows the health payload and public client env readiness without exposing secrets
+- `/admin/proofs` shows wallet-backed smoke status, saved receipt proof, source mix, and sponsor limiter readiness for release checks
 
 ![Sentry Dashboard](assets/sentry-dashboard.png)
 

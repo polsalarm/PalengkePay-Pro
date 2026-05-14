@@ -25,6 +25,7 @@ Production readiness rule:
 - `/api/fee-bump` must reject sponsor traffic with HTTP `503` when production requires durable rate limiting and Redis REST env is absent.
 - `/api/health` must include `sponsor_rate_limit` and report durable Redis REST configured before fee sponsorship can be treated as production-ready.
 - Do not print Redis tokens, sponsor secrets, or raw Vercel env values in logs, screenshots, docs, or chat.
+- `/admin/proofs` should be used during release checks to confirm the wallet-backed payment smoke status, local receipt proof state, source mix, and sponsor limiter status.
 
 ## Monitoring Checks
 
@@ -32,6 +33,7 @@ Minimum release monitoring:
 
 - Live `GET /api/health` returns HTTP 200 only when Horizon, Soroban RPC, and sponsor limiter readiness are healthy.
 - `/admin/health` renders the health payload and public client env readiness without exposing server secrets.
+- `/admin/proofs` renders the current proof dashboard and flags whether a real wallet-signed Testnet hash has been captured on the device.
 - Sentry remains optional and enabled only when `VITE_SENTRY_DSN` is configured.
 - Vercel project logs should be checked after deployment for fee-bump 429/503 spikes, health degradation, and unexpected API 500s.
 
@@ -58,7 +60,8 @@ The secret-pattern scan is intentionally conservative and checks for committed h
 3. Verify Vercel env presence by name/scope only; do not reveal values.
 4. Verify live `/api/health` includes healthy `sponsor_rate_limit`.
 5. Run wallet-backed Testnet payment smoke and preserve the hash.
-6. Verify receipt/history/vendor proof surfaces show the saved hash and locked PHP quote.
+6. Verify `/admin/proofs` shows the captured hash and marks the Testnet payment smoke guide as ready.
+7. Verify receipt/history/vendor proof surfaces show the saved hash, locked PHP quote, and vendor income proof certificate summary.
 
 ## Current Blockers
 

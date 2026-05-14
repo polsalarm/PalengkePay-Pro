@@ -20,6 +20,7 @@ This document maps each important quality gate to the command or evidence that p
 | Contract fmt/clippy | `cd contracts; cargo fmt --all -- --check`; `cargo clippy --workspace -- -D warnings` | Contract hardening claim |
 | Health endpoint | `GET /api/health` locally or live | Runtime dependency claim |
 | Admin health route | `/admin/health` route check | Browser-visible ops claim |
+| Admin proof dashboard | `/admin/proofs` route check | Wallet-smoke proof/readiness claim |
 | Live payment smoke | Wallet-signed testnet payment with hash | End-to-end payment claim |
 | Receipt proof route | `/receipt/:txHash` with saved wallet proof | Local receipt recovery claim |
 | Admin metrics smoke | `/admin/metrics` loads and labels `PalengkePayment` or registry fallback source | Metrics claim |
@@ -116,7 +117,7 @@ Policy coverage expected:
 | `/vendor/apply` | Application form loads and validates required fields |
 | `/vendor/home` | Vendor shell loads for connected wallet |
 | `/vendor/qr` | QR generation surface loads |
-| `/vendor/transactions` | History surface loads, can sync, searches receipt rows, shows income proof exports with receipt references, and exposes receipt lookup/recovery controls |
+| `/vendor/transactions` | History surface loads, can sync, searches receipt rows, shows income proof exports/certificate with receipt references, and exposes exact receipt lookup/recovery controls |
 | `/vendor/utang` | Utang offer form/QR surface loads |
 | `/vendor/profile` | Profile state loads |
 | `/customer/home` | Customer shell loads |
@@ -128,6 +129,7 @@ Policy coverage expected:
 | `/admin/register` | Manual registration loads |
 | `/admin/metrics` | Metrics dashboard loads |
 | `/admin/health` | Health and public env readiness surface loads |
+| `/admin/proofs` | Proof dashboard loads, shows sponsor status, receipt source mix, and Testnet payment smoke status |
 
 ## 6. Claim Rules
 

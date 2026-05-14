@@ -3,6 +3,7 @@ import type { PaymentHistoryRecord } from './payment-source';
 import type { UtangRecord } from './hooks/useUtang';
 import {
   buildCollectionsSummary,
+  buildIncomeProofCertificate,
   buildProofBundle,
   buildProofSummary,
   filterTransactionsBySearch,
@@ -55,6 +56,42 @@ describe('filterTransactionsByPeriod', () => {
       tx({ id: 'recent', createdAt: '2026-05-12T00:00:00.000Z' }),
       tx({ id: 'old', createdAt: '2026-04-20T00:00:00.000Z' }),
     ], period, now).map((payment) => payment.id)).toEqual(['recent']);
+  });
+
+  it('builds a lender-friendly certificate summary from the proof pack', () => {
+    const summary = buildProofSummary({
+      vendor: { name: 'Aling Nena', wallet: vendorWallet, stallNumber: 'A-12', productType: 'gulay' },
+      transactions: [
+        tx({
+          id: 'row-1',
+          txHash: 'tx-live-hash',
+          amountXlm: 20,
+          quote: {
+            phpAmount: 125,
+            phpPerXlm: 6.25,
+            xlmAmount: '20.0000000',
+            generatedAt: '2026-05-14T01:00:00.000Z',
+            expiresAt: '2026-05-14T01:01:00.000Z',
+            source: 'api',
+          },
+        }),
+      ],
+      period: { kind: '30d', label: '30 days' },
+      generatedAt: '2026-05-14T04:00:00.000Z',
+    });
+
+    expect(buildIncomeProofCertificate(summary)).toMatchObject({
+      title: 'PalengkePay Income Proof Certificate',
+      audience: 'Prepared for lender, cooperative, LGU, or aid-program review.',
+      vendorLine: 'Aling Nena · Stall A-12 · gulay',
+      reviewStatus: 'Ready for review',
+      highlights: [
+        { label: 'Transactions', value: '1' },
+        { label: 'Total XLM', value: '20.00 XLM' },
+        { label: 'PHP estimate', value: 'PHP 125.00' },
+        { label: 'Source', value: 'Contract records' },
+      ],
+    });
   });
 });
 

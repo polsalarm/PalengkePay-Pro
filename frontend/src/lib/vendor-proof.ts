@@ -57,6 +57,17 @@ export interface ProofSummary {
   readiness: ProofReadiness;
 }
 
+export interface IncomeProofCertificate {
+  title: string;
+  audience: string;
+  vendorLine: string;
+  reviewStatus: string;
+  generatedLine: string;
+  highlights: Array<{ label: string; value: string }>;
+  attestation: string;
+  verificationNotes: string[];
+}
+
 export interface CollectionsSummary {
   activeAgreements: number;
   completedAgreements: number;
@@ -212,6 +223,34 @@ export function buildProofBundle(summary: ProofSummary) {
   };
 }
 
+export function buildIncomeProofCertificate(summary: ProofSummary): IncomeProofCertificate {
+  return {
+    title: 'PalengkePay Income Proof Certificate',
+    audience: 'Prepared for lender, cooperative, LGU, or aid-program review.',
+    vendorLine: [
+      summary.vendor.name,
+      summary.vendor.stallNumber ? `Stall ${summary.vendor.stallNumber}` : null,
+      summary.vendor.productType,
+    ].filter(Boolean).join(' · '),
+    reviewStatus: summary.readiness.label,
+    generatedLine: `Generated ${formatDateTime(summary.generatedAt)} for ${summary.period.label}`,
+    highlights: [
+      { label: 'Transactions', value: String(summary.transactionCount) },
+      { label: 'Total XLM', value: `${summary.totalXlm.toFixed(2)} XLM` },
+      { label: 'PHP estimate', value: summary.estimatedPhpTotal !== null ? `PHP ${summary.estimatedPhpTotal.toFixed(2)}` : 'Unavailable' },
+      { label: 'Source', value: summary.sourceLabel },
+    ],
+    attestation: summary.readiness.liveProofMissing
+      ? 'Needs a wallet-signed Testnet transaction hash before external review.'
+      : 'Includes at least one wallet-signed Testnet transaction reference for review.',
+    verificationNotes: [
+      `Date range: ${summary.dateRange.label}`,
+      `Unique customers: ${summary.uniqueCustomers}`,
+      ...summary.caveats,
+    ],
+  };
+}
+
 export function buildCollectionsSummary(utangs: UtangRecord[], now = new Date()): CollectionsSummary {
   let activeAgreements = 0;
   let completedAgreements = 0;
@@ -291,6 +330,16 @@ function formatDate(isoDate: string): string {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+  }).format(new Date(isoDate));
+}
+
+function formatDateTime(isoDate: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   }).format(new Date(isoDate));
 }
 

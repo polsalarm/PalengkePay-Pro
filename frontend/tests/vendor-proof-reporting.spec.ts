@@ -38,19 +38,26 @@ test('/vendor/transactions exposes income proof exports, recovery, and caveats',
   await expect(page.getByRole('button', { name: /CSV/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /JSON/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Print/i })).toBeVisible();
+  await expect(page.getByText('PalengkePay Income Proof Certificate')).toBeVisible();
+  await expect(page.getByText('Prepared for lender, cooperative, LGU, or aid-program review.')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Transaction Recovery Desk' })).toBeVisible();
-  await expect(page.getByText('Receipt lookup', { exact: true })).toBeVisible();
-  await expect(page.getByText('qa-vendor-proof-hash')).toBeVisible();
+  await expect(page.getByText('Receipt lookup', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Transaction hash: qa-vendor-proof-hash').first()).toBeVisible();
   await expect(page.getByRole('link', { name: /Check receipt/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Share QR again/i })).toBeVisible();
   await expect(page.getByText('Sponsor diagnostics', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Lookup by hash/reference')).toBeVisible();
+  await page.getByLabel('Lookup by hash/reference').fill('qa-vendor-proof-hash');
+  await expect(page.getByText('Transaction hash: qa-vendor-proof-hash').first()).toBeVisible();
+  await page.getByLabel('Lookup by hash/reference').fill('missing-reference');
+  await expect(page.getByText(/No local receipt matched/)).toBeVisible();
   await expect(page.getByLabel('Search receipts')).toBeVisible();
   await page.getByLabel('Search receipts').fill('qa receipt');
-  await expect(page.getByText('qa-vendor-proof-hash')).toBeVisible();
+  await expect(page.getByText('Transaction hash: qa-vendor-proof-hash').first()).toBeVisible();
   await page.getByLabel('Search receipts').fill('not-a-real-receipt');
   await expect(page.getByText('No matching receipts')).toBeVisible();
   await page.getByRole('button', { name: /Clear search/i }).click();
-  await expect(page.getByText('qa-vendor-proof-hash')).toBeVisible();
+  await expect(page.getByText('Transaction hash: qa-vendor-proof-hash').first()).toBeVisible();
   await page.screenshot({
     path: `qa-artifacts/states/${testInfo.project.name}-vendor-transactions-proof-recovery.png`,
     fullPage: true,

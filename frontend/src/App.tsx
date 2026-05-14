@@ -20,6 +20,7 @@ import { AdminMarket } from './pages/admin/AdminMarket';
 import { AdminRegister } from './pages/admin/AdminRegister';
 import { AdminMetrics } from './pages/admin/AdminMetrics';
 import { AdminHealth } from './pages/admin/AdminHealth';
+import { AdminProofs } from './pages/admin/AdminProofs';
 import { VendorApply } from './pages/vendor/VendorApply';
 import { MarketDirectory } from './pages/MarketDirectory';
 import { Receipt } from './pages/Receipt';
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="/admin/register" element={<AdminRegister />} />
             <Route path="/admin/metrics" element={<AdminMetrics />} />
             <Route path="/admin/health" element={<AdminHealth />} />
+            <Route path="/admin/proofs" element={<AdminProofs />} />
 
             {/* Vendor apply (public) */}
             <Route path="/vendor/apply" element={<VendorApply />} />
