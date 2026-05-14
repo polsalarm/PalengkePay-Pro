@@ -7,6 +7,7 @@ import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
 import { useVendorName } from '../../lib/hooks/useVendor';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { formatPhp } from '../../lib/checkout-quote';
 
 const STRINGS = {
   en: {
@@ -79,6 +80,11 @@ function TxRow({ tx }: { tx: TxRecord }) {
           {tx.memo && (
             <p className="text-xs font-medium truncate mt-0.5" style={{ color: '#008055' }}>{tx.memo}</p>
           )}
+          {tx.quote && (
+            <p className="text-xs font-black truncate mt-0.5" style={{ color: '#0F766E' }}>
+              {formatPhp(tx.quote.phpAmount)} · ₱{tx.quote.phpPerXlm.toFixed(2)}/XLM
+            </p>
+          )}
           <p className="text-xs text-slate-400">{relativeTime(tx.createdAt)}</p>
         </div>
       </div>
@@ -94,6 +100,7 @@ function TxRow({ tx }: { tx: TxRecord }) {
             href={stellarExpertUrl(tx.txHash)}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={`Open receipt ${tx.txHash}`}
             className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95"
             style={{ backgroundColor: '#F8FAFC' }}
           >

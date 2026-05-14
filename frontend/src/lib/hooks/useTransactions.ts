@@ -7,6 +7,7 @@ import {
   normalizeFallbackPayment,
   type PaymentHistoryRecord,
 } from '../payment-source';
+import { enrichPaymentHistoryWithProofs } from '../payment-proof';
 
 export type TxRecord = PaymentHistoryRecord;
 
@@ -20,13 +21,13 @@ export function useVendorTransactions(vendorWallet: string | null) {
     const cached = getCachedPayments(wallet)
       .filter((p) => p.to === wallet)
       .map(normalizeFallbackPayment);
-    if (cached.length > 0) setTransactions(cached);
+    if (cached.length > 0) setTransactions(enrichPaymentHistoryWithProofs(cached, wallet));
 
     setIsLoading(true);
     setError(null);
     try {
       const [contractPayments, fallbackPayments] = await loadVendorPaymentSources(wallet);
-      setTransactions(mergePaymentHistory(contractPayments, fallbackPayments));
+      setTransactions(enrichPaymentHistoryWithProofs(mergePaymentHistory(contractPayments, fallbackPayments), wallet));
     } catch (e: unknown) {
       setError((e as { message?: string }).message ?? 'Failed to load transactions');
       if (transactions.length === 0) setTransactions([]);
@@ -70,13 +71,13 @@ export function useCustomerTransactions(customerWallet: string | null) {
     const cached = getCachedPayments(wallet)
       .filter((p) => p.from === wallet)
       .map(normalizeFallbackPayment);
-    if (cached.length > 0) setTransactions(cached);
+    if (cached.length > 0) setTransactions(enrichPaymentHistoryWithProofs(cached, wallet));
 
     setIsLoading(true);
     setError(null);
     try {
       const [contractPayments, fallbackPayments] = await loadCustomerPaymentSources(wallet);
-      setTransactions(mergePaymentHistory(contractPayments, fallbackPayments));
+      setTransactions(enrichPaymentHistoryWithProofs(mergePaymentHistory(contractPayments, fallbackPayments), wallet));
     } catch (e: unknown) {
       setError((e as { message?: string }).message ?? 'Failed to load transactions');
     } finally {

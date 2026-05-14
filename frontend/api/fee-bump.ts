@@ -8,6 +8,7 @@ const DEFAULT_MAX_SPONSORED_OPS = 1;
 const DEFAULT_MAX_SPONSORED_XLM = 100;
 const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_RATE_LIMIT_MAX = 20;
+const RATE_LIMIT_KEY_PREFIX = 'palengkepay:fee-bump';
 
 interface SponsoredOperation {
   type: string;
@@ -26,6 +27,22 @@ interface MemoLike {
 interface RateLimitBucket {
   count: number;
   resetAt: number;
+}
+
+interface DurableRateLimitConfig {
+  url: string;
+  token: string;
+}
+
+type RateLimitMode = 'durable' | 'memory' | 'unavailable';
+
+interface RateLimitResult {
+  allowed: boolean;
+  mode: RateLimitMode;
+  remaining: number;
+  resetAt: number;
+  statusCode?: 429 | 503;
+  error?: string;
 }
 
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
@@ -54,19 +71,137 @@ function getClientIp(req: VercelRequest): string {
     ?? 'unknown';
 }
 
-export function checkFeeBumpRateLimit(clientIp: string, now = Date.now()): boolean {
+function getDurableRateLimitConfig(): DurableRateLimitConfig | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+  if (!url?.trim() || !token?.trim()) return null;
+  return { url: url.replace(/\/$/, ''), token };
+}
+
+function requiresDurableRateLimit(): boolean {
+  return process.env.FEE_BUMP_REQUIRE_DURABLE_RATE_LIMIT === 'true'
+    || process.env.VERCEL_ENV === 'production';
+}
+
+async function readRedisNumberResponse(response: Response): Promise<number> {
+  if (!response.ok) {
+    throw new Error(`Redis REST request failed with HTTP ${response.status}`);
+  }
+  const payload = await response.json().catch(() => null) as { result?: unknown } | null;
+  const value = Number(payload?.result);
+  if (!Number.isFinite(value)) {
+    throw new Error('Redis REST response did not include a numeric result');
+  }
+  return value;
+}
+
+async function checkDurableRateLimit(
+  clientIp: string,
+  now: number,
+  fetchImpl: typeof fetch,
+  config: DurableRateLimitConfig,
+): Promise<RateLimitResult> {
+  const windowMs = envNumber('FEE_BUMP_RATE_LIMIT_WINDOW_MS', DEFAULT_RATE_LIMIT_WINDOW_MS);
+  const maxRequests = envNumber('FEE_BUMP_RATE_LIMIT_MAX', DEFAULT_RATE_LIMIT_MAX);
+  const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+  const bucket = Math.floor(now / windowMs);
+  const key = `${RATE_LIMIT_KEY_PREFIX}:${bucket}:${clientIp}`;
+  const headers = { Authorization: `Bearer ${config.token}` };
+
+  const count = await readRedisNumberResponse(
+    await fetchImpl(`${config.url}/incr/${encodeURIComponent(key)}`, { headers }),
+  );
+  if (count === 1) {
+    await readRedisNumberResponse(
+      await fetchImpl(`${config.url}/expire/${encodeURIComponent(key)}/${windowSeconds}`, { headers }),
+    );
+  }
+
+  const remaining = Math.max(0, maxRequests - count);
+  const resetAt = (bucket + 1) * windowMs;
+  if (count > maxRequests) {
+    return {
+      allowed: false,
+      mode: 'durable',
+      remaining,
+      resetAt,
+      statusCode: 429,
+      error: 'Too many fee-bump requests',
+    };
+  }
+
+  return { allowed: true, mode: 'durable', remaining, resetAt };
+}
+
+function checkMemoryRateLimit(clientIp: string, now: number): RateLimitResult {
   const windowMs = envNumber('FEE_BUMP_RATE_LIMIT_WINDOW_MS', DEFAULT_RATE_LIMIT_WINDOW_MS);
   const maxRequests = envNumber('FEE_BUMP_RATE_LIMIT_MAX', DEFAULT_RATE_LIMIT_MAX);
   const bucket = rateLimitBuckets.get(clientIp);
 
   if (!bucket || bucket.resetAt <= now) {
     rateLimitBuckets.set(clientIp, { count: 1, resetAt: now + windowMs });
-    return true;
+    return {
+      allowed: true,
+      mode: 'memory',
+      remaining: maxRequests - 1,
+      resetAt: now + windowMs,
+    };
   }
 
-  if (bucket.count >= maxRequests) return false;
+  if (bucket.count >= maxRequests) {
+    return {
+      allowed: false,
+      mode: 'memory',
+      remaining: 0,
+      resetAt: bucket.resetAt,
+      statusCode: 429,
+      error: 'Too many fee-bump requests',
+    };
+  }
   bucket.count += 1;
-  return true;
+  return {
+    allowed: true,
+    mode: 'memory',
+    remaining: Math.max(0, maxRequests - bucket.count),
+    resetAt: bucket.resetAt,
+  };
+}
+
+export async function checkFeeBumpRateLimit(
+  clientIp: string,
+  now = Date.now(),
+  fetchImpl: typeof fetch = fetch,
+): Promise<RateLimitResult> {
+  const durableConfig = getDurableRateLimitConfig();
+  if (durableConfig) {
+    try {
+      return await checkDurableRateLimit(clientIp, now, fetchImpl, durableConfig);
+    } catch (err) {
+      if (requiresDurableRateLimit()) {
+        return {
+          allowed: false,
+          mode: 'unavailable',
+          remaining: 0,
+          resetAt: now,
+          statusCode: 503,
+          error: err instanceof Error ? err.message : 'Durable fee-bump rate limit unavailable',
+        };
+      }
+    }
+  }
+
+  if (requiresDurableRateLimit()) {
+    return {
+      allowed: false,
+      mode: 'unavailable',
+      remaining: 0,
+      resetAt: now,
+      statusCode: 503,
+      error: 'Durable fee-bump rate limit not configured',
+    };
+  }
+
+  return checkMemoryRateLimit(clientIp, now);
 }
 
 export function __resetFeeBumpRateLimitForTests(): void {
@@ -206,7 +341,7 @@ export function validateInnerTransaction(innerXdr: string): Transaction {
   return parsed;
 }
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -216,8 +351,14 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'innerXdr required' });
   }
 
-  if (!checkFeeBumpRateLimit(getClientIp(req))) {
-    return res.status(429).json({ error: 'Too many fee-bump requests' });
+  const rateLimit = await checkFeeBumpRateLimit(getClientIp(req));
+  res.setHeader('X-RateLimit-Mode', rateLimit.mode);
+  res.setHeader('X-RateLimit-Remaining', String(rateLimit.remaining));
+  res.setHeader('X-RateLimit-Reset', String(rateLimit.resetAt));
+  if (!rateLimit.allowed) {
+    return res.status(rateLimit.statusCode ?? 429).json({
+      error: rateLimit.error ?? 'Too many fee-bump requests',
+    });
   }
 
   const sponsorSecret = process.env.SPONSOR_SECRET;

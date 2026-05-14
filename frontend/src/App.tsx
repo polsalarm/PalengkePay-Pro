@@ -19,8 +19,10 @@ import { CustomerUtang } from './pages/customer/CustomerUtang';
 import { AdminMarket } from './pages/admin/AdminMarket';
 import { AdminRegister } from './pages/admin/AdminRegister';
 import { AdminMetrics } from './pages/admin/AdminMetrics';
+import { AdminHealth } from './pages/admin/AdminHealth';
 import { VendorApply } from './pages/vendor/VendorApply';
 import { MarketDirectory } from './pages/MarketDirectory';
+import { Receipt } from './pages/Receipt';
 
 export default function App() {
   return (
@@ -37,6 +39,7 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/test-send" element={<TestSend />} />
+            <Route path="/receipt/:txHash" element={<Receipt />} />
 
             {/* Vendor */}
             <Route path="/vendor/home" element={<VendorHome />} />
@@ -55,6 +58,7 @@ export default function App() {
             <Route path="/admin/market" element={<AdminMarket />} />
             <Route path="/admin/register" element={<AdminRegister />} />
             <Route path="/admin/metrics" element={<AdminMetrics />} />
+            <Route path="/admin/health" element={<AdminHealth />} />
 
             {/* Vendor apply (public) */}
             <Route path="/vendor/apply" element={<VendorApply />} />

@@ -6,7 +6,7 @@ This document is the working list of what has already been built, what is presen
 
 ## 0. Product Summary
 
-PalengkePay is a Stellar Testnet web app for public-market vendors and customers. The app supports wallet onboarding, QR payments, stable PHP-first checkout, vendor registration, customer/vendor transaction history, utang installment agreements, admin vendor management, gasless payment sponsorship, metrics, and operational health checks.
+PalengkePay is a Stellar Testnet web app for public-market vendors and customers. The app supports wallet onboarding, QR payments, stable PHP-first checkout, saved receipt proof, vendor registration, customer/vendor transaction history, utang installment agreements, admin vendor management, gasless payment sponsorship, metrics, QR print kits, and operational health checks.
 
 ## 1. Previous Work Completed
 
@@ -33,6 +33,7 @@ Evidence:
 - Added signed Stellar payment transaction flow.
 - Routed live QR payments through the `PalengkePayment.pay` contract path when configured.
 - Added PHP-first locked checkout quote and dual-currency receipt display.
+- Added standalone `/receipt/:txHash` proof route for saved wallet-signed payment evidence.
 - Added quote helper and production `/api/quote` rate endpoint with frontend fallback.
 - Added contract-first history with instant local Horizon cache fallback.
 
@@ -46,6 +47,8 @@ Evidence:
 - `frontend/src/pages/customer/CustomerScan.tsx`
 - `frontend/src/pages/customer/CustomerHistory.tsx`
 - `frontend/src/components/PaymentForm.tsx`
+- `frontend/src/pages/Receipt.tsx`
+- `frontend/src/lib/payment-proof.ts`
 - `frontend/src/lib/hooks/usePayment.ts`
 - `frontend/src/lib/checkout-quote.ts`
 - `frontend/src/lib/hooks/useTransactions.ts`
@@ -57,15 +60,21 @@ Evidence:
 
 - Built vendor home, QR, transaction history, utang, profile, and application pages.
 - Added QR generation for payment requests.
+- Added versioned vendor QR payloads and print-ready poster/sticker layout.
 - Added vendor profile display and status handling.
 - Added vendor transaction history from `PalengkePayment` records with Horizon/indexed cache fallback.
+- Added vendor transaction recovery desk with receipt lookup by hash/reference, QR resend guidance, and fee-bump fallback diagnostics.
+- Added vendor receipt search across hash, customer, memo, source, receipt reference, lookup URL, and amount; income proof CSV/JSON exports use the selected period plus the current search filter.
+- Added receipt reference type, value, and lookup URL to vendor proof CSV/JSON rows.
 - Added vendor utang creation surface with QR/manual acceptance paths.
 
 Evidence:
 
 - `frontend/src/pages/vendor/VendorHome.tsx`
 - `frontend/src/pages/vendor/VendorQR.tsx`
+- `frontend/src/lib/vendor-qr.ts`
 - `frontend/src/pages/vendor/VendorTransactions.tsx`
+- `frontend/src/lib/vendor-transaction-recovery.ts`
 - `frontend/src/pages/vendor/VendorUtang.tsx`
 - `frontend/src/pages/vendor/VendorProfile.tsx`
 - `frontend/src/pages/vendor/VendorApply.tsx`
@@ -212,6 +221,7 @@ Evidence:
 - Added Sentry integration.
 - Kept Sentry disabled when `VITE_SENTRY_DSN` is unset.
 - Added health endpoint for Horizon and Soroban RPC liveness.
+- Added admin system health route with API check status and public client env readiness.
 - Added CSP/security headers in Vercel config.
 - Added input sanitizer utility.
 - Added fee-bump abuse-path tests.
@@ -221,6 +231,7 @@ Evidence:
 
 - `frontend/src/main.tsx`
 - `frontend/api/health.ts`
+- `frontend/src/pages/admin/AdminHealth.tsx`
 - `frontend/vercel.json`
 - `frontend/src/lib/sanitize.ts`
 - `frontend/api/fee-bump.test.ts`
@@ -287,9 +298,9 @@ Evidence:
 
 | Role | Present capabilities |
 | --- | --- |
-| Customer | Connect wallet, fund testnet wallet, scan/pay vendor QR, manual pay, view history, accept/pay utang |
-| Vendor | Apply, view vendor dashboard, generate payment QR, view transaction history, manage profile, create utang offers |
-| Admin | Approve/reject vendors, direct-register vendors, deactivate vendors, view market dashboard, view metrics |
+| Customer | Connect wallet, fund testnet wallet, scan/pay vendor QR, manual pay, view saved receipt proof, view history, accept/pay utang |
+| Vendor | Apply, view vendor dashboard, generate payment QR, print poster/sticker QR kit, view transaction history, manage profile, create utang offers |
+| Admin | Approve/reject vendors, direct-register vendors, deactivate vendors, view market dashboard, view metrics, view system health |
 
 ### 2.2 Frontend Routes
 
@@ -297,9 +308,9 @@ Evidence:
 | --- | --- |
 | Public/onboarding | `/`, `/connect`, `/onboard`, `/market` |
 | General/demo | `/dashboard`, `/test-send` |
-| Customer | `/customer/home`, `/customer/scan`, `/customer/history`, `/customer/utang` |
+| Customer | `/customer/home`, `/customer/scan`, `/customer/history`, `/customer/utang`, `/receipt/:txHash` |
 | Vendor | `/vendor/home`, `/vendor/qr`, `/vendor/transactions`, `/vendor/utang`, `/vendor/profile`, `/vendor/apply` |
-| Admin | `/admin/market`, `/admin/register`, `/admin/metrics` |
+| Admin | `/admin/market`, `/admin/register`, `/admin/metrics`, `/admin/health` |
 
 ### 2.3 Contracts
 

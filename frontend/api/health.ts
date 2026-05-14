@@ -10,6 +10,44 @@ interface HealthCheck {
   detail?: string;
 }
 
+function hasDurableRateLimitEnv(): boolean {
+  const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+  return Boolean(url?.trim() && token?.trim());
+}
+
+function requiresDurableRateLimit(): boolean {
+  return process.env.FEE_BUMP_REQUIRE_DURABLE_RATE_LIMIT === 'true'
+    || process.env.VERCEL_ENV === 'production';
+}
+
+export function getSponsorRateLimitReadiness(): HealthCheck {
+  if (hasDurableRateLimitEnv()) {
+    return {
+      name: 'sponsor_rate_limit',
+      ok: true,
+      status: 200,
+      detail: 'durable Redis REST configured',
+    };
+  }
+
+  if (requiresDurableRateLimit()) {
+    return {
+      name: 'sponsor_rate_limit',
+      ok: false,
+      status: 503,
+      detail: 'durable Redis REST rate limiting is required',
+    };
+  }
+
+  return {
+    name: 'sponsor_rate_limit',
+    ok: true,
+    status: 200,
+    detail: 'memory fallback for local development',
+  };
+}
+
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   const checks = await Promise.allSettled<HealthCheck>([
     fetch(`${HORIZON_URL}/`).then((r) => ({ name: 'horizon', ok: r.ok, status: r.status })),
@@ -35,6 +73,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
   const results = checks.map((c) =>
     c.status === 'fulfilled' ? c.value : { name: 'unknown', ok: false, status: 0, detail: c.reason instanceof Error ? c.reason.message : 'check failed' },
   );
+  results.push(getSponsorRateLimitReadiness());
 
   const allOk = results.every((r) => r.ok);
 

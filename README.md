@@ -141,12 +141,14 @@ PalengkePay puts a Stellar wallet in every vendor's pocket and a QR code on ever
 ## Advanced Features
 
 ### 💸 Stable Checkout with Price Lock
-Customer checkout is now PHP-first. The app locks the current PHP/XLM quote for one minute, converts the payment into XLM for Stellar settlement, and shows a dual-currency receipt after confirmation.
+Customer checkout is now PHP-first. The app locks the current PHP/XLM quote for one minute, converts the payment into XLM for Stellar settlement, saves the signed proof locally, and shows a dual-currency receipt after confirmation.
 
 - `frontend/src/lib/checkout-quote.ts` — builds the locked quote, expiry window, and receipt formatting
+- `frontend/src/lib/payment-proof.ts` — persists the wallet-signed hash and quote for receipt/history recovery
 - `frontend/api/quote.ts` — serves the PHP/XLM quote for production; the frontend keeps a direct CoinGecko fallback for local/dev
 - `frontend/src/components/PaymentForm.tsx` — collects PHP amount, shows locked XLM, rate, and countdown
 - `frontend/src/pages/customer/CustomerScan.tsx` — carries the quote through confirmation and receipt screens
+- `frontend/src/pages/Receipt.tsx` — standalone `/receipt/:txHash` route for saved dual-currency proof
 
 ### ⚡ Gasless Transactions (Fee Sponsorship)
 Fee sponsorship remains available as the fallback path for classic Stellar transfers when the payment contract is not configured. A server-side sponsor wallet wraps approved payment/createAccount inner transactions in a Stellar FeeBumpTransaction. Users sign the inner transaction; the sponsor covers the classic Stellar fee.
@@ -177,6 +179,7 @@ Contract-first payment history with Horizon/localStorage fallback.
 ### 🔍 Monitoring
 - Sentry error tracking initialized in `main.tsx` — disabled automatically if `VITE_SENTRY_DSN` is unset
 - `frontend/api/health.ts` — `/api/health` endpoint checks Horizon + Soroban RPC liveness, returns `{status: 'ok'|'degraded'}`
+- `/admin/health` shows the health payload and public client env readiness without exposing secrets
 
 ![Sentry Dashboard](assets/sentry-dashboard.png)
 
@@ -188,6 +191,7 @@ Contract-first payment history with Horizon/localStorage fallback.
 - **QR-based payments** — vendor displays QR, customer scans and pays XLM in seconds
 - **Stable checkout** — customer enters PHP, app locks a short-lived PHP/XLM quote, and receipt shows both PHP paid and XLM settled
 - **Vendor identity in QR** — name and stall info embedded so customers see who they're paying before signing
+- **Print-ready QR kit** — vendor QR route includes a poster and sticker print layout with versioned QR payload metadata
 - **Memo field** — customer logs what they bought (e.g. "2kg tilapia") visible in transaction history
 - **Real-time notifications** — vendor gets a browser push notification on payment received
 - **Current source of truth** — live QR payments use `PalengkePayment.pay` when the contract ID is configured; direct fee-bumped Stellar transfers remain as the missing-contract fallback.
@@ -325,6 +329,8 @@ cargo test --workspace
 ### Admin
 - `/admin/market` — review pending applications, approve/reject, deactivate vendors
 - `/admin/register` — direct vendor registration
+- `/admin/metrics` — payment-record metrics with registry fallback labels
+- `/admin/health` — Horizon/RPC health and public env readiness
 
 ---
 
@@ -477,6 +483,7 @@ Current implementation:
 
 - Customer QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured.
 - Checkout uses a PHP-first locked quote and dual-currency receipt before sending the XLM amount.
+- Saved wallet proofs can be reopened at `/receipt/:txHash` for local receipt review, but final claims still require the hash to exist on Stellar Testnet.
 - Vendor/customer history prefers `PalengkePayment` records and keeps Horizon/localStorage as fallback cache.
 - Admin metrics prefer `PalengkePayment` records and use `VendorRegistry` counters only as a compatibility fallback.
 - Direct fee-bumped Stellar transfer remains available as a local-dev or missing-contract fallback.
@@ -491,7 +498,7 @@ Remaining hardening:
 
 ## CI and Production Caveats
 
-- GitHub Actions runs contract tests on Ubuntu and frontend typecheck/build on Node 20. The frontend job now also runs `npm test` for fee-bump abuse paths, payment routing, source-of-truth metrics/history helpers, and checkout quote logic.
+- GitHub Actions runs contract tests, contract fmt/clippy, frontend typecheck, lint, high-severity dependency audit, unit tests, build, and Playwright route QA on Node 20.
 - Last upstream CI verified before this hardening: manual `workflow_dispatch` run `25807769027` passed on commit `7f24867` with `Contract Tests` and `Frontend Build` green.
 - Local frontend verification for the previous hardening passed: `npx tsc --noEmit`, `npm test -- api/fee-bump.test.ts`, `npm run lint`, and `npm run build`.
 - Current local shell does not put `cargo` on PATH, but `C:\Users\Admin\.cargo\bin\cargo.exe test --workspace` passed 33 contract tests, including the new `get_customer_payments` path.

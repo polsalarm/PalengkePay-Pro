@@ -15,8 +15,11 @@ This document maps each important quality gate to the command or evidence that p
 | Visual route QA | `cd frontend; npm run qa:visual` | UI/responsive route claim |
 | Dependency audit | `cd frontend; npm audit --audit-level=high` | Production-readiness or dependency-hardening claim |
 | Contract tests | `cd contracts; cargo test --workspace` | Contract behavior/auth claim |
+| Contract fmt/clippy | `cd contracts; cargo fmt --all -- --check`; `cargo clippy --workspace -- -D warnings` | Contract hardening claim |
 | Health endpoint | `GET /api/health` locally or live | Runtime dependency claim |
+| Admin health route | `/admin/health` route check | Browser-visible ops claim |
 | Live payment smoke | Wallet-signed testnet payment with hash | End-to-end payment claim |
+| Receipt proof route | `/receipt/:txHash` with saved wallet proof | Local receipt recovery claim |
 | Admin metrics smoke | `/admin/metrics` loads and labels `PalengkePayment` or registry fallback source | Metrics claim |
 | Deployment smoke | Live landing, connect, health, key routes | Live/deployed claim |
 
@@ -35,11 +38,11 @@ npm audit --audit-level=high
 
 Expected:
 
-- Fee-bump, payment-routing, payment-source, and checkout quote test suites pass.
+- Fee-bump, payment-routing, payment-source, payment-proof, vendor-QR, vendor-proof, and checkout quote test suites pass.
 - TypeScript exits 0.
 - ESLint exits 0.
 - Vite build exits 0. Chunk-size warnings are acceptable unless they become a performance task.
-- Playwright route checks pass on desktop/mobile viewports. The QA command builds first, then runs route checks against the Vite dev server with service workers blocked to avoid stale worker state during repeated local browser contexts.
+- Playwright route checks pass on desktop/mobile viewports. The QA command builds first, then runs route checks against the Vite preview server with service workers blocked to avoid stale worker state during repeated local browser contexts.
 - Audit exits 0 at `high` threshold. Low-severity transitive wallet findings must be tracked in `docs/DEPENDENCY_AUDIT.md`.
 
 ## 3. Contract Commands
@@ -56,7 +59,7 @@ If this Windows shell cannot find `cargo` on PATH, use the installed binary dire
 & "$env:USERPROFILE\.cargo\bin\cargo.exe" test --workspace
 ```
 
-Recommended additional gates:
+Required hardening gates:
 
 ```powershell
 cargo fmt --all -- --check
@@ -109,16 +112,18 @@ Policy coverage expected:
 | `/vendor/apply` | Application form loads and validates required fields |
 | `/vendor/home` | Vendor shell loads for connected wallet |
 | `/vendor/qr` | QR generation surface loads |
-| `/vendor/transactions` | History surface loads and can sync |
+| `/vendor/transactions` | History surface loads, can sync, searches receipt rows, shows income proof exports with receipt references, and exposes receipt lookup/recovery controls |
 | `/vendor/utang` | Utang offer form/QR surface loads |
 | `/vendor/profile` | Profile state loads |
 | `/customer/home` | Customer shell loads |
 | `/customer/scan` | Scanner/manual payment form loads |
 | `/customer/history` | History surface loads |
 | `/customer/utang` | Customer utang list/actions load |
+| `/receipt/:txHash` | Saved receipt proof route loads and links to Stellar Expert |
 | `/admin/market` | Pending/active vendor lists load |
 | `/admin/register` | Manual registration loads |
 | `/admin/metrics` | Metrics dashboard loads |
+| `/admin/health` | Health and public env readiness surface loads |
 
 ## 6. Claim Rules
 

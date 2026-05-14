@@ -1,15 +1,21 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CalendarDays, Database, Download, ExternalLink, FileJson, Printer, QrCode, RefreshCw, ShieldCheck, TrendingUp, Zap } from 'lucide-react';
+import { AlertCircle, CalendarDays, Database, Download, ExternalLink, FileJson, Printer, QrCode, RefreshCw, Search, ShieldCheck, TrendingUp, Zap } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
 import type { TxRecord } from '../../lib/hooks/useTransactions';
-import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
+import { truncateAddress } from '../../lib/stellar';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { formatPhp } from '../../lib/checkout-quote';
+import {
+  buildVendorRecoverySummary,
+  getTransactionReceiptReference,
+} from '../../lib/vendor-transaction-recovery';
 import {
   buildProofBundle,
   buildProofSummary,
+  filterTransactionsBySearch,
   filterTransactionsByPeriod,
   PROOF_PERIODS,
   toProofCsv,
@@ -75,6 +81,7 @@ function TxRow({ tx }: { tx: TxRecord }) {
   const display = truncateAddress(tx.from);
   const [bgColor, textColor] = hashColor(tx.from);
   const initial = tx.from[1]?.toUpperCase() ?? 'G';
+  const receipt = getTransactionReceiptReference(tx);
 
   return (
     <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
@@ -90,7 +97,15 @@ function TxRow({ tx }: { tx: TxRecord }) {
           {tx.memo && (
             <p className="text-xs font-medium truncate mt-0.5" style={{ color: '#008055' }}>{tx.memo}</p>
           )}
+          {tx.quote && (
+            <p className="text-xs font-black truncate mt-0.5" style={{ color: '#0F766E' }}>
+              {formatPhp(tx.quote.phpAmount)} · ₱{tx.quote.phpPerXlm.toFixed(2)}/XLM
+            </p>
+          )}
           <p className="text-xs text-slate-400">{relativeTime(tx.createdAt)}</p>
+          <p className="text-[11px] font-bold text-slate-400 mt-1 truncate">
+            {receipt.label}: {receipt.value}
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0 ml-3">
@@ -100,12 +115,13 @@ function TxRow({ tx }: { tx: TxRecord }) {
           </p>
           <p className="text-xs text-slate-400">XLM</p>
         </div>
-        {tx.txHash && (
+        {receipt.lookupUrl && (
           <a
-            href={stellarExpertUrl(tx.txHash)}
+            href={receipt.lookupUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95"
+            aria-label={`Open receipt ${receipt.value}`}
             style={{ backgroundColor: '#F8FAFC' }}
           >
             <ExternalLink size={12} style={{ color: '#94A3B8' }} />
@@ -123,11 +139,16 @@ export function VendorTransactions() {
   const { transactions, isLoading, error, retry, todayEarnings, todayCount } = useVendorTransactions(address);
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
   const [periodKind, setPeriodKind] = useState<ProofPeriodKind>('30d');
+  const [searchTerm, setSearchTerm] = useState('');
   const t = STRINGS[lang];
   const selectedPeriod = PROOF_PERIODS.find((period) => period.kind === periodKind) ?? PROOF_PERIODS[1];
+  const searchedTransactions = useMemo(
+    () => filterTransactionsBySearch(transactions, searchTerm),
+    [transactions, searchTerm],
+  );
   const proofTransactions = useMemo(
-    () => filterTransactionsByPeriod(transactions, selectedPeriod),
-    [transactions, selectedPeriod],
+    () => filterTransactionsBySearch(filterTransactionsByPeriod(transactions, selectedPeriod), searchTerm),
+    [transactions, selectedPeriod, searchTerm],
   );
   const proofSummary = useMemo(() => buildProofSummary({
     vendor: {
@@ -140,11 +161,15 @@ export function VendorTransactions() {
     period: selectedPeriod,
     hasLivePaymentProof: false,
   }), [address, proofTransactions, selectedPeriod, vendor]);
+  const recoverySummary = useMemo(
+    () => buildVendorRecoverySummary(searchedTransactions, error),
+    [searchedTransactions, error],
+  );
 
   const earnings = todayEarnings();
   const count = todayCount();
   const allTimeTotal = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
-  const groups = groupByDate(transactions, t);
+  const groups = groupByDate(searchedTransactions, t);
 
   if (!address) {
     return <WalletRequiredState detail="Connect your vendor wallet to load earnings history and receipt links." />;
@@ -391,6 +416,105 @@ export function VendorTransactions() {
         </div>
       </section>
 
+      {/* ── Recovery workspace ── */}
+      <section
+        className="rounded-3xl overflow-hidden bg-white"
+        style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 10px 28px rgba(15,23,42,0.05)' }}
+      >
+        <div className="p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <RefreshCw size={18} style={{ color: '#008055' }} />
+                <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  Transaction Recovery Desk
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500">
+                Receipt lookup, resend path, and sponsor diagnostics for customer payment issues.
+              </p>
+            </div>
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black shrink-0"
+              style={{ backgroundColor: '#F0FDFA', color: '#047857', border: '1px solid #A7F3D0' }}
+            >
+              {recoverySummary.receiptLookup.availableCount} refs
+            </span>
+          </div>
+
+          <div className="grid gap-2 md:grid-cols-3">
+            <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Receipt lookup</p>
+              <p className="text-sm font-black text-slate-900 break-words" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {recoverySummary.receiptLookup.latestReference ?? 'No receipt yet'}
+              </p>
+              <p className="text-xs text-slate-500 mt-2">{recoverySummary.receiptLookup.detail}</p>
+              {recoverySummary.receiptLookup.latestUrl && (
+                <a
+                  href={recoverySummary.receiptLookup.latestUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 py-2"
+                  style={{ color: '#008055', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}
+                >
+                  <ExternalLink size={12} /> Check receipt
+                </a>
+              )}
+            </div>
+
+            <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Resend path</p>
+              <p className="text-sm font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {recoverySummary.resend.title}
+              </p>
+              <p className="text-xs text-slate-500 mt-2">{recoverySummary.resend.detail}</p>
+              <button
+                onClick={() => navigate(recoverySummary.resend.actionPath)}
+                className="inline-flex items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 py-2 active:scale-95 text-white"
+                style={{ backgroundColor: '#008055' }}
+              >
+                <QrCode size={12} /> {recoverySummary.resend.actionLabel}
+              </button>
+            </div>
+
+            <div className="rounded-2xl p-4" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
+              <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: '#C2410C' }}>
+                Sponsor diagnostics
+              </p>
+              <p className="text-sm font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {recoverySummary.feeBumpDiagnostic.title}
+              </p>
+              <p className="text-xs text-orange-800 mt-2">{recoverySummary.feeBumpDiagnostic.detail}</p>
+              <p className="inline-flex items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 py-2" style={{ color: '#C2410C', backgroundColor: '#FFEDD5' }}>
+                <AlertCircle size={12} /> {recoverySummary.feeBumpDiagnostic.actionLabel}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        className="rounded-3xl bg-white p-4"
+        style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 10px 28px rgba(15,23,42,0.04)' }}
+      >
+        <label htmlFor="vendor-transaction-search" className="text-xs font-black uppercase tracking-widest text-slate-400">
+          Search receipts
+        </label>
+        <div className="mt-2 flex items-center gap-2 rounded-2xl px-3" style={{ minHeight: 48, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+          <Search size={16} style={{ color: '#64748B' }} />
+          <input
+            id="vendor-transaction-search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Hash, customer, memo, source, amount"
+            className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
+          />
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          Showing {searchedTransactions.length} of {transactions.length} receipt rows. Exports use the selected period and current search filter.
+        </p>
+      </section>
+
       {/* ── Transactions list ── */}
       <div className="rounded-3xl overflow-hidden" style={{ border: '1.5px solid #F1F5F9' }}>
 
@@ -452,6 +576,28 @@ export function VendorTransactions() {
               style={{ backgroundColor: '#008055' }}
             >
               <QrCode size={12} /> {t.showQr}
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !error && transactions.length > 0 && searchedTransactions.length === 0 && (
+          <div className="bg-white p-10 text-center">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0' }}
+            >
+              <Search size={28} style={{ color: '#64748B' }} />
+            </div>
+            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              No matching receipts
+            </p>
+            <p className="text-xs text-slate-400 mb-5">Try a hash, customer wallet, memo, source label, or amount.</p>
+            <button
+              onClick={() => setSearchTerm('')}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-5 py-2.5 rounded-xl active:scale-95"
+              style={{ color: '#008055', backgroundColor: '#F0FDFA', border: '1px solid #CCFBF1' }}
+            >
+              Clear search
             </button>
           </div>
         )}

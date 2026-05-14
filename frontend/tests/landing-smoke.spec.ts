@@ -7,6 +7,7 @@ const smokeRoutes = [
   { path: '/onboard', text: /wallet/i },
   { path: '/dashboard', text: /dashboard|wallet|connect/i },
   { path: '/test-send', text: /send|test|wallet|connect/i },
+  { path: '/receipt/demo-hash', text: /receipt|resibo|transaction/i },
   { path: '/customer/home', text: /wallet|connect|customer|home/i },
   { path: '/customer/scan', text: /scan|payment|wallet|connect/i },
   { path: '/customer/history', text: /history|transaction|wallet|connect/i },
@@ -20,6 +21,7 @@ const smokeRoutes = [
   { path: '/admin/market', text: /wallet|connect|admin|market/i },
   { path: '/admin/register', text: /register|admin|vendor|wallet|connect/i },
   { path: '/admin/metrics', text: /metrics|dashboard|admin|wallet|connect/i },
+  { path: '/admin/health', text: /system health|runtime|environment/i },
   { path: '/market', text: /market|vendor|connect/i },
 ];
 

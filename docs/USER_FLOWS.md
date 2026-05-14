@@ -54,6 +54,7 @@ Current caveats:
 | 3 | Sign `PalengkePayment.pay` contract transaction when configured | Wallet provider | `frontend/src/components/WalletProvider.tsx`, `frontend/src/lib/hooks/usePayment.ts` |
 | 4 | Submit contract transaction; fallback to fee-bump only if no payment contract ID is configured | Payment hook | `frontend/src/lib/stellar.ts`, `frontend/api/fee-bump.ts` |
 | 5 | Show transaction status/hash and dual-currency receipt | Status tracker/toast | `frontend/src/components/TxStatusTracker.tsx`, `frontend/src/components/Toast.tsx` |
+| 6 | Open standalone receipt proof by transaction hash | `/receipt/:txHash` | `frontend/src/pages/Receipt.tsx`, `frontend/src/lib/payment-proof.ts` |
 
 Current caveat:
 
@@ -117,7 +118,8 @@ Security note:
 | --- | --- | --- | --- |
 | 1 | Open QR page | `/vendor/qr` | `frontend/src/pages/vendor/VendorQR.tsx` |
 | 2 | Generate customer-facing payment QR | QR component | `frontend/src/components/QRGenerator.tsx` |
-| 3 | Customer scans QR and pays | Customer flow | `frontend/src/pages/customer/CustomerScan.tsx` |
+| 3 | Print poster/sticker QR kit when needed | QR print layout | `frontend/src/pages/vendor/VendorQR.tsx`, `frontend/src/lib/vendor-qr.ts` |
+| 4 | Customer scans QR and pays | Customer flow | `frontend/src/pages/customer/CustomerScan.tsx` |
 
 ### 3.4 Vendor Transactions
 
@@ -127,6 +129,14 @@ Security note:
 | 2 | App loads vendor-side cached payments | Transactions hook | `frontend/src/lib/hooks/useTransactions.ts` |
 | 3 | App reads `PalengkePayment` vendor records | Payment source | `frontend/src/lib/payment-source.ts`, `contracts/palengke-payment/src/lib.rs` |
 | 4 | App merges Horizon payments as fallback/cache rows | Indexer | `frontend/src/lib/indexer.ts` |
+| 5 | Vendor searches receipt rows by hash, customer, memo, source, receipt reference, lookup URL, or amount | Receipt search | `frontend/src/lib/vendor-proof.ts`, `frontend/src/pages/vendor/VendorTransactions.tsx` |
+| 6 | Vendor exports CSV/JSON proof for the selected period and current search filter, including receipt references | Income Proof Pack | `frontend/src/lib/vendor-proof.ts`, `frontend/src/pages/vendor/VendorTransactions.tsx` |
+| 7 | Vendor checks receipt references by transaction hash, contract payment ID, or fallback reference | Recovery desk | `frontend/src/lib/vendor-transaction-recovery.ts`, `frontend/src/pages/vendor/VendorTransactions.tsx` |
+| 8 | Vendor shares QR again when a customer needs to resend a failed payment | Recovery desk to QR route | `frontend/src/pages/vendor/VendorTransactions.tsx`, `frontend/src/pages/vendor/VendorQR.tsx` |
+
+Current caveat:
+
+- Fee-bump fallback rows still need receipt/hash confirmation before they are treated as contract-backed proof.
 
 ### 3.5 Vendor Utang Offers
 
@@ -171,6 +181,18 @@ Security note:
 Current caveat:
 
 - Metrics now prefer `PalengkePayment` records. `VendorRegistry` counters remain as compatibility fallback until contract reads are proven live.
+
+### 4.4 System Health
+
+| Step | Admin action | App route/surface | Evidence |
+| --- | --- | --- | --- |
+| 1 | Open operations health view | `/admin/health` | `frontend/src/pages/admin/AdminHealth.tsx` |
+| 2 | Review `/api/health` status for Horizon and Soroban RPC | Health endpoint | `frontend/api/health.ts` |
+| 3 | Review public client env readiness without exposing secrets | Client env panel | `frontend/src/pages/admin/AdminHealth.tsx` |
+
+Current caveat:
+
+- Vite local dev may not serve Vercel API functions directly; deployed or Vercel-linked checks are still needed for release claims.
 
 ## 5. Demo and Internal Utility Flows
 

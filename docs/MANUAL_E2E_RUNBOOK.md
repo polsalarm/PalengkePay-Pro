@@ -52,6 +52,8 @@ Expected:
 10. Wait for the success state and copy the transaction hash.
 11. Open the transaction on Stellar Expert Testnet.
 12. Verify the transaction source/customer, vendor destination or contract invocation, memo/receipt context, and successful ledger result.
+13. Refresh `/customer/history` and confirm the row shows the PHP amount, PHP/XLM quote rate, and receipt link.
+14. Refresh `/vendor/transactions` in the same browser profile or a profile that has the preserved proof metadata, then confirm the vendor proof pack can include the transaction hash and PHP quote data.
 
 Evidence to capture:
 
@@ -60,6 +62,8 @@ Evidence to capture:
 - Transaction hash.
 - Stellar Expert Testnet URL.
 - Screenshot of the app success state.
+- Screenshot of `/customer/history` showing preserved PHP receipt proof.
+- Screenshot of `/vendor/transactions` showing the proof row and PHP total when available.
 - Screenshot or copied status from `/api/health`.
 
 ## History and Metrics Proof

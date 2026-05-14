@@ -1,6 +1,7 @@
 import { addressToScVal, simulateViewCall, u32ToScVal } from './stellar';
 import { getPaymentContractId } from './payment-routing';
 import type { IndexedPayment } from './indexer';
+import type { StableCheckoutQuote } from './checkout-quote';
 
 const STROOPS_PER_XLM = 10_000_000;
 
@@ -16,6 +17,7 @@ export interface PaymentHistoryRecord {
   createdAt: string;
   memo?: string;
   source: PaymentHistorySource;
+  quote?: StableCheckoutQuote;
 }
 
 export interface ContractPaymentPayload {

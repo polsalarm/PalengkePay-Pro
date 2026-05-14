@@ -30,6 +30,7 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
   const [memo, setMemo] = useState('');
   const [error, setError] = useState('');
   const [phpRate, setPhpRate] = useState<number>(XLM_TO_PHP);
+  const [quoteSource, setQuoteSource] = useState<StableCheckoutQuote['source']>('fallback');
   const [rateLoading, setRateLoading] = useState(false);
   const [quote, setQuote] = useState<StableCheckoutQuote | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -44,12 +45,18 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
         if (!response.ok) throw new Error('quote API unavailable');
         const data = await response.json();
         if (!Number.isFinite(Number(data?.phpPerXlm))) throw new Error('quote API returned invalid rate');
-        if (!cancelled) setPhpRate(Number(data.phpPerXlm));
+        if (!cancelled) {
+          setPhpRate(Number(data.phpPerXlm));
+          setQuoteSource('api');
+        }
       } catch {
         try {
           const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=php');
           const data = await response.json();
-          if (!cancelled && data?.stellar?.php) setPhpRate(data.stellar.php);
+          if (!cancelled && data?.stellar?.php) {
+            setPhpRate(data.stellar.php);
+            setQuoteSource('coingecko');
+          }
         } catch {
           // Keep the static fallback rate when both quote sources are unavailable.
         }
@@ -76,11 +83,11 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
       return;
     }
     try {
-      setQuote(buildStableCheckoutQuote({ phpAmount: amountPhp, phpPerXlm: phpRate }));
+      setQuote(buildStableCheckoutQuote({ phpAmount: amountPhp, phpPerXlm: phpRate, source: quoteSource }));
     } catch {
       setQuote(null);
     }
-  }, [amountPhp, phpRate]);
+  }, [amountPhp, phpRate, quoteSource]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

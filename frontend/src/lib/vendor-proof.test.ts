@@ -5,6 +5,7 @@ import {
   buildCollectionsSummary,
   buildProofBundle,
   buildProofSummary,
+  filterTransactionsBySearch,
   filterTransactionsByPeriod,
   toProofCsv,
   type ProofPeriod,
@@ -57,6 +58,22 @@ describe('filterTransactionsByPeriod', () => {
   });
 });
 
+describe('filterTransactionsBySearch', () => {
+  it('matches transaction hash, customer wallet, memo, source, and amount', () => {
+    const rows = [
+      tx({ id: 'contract-row', txHash: 'hash-contract', from: customerA, memo: 'gulay', amountXlm: 12, source: 'palengke-payment' }),
+      tx({ id: 'fallback-row', txHash: 'hash-fallback', from: customerB, memo: 'isda', amountXlm: 4.25, source: 'fee-bump' }),
+    ];
+
+    expect(filterTransactionsBySearch(rows, 'hash-fallback').map((payment) => payment.id)).toEqual(['fallback-row']);
+    expect(filterTransactionsBySearch(rows, customerA.slice(0, 12)).map((payment) => payment.id)).toEqual(['contract-row']);
+    expect(filterTransactionsBySearch(rows, 'isda').map((payment) => payment.id)).toEqual(['fallback-row']);
+    expect(filterTransactionsBySearch(rows, 'fee-bump').map((payment) => payment.id)).toEqual(['fallback-row']);
+    expect(filterTransactionsBySearch(rows, '12.00').map((payment) => payment.id)).toEqual(['contract-row']);
+    expect(filterTransactionsBySearch(rows, '  ').map((payment) => payment.id)).toEqual(['contract-row', 'fallback-row']);
+  });
+});
+
 describe('buildProofSummary', () => {
   it('summarizes contract-only payment proof without fallback caveats', () => {
     const summary = buildProofSummary({
@@ -83,7 +100,7 @@ describe('buildProofSummary', () => {
       vendor: { name: 'Vendor', wallet: vendorWallet },
       transactions: [
         tx({ id: 'contract', source: 'palengke-payment' }),
-        tx({ id: 'fallback', source: 'fee-bump', txHash: 'abc' }),
+        tx({ id: 'fallback', source: 'fee-bump' }),
       ],
       period: { kind: 'all', label: 'All time' },
       generatedAt: '2026-05-14T04:00:00.000Z',
@@ -93,6 +110,21 @@ describe('buildProofSummary', () => {
     expect(summary.hasFallbackCaveat).toBe(true);
     expect(summary.caveats).toContain('Includes Horizon/cache fallback rows; fallback rows are not the canonical payment contract source.');
     expect(summary.caveats).toContain('Live wallet-signed payment smoke is not attached to this export.');
+  });
+
+  it('treats preserved row transaction hashes as attached live proof', () => {
+    const summary = buildProofSummary({
+      vendor: { name: 'Vendor', wallet: vendorWallet },
+      transactions: [
+        tx({ id: 'contract', source: 'palengke-payment', txHash: 'tx-live-hash' }),
+      ],
+      period: { kind: 'all', label: 'All time' },
+      generatedAt: '2026-05-14T04:00:00.000Z',
+    });
+
+    expect(summary.readiness.label).toBe('Ready for review');
+    expect(summary.readiness.liveProofMissing).toBe(false);
+    expect(summary.caveats).not.toContain('Live wallet-signed payment smoke is not attached to this export.');
   });
 
   it('returns an unavailable source label for empty exports', () => {
@@ -117,8 +149,8 @@ describe('proof exports', () => {
       generatedAt: '2026-05-14T04:00:00.000Z',
     });
 
-    expect(toProofCsv(summary)).toContain('date,amount_xlm,memo,customer_wallet,tx_hash,source');
-    expect(toProofCsv(summary)).toContain('2026-05-10T00:00:00.000Z,3.2500000,gulay,GCUSTO...0000,hash-1,Contract records');
+    expect(toProofCsv(summary)).toContain('date,amount_xlm,php_amount,php_per_xlm,memo,customer_wallet,receipt_reference_type,receipt_reference,receipt_lookup_url,source');
+    expect(toProofCsv(summary)).toContain('2026-05-10T00:00:00.000Z,3.2500000,,,gulay,GCUSTO...0000,Transaction hash,hash-1,https://stellar.expert/explorer/testnet/tx/hash-1,Contract records');
   });
 
   it('creates a JSON proof bundle with generated metadata and caveats', () => {
@@ -133,6 +165,15 @@ describe('proof exports', () => {
       generatedAt: '2026-05-14T04:00:00.000Z',
       vendor: { name: 'Aling Nena', wallet: vendorWallet },
       totals: { totalXlm: 2, transactionCount: 1 },
+      transactions: [
+        {
+          receiptReference: {
+            label: 'Contract payment ID',
+            value: '#1',
+            lookupUrl: null,
+          },
+        },
+      ],
     });
   });
 
@@ -158,6 +199,48 @@ describe('proof exports', () => {
       period: { kind: '7d', label: '7 days' },
       dateRange: { label: 'May 10, 2026 - May 12, 2026' },
       totals: { estimatedPhpTotal: 32.5 },
+    });
+  });
+
+  it('uses preserved row-level PHP quote data for proof totals and exports', () => {
+    const summary = buildProofSummary({
+      vendor: { name: 'Aling Nena', wallet: vendorWallet },
+      transactions: [
+        tx({
+          id: 'row-1',
+          txHash: 'tx-live-hash',
+          amountXlm: 20,
+          quote: {
+            phpAmount: 125,
+            phpPerXlm: 6.25,
+            xlmAmount: '20.0000000',
+            generatedAt: '2026-05-14T01:00:00.000Z',
+            expiresAt: '2026-05-14T01:01:00.000Z',
+            source: 'api',
+          },
+        }),
+      ],
+      period: { kind: 'all', label: 'All' },
+      generatedAt: '2026-05-14T04:00:00.000Z',
+      livePaymentTxHash: 'tx-live-hash',
+    });
+
+    expect(summary.estimatedPhpTotal).toBe(125);
+    expect(summary.readiness.liveProofMissing).toBe(false);
+    expect(toProofCsv(summary)).toContain('date,amount_xlm,php_amount,php_per_xlm,memo,customer_wallet,receipt_reference_type,receipt_reference,receipt_lookup_url,source');
+    expect(toProofCsv(summary)).toContain('2026-05-10T00:00:00.000Z,20.0000000,125.00,6.2500,gulay,GCUSTO...0000,Transaction hash,tx-live-hash,https://stellar.expert/explorer/testnet/tx/tx-live-hash,Contract records');
+    expect(buildProofBundle(summary)).toMatchObject({
+      totals: { estimatedPhpTotal: 125 },
+      transactions: [
+        {
+          txHash: 'tx-live-hash',
+          quote: { phpAmount: 125, phpPerXlm: 6.25, source: 'api' },
+          receiptReference: {
+            label: 'Transaction hash',
+            value: 'tx-live-hash',
+          },
+        },
+      ],
     });
   });
 });

@@ -6,15 +6,17 @@ export interface StableCheckoutQuote {
   xlmAmount: string;
   generatedAt: string;
   expiresAt: string;
+  source: 'api' | 'coingecko' | 'fallback';
 }
 
 interface BuildQuoteInput {
   phpAmount: string;
   phpPerXlm: number;
   nowMs?: number;
+  source?: StableCheckoutQuote['source'];
 }
 
-export function buildStableCheckoutQuote({ phpAmount, phpPerXlm, nowMs = Date.now() }: BuildQuoteInput): StableCheckoutQuote {
+export function buildStableCheckoutQuote({ phpAmount, phpPerXlm, nowMs = Date.now(), source = 'fallback' }: BuildQuoteInput): StableCheckoutQuote {
   const parsedPhp = Number(phpAmount);
   if (!Number.isFinite(parsedPhp) || parsedPhp <= 0) {
     throw new Error('PHP amount must be greater than 0');
@@ -29,6 +31,7 @@ export function buildStableCheckoutQuote({ phpAmount, phpPerXlm, nowMs = Date.no
     xlmAmount: (parsedPhp / phpPerXlm).toFixed(7),
     generatedAt: new Date(nowMs).toISOString(),
     expiresAt: new Date(nowMs + QUOTE_TTL_MS).toISOString(),
+    source,
   };
 }
 

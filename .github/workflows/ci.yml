@@ -17,6 +17,9 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Rust quality components
+        run: rustup component add rustfmt clippy
+
       - name: Cache Cargo
         uses: actions/cache@v4
         with:
@@ -30,6 +33,14 @@ jobs:
       - name: Run contract tests
         working-directory: contracts
         run: cargo test --workspace
+
+      - name: Check contract formatting
+        working-directory: contracts
+        run: cargo fmt --all -- --check
+
+      - name: Contract clippy
+        working-directory: contracts
+        run: cargo clippy --workspace -- -D warnings
 
   frontend:
     name: Frontend Build
@@ -52,6 +63,14 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Dependency audit
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
       - name: Frontend unit tests
         working-directory: frontend
         run: npm test
@@ -59,6 +78,20 @@ jobs:
       - name: Build
         working-directory: frontend
         run: npm run build
+        env:
+          VITE_STELLAR_NETWORK: testnet
+          VITE_SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+          VITE_VENDOR_REGISTRY_CONTRACT_ID: PLACEHOLDER
+          VITE_PALENGKE_PAYMENT_CONTRACT_ID: PLACEHOLDER
+          VITE_UTANG_ESCROW_CONTRACT_ID: PLACEHOLDER
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser route QA
+        working-directory: frontend
+        run: npm run qa:visual
         env:
           VITE_STELLAR_NETWORK: testnet
           VITE_SOROBAN_RPC_URL: https://soroban-testnet.stellar.org

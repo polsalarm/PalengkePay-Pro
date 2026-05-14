@@ -1,5 +1,6 @@
 import type { UtangRecord } from './hooks/useUtang';
 import type { PaymentHistoryRecord } from './payment-source';
+import { getTransactionReceiptReference } from './vendor-transaction-recovery';
 
 export type ProofPeriodKind = '7d' | '30d' | 'all';
 
@@ -87,9 +88,38 @@ export function filterTransactionsByPeriod(
   return transactions.filter((payment) => new Date(payment.createdAt).getTime() >= cutoff);
 }
 
+export function filterTransactionsBySearch(
+  transactions: PaymentHistoryRecord[],
+  searchTerm: string,
+): PaymentHistoryRecord[] {
+  const query = searchTerm.trim().toLowerCase();
+  if (!query) return [...transactions];
+
+  return transactions.filter((payment) => {
+    const receipt = getTransactionReceiptReference(payment);
+    return [
+      payment.id,
+      payment.txHash,
+      payment.paymentId !== undefined ? String(payment.paymentId) : undefined,
+      payment.from,
+      payment.memo,
+      payment.source,
+      payment.amountXlm.toFixed(2),
+      payment.amountXlm.toFixed(7),
+      receipt.label,
+      receipt.value,
+      receipt.lookupUrl,
+      payment.quote ? payment.quote.phpAmount.toFixed(2) : undefined,
+      payment.quote ? payment.quote.phpPerXlm.toFixed(2) : undefined,
+    ].some((value) => value?.toLowerCase().includes(query));
+  });
+}
+
 export function buildProofSummary(input: ProofSummaryInput): ProofSummary {
   const totalXlm = roundXlm(input.transactions.reduce((sum, payment) => sum + payment.amountXlm, 0));
   const transactionCount = input.transactions.length;
+  const preservedPhpTotal = getPreservedPhpTotal(input.transactions);
+  const hasLivePaymentProof = !!input.livePaymentTxHash || !!input.hasLivePaymentProof || input.transactions.some((payment) => !!payment.txHash);
   const uniqueCustomers = new Set(input.transactions.map((payment) => payment.from)).size;
   const sourceLabel = getSourceLabel(input.transactions);
   const hasFallbackCaveat = input.transactions.some((payment) => payment.source !== 'palengke-payment');
@@ -101,11 +131,14 @@ export function buildProofSummary(input: ProofSummaryInput): ProofSummary {
   if (hasFallbackCaveat) {
     caveats.push('Includes Horizon/cache fallback rows; fallback rows are not the canonical payment contract source.');
   }
-  if (!input.livePaymentTxHash && !input.hasLivePaymentProof) {
+  if (!hasLivePaymentProof) {
     caveats.push('Live wallet-signed payment smoke is not attached to this export.');
   }
   if (!input.repaymentDataPresent) {
     caveats.push('Repayment records are not attached to this payment proof pack.');
+  }
+  if (transactionCount > 0 && preservedPhpTotal === null && !input.phpPerXlm) {
+    caveats.push('PHP quote data is not attached to every payment row, so PHP totals are unavailable.');
   }
 
   return {
@@ -120,28 +153,35 @@ export function buildProofSummary(input: ProofSummaryInput): ProofSummary {
     uniqueCustomers,
     sourceLabel,
     hasFallbackCaveat,
-    estimatedPhpTotal: input.phpPerXlm ? roundCurrency(totalXlm * input.phpPerXlm) : null,
+    estimatedPhpTotal: preservedPhpTotal ?? (input.phpPerXlm ? roundCurrency(totalXlm * input.phpPerXlm) : null),
     caveats,
     readiness: {
-      label: transactionCount > 0 && (input.livePaymentTxHash || input.hasLivePaymentProof) ? 'Ready for review' : 'Needs live proof',
+      label: transactionCount > 0 && hasLivePaymentProof ? 'Ready for review' : 'Needs live proof',
       paymentDataPresent: transactionCount > 0,
       repaymentDataPresent: !!input.repaymentDataPresent,
-      liveProofMissing: !input.livePaymentTxHash && !input.hasLivePaymentProof,
+      liveProofMissing: !hasLivePaymentProof,
     },
   };
 }
 
 export function toProofCsv(summary: ProofSummary): string {
   const rows = [
-    'date,amount_xlm,memo,customer_wallet,tx_hash,source',
-    ...summary.transactions.map((payment) => [
-      payment.createdAt,
-      payment.amountXlm.toFixed(7),
-      csvCell(payment.memo ?? ''),
-      shortenWallet(payment.from),
-      payment.txHash ?? payment.id,
-      getSourceLabel([payment]),
-    ].join(',')),
+    'date,amount_xlm,php_amount,php_per_xlm,memo,customer_wallet,receipt_reference_type,receipt_reference,receipt_lookup_url,source',
+    ...summary.transactions.map((payment) => {
+      const receipt = getTransactionReceiptReference(payment);
+      return [
+        payment.createdAt,
+        payment.amountXlm.toFixed(7),
+        payment.quote ? payment.quote.phpAmount.toFixed(2) : '',
+        payment.quote ? payment.quote.phpPerXlm.toFixed(4) : '',
+        csvCell(payment.memo ?? ''),
+        shortenWallet(payment.from),
+        csvCell(receipt.label),
+        csvCell(receipt.value),
+        receipt.lookupUrl ?? '',
+        getSourceLabel([payment]),
+      ].join(',');
+    }),
   ];
 
   return `${rows.join('\n')}\n`;
@@ -165,7 +205,10 @@ export function buildProofBundle(summary: ProofSummary) {
       hasFallbackCaveat: summary.hasFallbackCaveat,
     },
     caveats: summary.caveats,
-    transactions: summary.transactions,
+    transactions: summary.transactions.map((payment) => ({
+      ...payment,
+      receiptReference: getTransactionReceiptReference(payment),
+    })),
   };
 }
 
@@ -214,6 +257,12 @@ function getSourceLabel(transactions: PaymentHistoryRecord[]): string {
   const sources = new Set(transactions.map((payment) => payment.source));
   if (sources.size > 1) return 'Mixed/unverified records';
   return sources.has('palengke-payment') ? 'Contract records' : 'Horizon/cache fallback';
+}
+
+function getPreservedPhpTotal(transactions: PaymentHistoryRecord[]): number | null {
+  if (transactions.length === 0) return null;
+  if (transactions.some((payment) => !payment.quote)) return null;
+  return roundCurrency(transactions.reduce((sum, payment) => sum + (payment.quote?.phpAmount ?? 0), 0));
 }
 
 function buildDateRange(transactions: PaymentHistoryRecord[], period: ProofPeriod): ProofDateRange {

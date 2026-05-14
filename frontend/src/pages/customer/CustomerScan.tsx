@@ -14,6 +14,7 @@ import type { UtangOfferPayload } from '../vendor/VendorUtang';
 import { stellarExpertAccountUrl, stellarExpertUrl, truncateAddress } from '../../lib/stellar';
 import { formatPhp, formatXlm, type StableCheckoutQuote } from '../../lib/checkout-quote';
 import { ESCROW_CONTRACT_ID } from '../../lib/contracts';
+import { savePaymentProof } from '../../lib/payment-proof';
 
 const STROOPS = 10_000_000;
 
@@ -57,6 +58,21 @@ export function CustomerScan() {
   useEffect(() => {
     if (step === 'confirm' && status === 'confirmed') setStep('done');
   }, [step, status]);
+
+  useEffect(() => {
+    if (status !== 'confirmed' || !txHash || !address || !pendingPayment) return;
+
+    savePaymentProof({
+      txHash,
+      from: address,
+      to: vendorAddress,
+      amountXlm: Number(pendingPayment.amount),
+      memo: pendingPayment.memo,
+      createdAt: new Date().toISOString(),
+      settlementMode,
+      quote: pendingPayment.quote,
+    });
+  }, [address, pendingPayment, settlementMode, status, txHash, vendorAddress]);
 
   const handleRawScan = (raw: string): boolean => {
     try {
@@ -540,15 +556,24 @@ export function CustomerScan() {
                 </div>
               )}
               {txHash && (
-                <a
-                  href={stellarExpertUrl(txHash)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
-                  style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
-                >
-                  <ExternalLink size={13} /> Tingnan sa Stellar Expert
-                </a>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => navigate(`/receipt/${txHash}`)}
+                    className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
+                    style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
+                  >
+                    Digital Resibo
+                  </button>
+                  <a
+                    href={stellarExpertUrl(txHash)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
+                    style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
+                  >
+                    <ExternalLink size={13} /> Stellar Expert
+                  </a>
+                </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <button

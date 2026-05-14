@@ -20,6 +20,7 @@ describe('buildStableCheckoutQuote', () => {
       xlmAmount: '50.0000000',
       generatedAt: '2026-05-13T10:00:00.000Z',
       expiresAt: '2026-05-13T10:01:00.000Z',
+      source: 'fallback',
     });
     expect(isQuoteExpired(quote, Date.UTC(2026, 4, 13, 10, 0, 59))).toBe(false);
     expect(isQuoteExpired(quote, Date.UTC(2026, 4, 13, 10, 1, 0))).toBe(true);
@@ -28,6 +29,20 @@ describe('buildStableCheckoutQuote', () => {
   it('rejects invalid checkout amounts and rates', () => {
     expect(() => buildStableCheckoutQuote({ phpAmount: '0', phpPerXlm: 8.4 })).toThrow('PHP amount must be greater than 0');
     expect(() => buildStableCheckoutQuote({ phpAmount: '100', phpPerXlm: 0 })).toThrow('quote rate must be greater than 0');
+  });
+
+  it('preserves the verified quote source for receipts and proof exports', () => {
+    expect(buildStableCheckoutQuote({
+      phpAmount: '125',
+      phpPerXlm: 6.25,
+      source: 'api',
+      nowMs: Date.UTC(2026, 4, 14, 1, 0, 0),
+    })).toMatchObject({
+      phpAmount: 125,
+      phpPerXlm: 6.25,
+      xlmAmount: '20.0000000',
+      source: 'api',
+    });
   });
 });
 

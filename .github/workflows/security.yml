@@ -1,0 +1,58 @@
+name: Security Scans
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  secret-pattern-scan:
+    name: Secret Pattern Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for committed secret values
+        shell: bash
+        run: |
+          set -euo pipefail
+          pattern='(S[A-Z2-7]{55}|sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9_]{36,}|xox[baprs]-[A-Za-z0-9-]{20,})'
+          if grep -RInE "$pattern" \
+            --exclude-dir=.git \
+            --exclude-dir=node_modules \
+            --exclude-dir=dist \
+            --exclude-dir=target \
+            --exclude=package-lock.json \
+            --exclude='*.png' \
+            --exclude='*.jpg' \
+            --exclude='*.jpeg' \
+            --exclude='*.webp' \
+            .; then
+            echo "Potential committed secret values found. Rotate any real keys and remove them from Git history before merging."
+            exit 1
+          fi
+          echo "No high-confidence secret value patterns found."
+
+  codeql:
+    name: CodeQL Semantic Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4

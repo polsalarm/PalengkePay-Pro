@@ -42,6 +42,12 @@ afterEach(() => {
   delete process.env.FEE_BUMP_ALLOWED_DESTINATIONS;
   delete process.env.FEE_BUMP_RATE_LIMIT_MAX;
   delete process.env.FEE_BUMP_RATE_LIMIT_WINDOW_MS;
+  delete process.env.FEE_BUMP_REQUIRE_DURABLE_RATE_LIMIT;
+  delete process.env.KV_REST_API_URL;
+  delete process.env.KV_REST_API_TOKEN;
+  delete process.env.UPSTASH_REDIS_REST_URL;
+  delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  delete process.env.VERCEL_ENV;
 });
 
 describe('validateInnerTransaction', () => {
@@ -103,13 +109,44 @@ describe('validateInnerTransaction', () => {
 });
 
 describe('checkFeeBumpRateLimit', () => {
-  it('enforces an in-memory per-IP request limit', () => {
+  it('enforces an in-memory per-IP request limit for local development', async () => {
     process.env.FEE_BUMP_RATE_LIMIT_MAX = '2';
     process.env.FEE_BUMP_RATE_LIMIT_WINDOW_MS = '1000';
 
-    expect(checkFeeBumpRateLimit('127.0.0.1', 1_000)).toBe(true);
-    expect(checkFeeBumpRateLimit('127.0.0.1', 1_100)).toBe(true);
-    expect(checkFeeBumpRateLimit('127.0.0.1', 1_200)).toBe(false);
-    expect(checkFeeBumpRateLimit('127.0.0.1', 2_001)).toBe(true);
+    await expect(checkFeeBumpRateLimit('127.0.0.1', 1_000)).resolves.toMatchObject({ allowed: true, mode: 'memory' });
+    await expect(checkFeeBumpRateLimit('127.0.0.1', 1_100)).resolves.toMatchObject({ allowed: true, mode: 'memory' });
+    await expect(checkFeeBumpRateLimit('127.0.0.1', 1_200)).resolves.toMatchObject({ allowed: false, mode: 'memory', statusCode: 429 });
+    await expect(checkFeeBumpRateLimit('127.0.0.1', 2_001)).resolves.toMatchObject({ allowed: true, mode: 'memory' });
+  });
+
+  it('uses durable Upstash-compatible Redis REST counters when configured', async () => {
+    process.env.FEE_BUMP_RATE_LIMIT_MAX = '2';
+    process.env.FEE_BUMP_RATE_LIMIT_WINDOW_MS = '60000';
+    process.env.KV_REST_API_URL = 'https://redis.example';
+    process.env.KV_REST_API_TOKEN = 'test-token';
+    const fetchMock = async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/incr/')) return Response.json({ result: 3 });
+      if (url.includes('/expire/')) return Response.json({ result: 1 });
+      throw new Error(`unexpected fetch ${url}`);
+    };
+
+    const result = await checkFeeBumpRateLimit('203.0.113.10', 10_000, fetchMock);
+
+    expect(result).toMatchObject({
+      allowed: false,
+      mode: 'durable',
+      statusCode: 429,
+    });
+  });
+
+  it('fails closed when production requires durable rate limiting but Redis REST env is missing', async () => {
+    process.env.VERCEL_ENV = 'production';
+
+    await expect(checkFeeBumpRateLimit('203.0.113.10', 10_000)).resolves.toMatchObject({
+      allowed: false,
+      mode: 'unavailable',
+      statusCode: 503,
+    });
   });
 });
