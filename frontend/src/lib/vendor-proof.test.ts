@@ -8,6 +8,7 @@ import {
   buildProofSummary,
   filterTransactionsBySearch,
   filterTransactionsByPeriod,
+  toCertificateText,
   toProofCsv,
   type ProofPeriod,
 } from './vendor-proof';
@@ -90,6 +91,7 @@ describe('filterTransactionsByPeriod', () => {
         { label: 'Total XLM', value: '20.00 XLM' },
         { label: 'PHP estimate', value: 'PHP 125.00' },
         { label: 'Source', value: 'Contract records' },
+        { label: 'Live hash', value: 'tx-live-hash' },
       ],
     });
   });
@@ -161,6 +163,7 @@ describe('buildProofSummary', () => {
 
     expect(summary.readiness.label).toBe('Ready for review');
     expect(summary.readiness.liveProofMissing).toBe(false);
+    expect(summary.livePaymentTxHash).toBe('tx-live-hash');
     expect(summary.caveats).not.toContain('Live wallet-signed payment smoke is not attached to this export.');
   });
 
@@ -190,7 +193,7 @@ describe('proof exports', () => {
     expect(toProofCsv(summary)).toContain('2026-05-10T00:00:00.000Z,3.2500000,,,gulay,GCUSTO...0000,Transaction hash,hash-1,https://stellar.expert/explorer/testnet/tx/hash-1,Contract records');
   });
 
-  it('creates a JSON proof bundle with generated metadata and caveats', () => {
+  it('creates a JSON proof bundle with generated metadata, caveats, and certificate data', () => {
     const summary = buildProofSummary({
       vendor: { name: 'Aling Nena', wallet: vendorWallet },
       transactions: [tx({ id: 'row-1', amountXlm: 2 })],
@@ -202,6 +205,11 @@ describe('proof exports', () => {
       generatedAt: '2026-05-14T04:00:00.000Z',
       vendor: { name: 'Aling Nena', wallet: vendorWallet },
       totals: { totalXlm: 2, transactionCount: 1 },
+      certificate: {
+        title: 'PalengkePay Income Proof Certificate',
+        vendorLine: 'Aling Nena',
+        reviewStatus: 'Needs live proof',
+      },
       transactions: [
         {
           receiptReference: {
@@ -212,6 +220,37 @@ describe('proof exports', () => {
         },
       ],
     });
+  });
+
+  it('creates a standalone certificate text packet for lender review', () => {
+    const summary = buildProofSummary({
+      vendor: { name: 'Aling Nena', wallet: vendorWallet, stallNumber: 'A-12', productType: 'gulay' },
+      transactions: [
+        tx({
+          id: 'row-1',
+          txHash: 'tx-live-hash',
+          amountXlm: 20,
+          quote: {
+            phpAmount: 125,
+            phpPerXlm: 6.25,
+            xlmAmount: '20.0000000',
+            generatedAt: '2026-05-14T01:00:00.000Z',
+            expiresAt: '2026-05-14T01:01:00.000Z',
+            source: 'api',
+          },
+        }),
+      ],
+      period: { kind: '30d', label: '30 days' },
+      generatedAt: '2026-05-14T04:00:00.000Z',
+    });
+
+    expect(toCertificateText(summary)).toContain('PalengkePay Income Proof Certificate');
+    expect(toCertificateText(summary)).toContain('Vendor: Aling Nena · Stall A-12 · gulay');
+    expect(toCertificateText(summary)).toContain('Transactions: 1');
+    expect(toCertificateText(summary)).toContain('PHP estimate: PHP 125.00');
+    expect(toCertificateText(summary)).toContain('Includes at least one wallet-signed Testnet transaction reference for review.');
+    expect(toCertificateText(summary)).toContain('Live Testnet hash: tx-live-hash');
+    expect(toCertificateText(summary)).toContain('Verification notes:');
   });
 
   it('includes a concrete generated date range and optional PHP estimate', () => {
@@ -267,7 +306,17 @@ describe('proof exports', () => {
     expect(toProofCsv(summary)).toContain('date,amount_xlm,php_amount,php_per_xlm,memo,customer_wallet,receipt_reference_type,receipt_reference,receipt_lookup_url,source');
     expect(toProofCsv(summary)).toContain('2026-05-10T00:00:00.000Z,20.0000000,125.00,6.2500,gulay,GCUSTO...0000,Transaction hash,tx-live-hash,https://stellar.expert/explorer/testnet/tx/tx-live-hash,Contract records');
     expect(buildProofBundle(summary)).toMatchObject({
+      livePaymentTxHash: 'tx-live-hash',
       totals: { estimatedPhpTotal: 125 },
+      certificate: {
+        highlights: [
+          { label: 'Transactions', value: '1' },
+          { label: 'Total XLM', value: '20.00 XLM' },
+          { label: 'PHP estimate', value: 'PHP 125.00' },
+          { label: 'Source', value: 'Contract records' },
+          { label: 'Live hash', value: 'tx-live-hash' },
+        ],
+      },
       transactions: [
         {
           txHash: 'tx-live-hash',

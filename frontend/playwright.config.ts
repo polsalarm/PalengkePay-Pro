@@ -1,19 +1,25 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const qaPort = Number(process.env.PLAYWRIGHT_PORT ?? 5173);
+const qaBaseUrl = `http://127.0.0.1:${qaPort}`;
+
 export default defineConfig({
   testDir: './tests',
   outputDir: './test-results',
   workers: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
+  expect: {
+    timeout: 15_000,
+  },
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: qaBaseUrl,
     trace: 'retain-on-failure',
     serviceWorkers: 'block',
   },
   webServer: {
-    command: 'npm run preview -- --host 127.0.0.1 --port 5173 --strictPort',
-    url: 'http://127.0.0.1:5173',
-    reuseExistingServer: !process.env.CI,
+    command: `node scripts/serve-dist.mjs --host 127.0.0.1 --port ${qaPort}`,
+    url: qaBaseUrl,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
   projects: [

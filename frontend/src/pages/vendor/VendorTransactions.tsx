@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CalendarDays, Database, Download, ExternalLink, FileJson, FileText, Printer, QrCode, RefreshCw, Search, ShieldCheck, TrendingUp, Zap } from 'lucide-react';
+import { AlertCircle, CalendarDays, CheckCircle2, Copy, Database, Download, ExternalLink, FileJson, FileText, Printer, QrCode, RefreshCw, Search, ShieldCheck, TrendingUp, Zap } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
@@ -20,6 +20,7 @@ import {
   filterTransactionsBySearch,
   filterTransactionsByPeriod,
   PROOF_PERIODS,
+  toCertificateText,
   toProofCsv,
   type ProofPeriodKind,
 } from '../../lib/vendor-proof';
@@ -86,7 +87,7 @@ function TxRow({ tx }: { tx: TxRecord }) {
   const receipt = getTransactionReceiptReference(tx);
 
   return (
-    <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+    <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div
           className="w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black shrink-0"
@@ -122,11 +123,11 @@ function TxRow({ tx }: { tx: TxRecord }) {
             href={receipt.lookupUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95"
+            className="w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             aria-label={`Open receipt ${receipt.value}`}
             style={{ backgroundColor: '#F8FAFC' }}
           >
-            <ExternalLink size={12} style={{ color: '#94A3B8' }} />
+            <ExternalLink size={12} aria-hidden="true" style={{ color: '#94A3B8' }} />
           </a>
         )}
       </div>
@@ -143,6 +144,8 @@ export function VendorTransactions() {
   const [periodKind, setPeriodKind] = useState<ProofPeriodKind>('30d');
   const [searchTerm, setSearchTerm] = useState('');
   const [receiptLookupTerm, setReceiptLookupTerm] = useState('');
+  const [exportStatus, setExportStatus] = useState('');
+  const [copyStatus, setCopyStatus] = useState('');
   const t = STRINGS[lang];
   const selectedPeriod = PROOF_PERIODS.find((period) => period.kind === periodKind) ?? PROOF_PERIODS[1];
   const searchedTransactions = useMemo(
@@ -154,6 +157,7 @@ export function VendorTransactions() {
     [transactions, selectedPeriod, searchTerm],
   );
   const proofSummary = useMemo(() => buildProofSummary({
+    livePaymentTxHash: proofTransactions.find((payment) => payment.txHash)?.txHash,
     vendor: {
       name: vendor?.name ?? 'Vendor',
       wallet: address ?? '',
@@ -162,7 +166,7 @@ export function VendorTransactions() {
     },
     transactions: proofTransactions,
     period: selectedPeriod,
-    hasLivePaymentProof: false,
+    hasLivePaymentProof: proofTransactions.some((payment) => !!payment.txHash),
   }), [address, proofTransactions, selectedPeriod, vendor]);
   const recoverySummary = useMemo(
     () => buildVendorRecoverySummary(searchedTransactions, error),
@@ -181,23 +185,41 @@ export function VendorTransactions() {
   const count = todayCount();
   const allTimeTotal = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
   const groups = groupByDate(searchedTransactions, t);
+  const proofActionStatus = copyStatus || exportStatus;
 
   if (!address) {
     return <WalletRequiredState detail="Connect your vendor wallet to load earnings history and receipt links." />;
   }
 
-  function downloadProof(type: 'csv' | 'json') {
+  function downloadProof(type: 'csv' | 'json' | 'certificate') {
     const text = type === 'csv'
       ? toProofCsv(proofSummary)
-      : JSON.stringify(buildProofBundle(proofSummary), null, 2);
-    const mime = type === 'csv' ? 'text/csv' : 'application/json';
+      : type === 'json'
+        ? JSON.stringify(buildProofBundle(proofSummary), null, 2)
+        : toCertificateText(proofSummary);
+    const mime = type === 'csv' ? 'text/csv' : type === 'json' ? 'application/json' : 'text/plain';
+    const extension = type === 'certificate' ? 'txt' : type;
     const blob = new Blob([text], { type: `${mime};charset=utf-8` });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `palengkepay-proof-${selectedPeriod.kind}-${new Date().toISOString().slice(0, 10)}.${type}`;
+    link.download = `palengkepay-proof-${selectedPeriod.kind}-${new Date().toISOString().slice(0, 10)}.${extension}`;
+    document.body.appendChild(link);
     link.click();
+    link.remove();
     URL.revokeObjectURL(url);
+    setCopyStatus('');
+    setExportStatus(`${type === 'certificate' ? 'Certificate' : type.toUpperCase()} export prepared for ${proofSummary.transactionCount} transaction${proofSummary.transactionCount === 1 ? '' : 's'}.`);
+  }
+
+  async function copyToClipboard(value: string, label: string) {
+    setExportStatus('');
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyStatus(`${label} copied.`);
+    } catch {
+      setCopyStatus(`${label} ready to copy: ${value}`);
+    }
   }
 
   return (
@@ -214,15 +236,6 @@ export function VendorTransactions() {
             ), repeating-linear-gradient(
               -45deg, white 0px, white 1px, transparent 1px, transparent 12px
             )`,
-          }}
-        />
-        {/* Ambient glow */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            top: -60, right: -40, width: 240, height: 240, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(20,184,166,0.3) 0%, transparent 65%)',
-            filter: 'blur(50px)',
           }}
         />
         {/* ₱ watermark */}
@@ -247,11 +260,13 @@ export function VendorTransactions() {
               {(['en', 'tl'] as const).map((l) => (
                 <button
                   key={l}
+                  type="button"
+                  aria-pressed={lang === l}
                   onClick={() => setLang(l)}
-                  className="text-xs font-bold px-3 py-1 rounded-full transition-all"
+                  className="text-xs font-bold px-3 rounded-full transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                   style={lang === l
-                    ? { backgroundColor: '#008055', color: 'white' }
-                    : { color: 'rgba(255,255,255,0.45)' }
+                    ? { minHeight: 44, minWidth: 44, backgroundColor: '#008055', color: 'white' }
+                    : { minHeight: 44, minWidth: 44, color: 'rgba(255,255,255,0.72)' }
                   }
                 >
                   {l.toUpperCase()}
@@ -272,7 +287,7 @@ export function VendorTransactions() {
                 style={{
                   fontSize: allTimeTotal.toFixed(2).length > 8 ? '2rem' : '2.5rem',
                   fontFamily: "'Montserrat', sans-serif",
-                  letterSpacing: '-0.02em',
+                  letterSpacing: 0,
                 }}
               >
                 {allTimeTotal.toFixed(2)}
@@ -315,10 +330,10 @@ export function VendorTransactions() {
         style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 10px 28px rgba(15,23,42,0.05)' }}
       >
         <div className="p-5 space-y-4">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <ShieldCheck size={18} style={{ color: '#008055' }} />
+                <ShieldCheck size={18} aria-hidden="true" style={{ color: '#008055' }} />
                 <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                   Income Proof Pack
                 </h2>
@@ -335,7 +350,7 @@ export function VendorTransactions() {
                 border: `1px solid ${proofSummary.hasFallbackCaveat ? '#FDE68A' : '#A7F3D0'}`,
               }}
             >
-              <Database size={12} />
+              <Database size={12} aria-hidden="true" />
               {proofSummary.sourceLabel}
             </span>
           </div>
@@ -344,10 +359,12 @@ export function VendorTransactions() {
             {PROOF_PERIODS.map((period) => (
               <button
                 key={period.kind}
+                type="button"
+                aria-pressed={periodKind === period.kind}
                 onClick={() => setPeriodKind(period.kind)}
-                className="flex-1 text-xs font-black rounded-xl transition-all"
+                className="flex-1 text-xs font-black rounded-xl transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                 style={{
-                  minHeight: 38,
+                  minHeight: 44,
                   backgroundColor: periodKind === period.kind ? 'white' : 'transparent',
                   color: periodKind === period.kind ? '#008055' : '#64748B',
                   boxShadow: periodKind === period.kind ? '0 1px 6px rgba(15,23,42,0.1)' : 'none',
@@ -379,7 +396,7 @@ export function VendorTransactions() {
 
           <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
             <div className="flex items-center gap-2 mb-2">
-              <CalendarDays size={15} style={{ color: '#008055' }} />
+              <CalendarDays size={15} aria-hidden="true" style={{ color: '#008055' }} />
               <p className="text-sm font-black text-slate-800">{proofSummary.readiness.label}</p>
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
@@ -388,6 +405,45 @@ export function VendorTransactions() {
               <p className="text-slate-500">Live proof: <span className="font-bold text-slate-700">{proofSummary.readiness.liveProofMissing ? 'Missing' : 'Attached'}</span></p>
               <p className="text-slate-500">Customers: <span className="font-bold text-slate-700">{proofSummary.uniqueCustomers}</span></p>
             </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3" aria-label="Proof readiness checklist">
+            {[
+              {
+                label: 'Payment rows',
+                value: proofSummary.readiness.paymentDataPresent ? `${proofSummary.transactionCount} attached` : 'Missing',
+                ok: proofSummary.readiness.paymentDataPresent,
+              },
+              {
+                label: 'Live hash',
+                value: proofSummary.livePaymentTxHash ? 'Attached' : 'Needed',
+                ok: !!proofSummary.livePaymentTxHash,
+              },
+              {
+                label: 'Repayments',
+                value: proofSummary.readiness.repaymentDataPresent ? 'Attached' : 'Not attached',
+                ok: proofSummary.readiness.repaymentDataPresent,
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex min-h-14 items-center gap-3 rounded-2xl px-3"
+                style={{
+                  backgroundColor: item.ok ? '#F0FDFA' : '#FFF7ED',
+                  border: `1px solid ${item.ok ? '#A7F3D0' : '#FED7AA'}`,
+                }}
+              >
+                {item.ok ? (
+                  <CheckCircle2 size={16} aria-hidden="true" style={{ color: '#047857' }} />
+                ) : (
+                  <AlertCircle size={16} aria-hidden="true" style={{ color: '#C2410C' }} />
+                )}
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">{item.label}</p>
+                  <p className="text-xs font-black text-slate-900">{item.value}</p>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="rounded-2xl p-4" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
@@ -402,9 +458,9 @@ export function VendorTransactions() {
           <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#ECFDF5' }}>
-                <FileText size={18} style={{ color: '#008055' }} />
+                <FileText size={18} aria-hidden="true" style={{ color: '#008055' }} />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                   {certificate.title}
                 </p>
@@ -424,33 +480,71 @@ export function VendorTransactions() {
             <p className="text-xs font-semibold mt-3" style={{ color: proofSummary.readiness.liveProofMissing ? '#C2410C' : '#047857' }}>
               {certificate.attestation}
             </p>
+            {proofSummary.livePaymentTxHash ? (
+              <button
+                type="button"
+                onClick={() => void copyToClipboard(proofSummary.livePaymentTxHash ?? '', 'Live hash')}
+                className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-xs font-black active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                style={{ color: '#008055', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}
+              >
+                <Copy size={13} aria-hidden="true" /> Copy live hash
+              </button>
+            ) : (
+              <p className="mt-3 rounded-xl px-3 py-2 text-xs font-semibold" style={{ color: '#9A3412', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                Capture one real Testnet payment before sharing this certificate outside the demo team.
+              </p>
+            )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
+              type="button"
               onClick={() => downloadProof('csv')}
               disabled={proofSummary.transactionCount === 0}
-              className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95 disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ minHeight: 46, color: 'white', backgroundColor: '#008055' }}
             >
-              <Download size={14} /> CSV
+              <Download size={14} aria-hidden="true" /> CSV
             </button>
             <button
+              type="button"
               onClick={() => downloadProof('json')}
               disabled={proofSummary.transactionCount === 0}
-              className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95 disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ minHeight: 46, color: '#008055', backgroundColor: '#F0FDFA', border: '1px solid #CCFBF1' }}
             >
-              <FileJson size={14} /> JSON
+              <FileJson size={14} aria-hidden="true" /> JSON
             </button>
             <button
+              type="button"
+              onClick={() => downloadProof('certificate')}
+              disabled={proofSummary.transactionCount === 0}
+              className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{ minHeight: 46, color: '#0F172A', backgroundColor: '#EEF2FF', border: '1px solid #C7D2FE' }}
+            >
+              <FileText size={14} aria-hidden="true" /> Certificate
+            </button>
+            <button
+              type="button"
               onClick={() => window.print()}
-              className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95"
+              className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ minHeight: 46, color: '#334155', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
             >
-              <Printer size={14} /> Print
+              <Printer size={14} aria-hidden="true" /> Print
             </button>
           </div>
+          {proofActionStatus && (
+            <p
+              role="status"
+              aria-label="Export status"
+              aria-live="polite"
+              className="flex min-h-11 items-center gap-2 rounded-2xl px-3 text-xs font-black"
+              style={{ color: '#047857', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}
+            >
+              <CheckCircle2 size={15} aria-hidden="true" />
+              {proofActionStatus}
+            </p>
+          )}
         </div>
       </section>
 
@@ -460,10 +554,10 @@ export function VendorTransactions() {
         style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 10px 28px rgba(15,23,42,0.05)' }}
       >
         <div className="p-5 space-y-4">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <RefreshCw size={18} style={{ color: '#008055' }} />
+                <RefreshCw size={18} aria-hidden="true" style={{ color: '#008055' }} />
                 <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                   Transaction Recovery Desk
                 </h2>
@@ -492,10 +586,10 @@ export function VendorTransactions() {
                   href={recoverySummary.receiptLookup.latestUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 py-2"
+                  className="inline-flex min-h-11 items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                   style={{ color: '#008055', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}
                 >
-                  <ExternalLink size={12} /> Check receipt
+                  <ExternalLink size={12} aria-hidden="true" /> Check receipt
                 </a>
               )}
             </div>
@@ -507,11 +601,12 @@ export function VendorTransactions() {
               </p>
               <p className="text-xs text-slate-500 mt-2">{recoverySummary.resend.detail}</p>
               <button
+                type="button"
                 onClick={() => navigate(recoverySummary.resend.actionPath)}
-                className="inline-flex items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 py-2 active:scale-95 text-white"
+                className="inline-flex min-h-11 items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 active:scale-95 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                 style={{ backgroundColor: '#008055' }}
               >
-                <QrCode size={12} /> {recoverySummary.resend.actionLabel}
+                <QrCode size={12} aria-hidden="true" /> {recoverySummary.resend.actionLabel}
               </button>
             </div>
 
@@ -523,8 +618,8 @@ export function VendorTransactions() {
                 {recoverySummary.feeBumpDiagnostic.title}
               </p>
               <p className="text-xs text-orange-800 mt-2">{recoverySummary.feeBumpDiagnostic.detail}</p>
-              <p className="inline-flex items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 py-2" style={{ color: '#C2410C', backgroundColor: '#FFEDD5' }}>
-                <AlertCircle size={12} /> {recoverySummary.feeBumpDiagnostic.actionLabel}
+              <p className="inline-flex min-h-11 items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3" style={{ color: '#C2410C', backgroundColor: '#FFEDD5' }}>
+                <AlertCircle size={12} aria-hidden="true" /> {recoverySummary.feeBumpDiagnostic.actionLabel}
               </p>
             </div>
           </div>
@@ -533,31 +628,77 @@ export function VendorTransactions() {
             <label htmlFor="receipt-reference-lookup" className="text-xs font-black uppercase tracking-widest text-slate-400">
               Lookup by hash/reference
             </label>
+            <p id="receipt-reference-help" className="mt-1 text-xs text-slate-500">
+              Paste the exact transaction hash, contract payment ID, or local receipt reference from a customer message.
+            </p>
             <div className="mt-2 flex items-center gap-2 rounded-2xl px-3 bg-white" style={{ minHeight: 48, border: '1px solid #E2E8F0' }}>
-              <Search size={16} style={{ color: '#64748B' }} />
+              <Search size={16} aria-hidden="true" style={{ color: '#64748B' }} />
               <input
                 id="receipt-reference-lookup"
+                type="search"
                 value={receiptLookupTerm}
                 onChange={(event) => setReceiptLookupTerm(event.target.value)}
-                placeholder="Transaction hash, #42, or local proof ref"
-                className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
+                placeholder="Hash, #42, or proof ref"
+                aria-describedby="receipt-reference-help receipt-reference-result"
+                autoComplete="off"
+                enterKeyHint="search"
+                spellCheck={false}
+                className="w-full bg-transparent text-base sm:text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
               />
+              {recoverySummary.receiptLookup.latestReference && !receiptLookupTerm && (
+                <button
+                  type="button"
+                  onClick={() => setReceiptLookupTerm(recoverySummary.receiptLookup.latestReference ?? '')}
+                  className="min-h-11 rounded-xl px-3 text-xs font-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                  style={{ color: '#008055', backgroundColor: '#ECFDF5' }}
+                >
+                  Use latest
+                </button>
+              )}
+              {receiptLookupTerm && (
+                <button
+                  type="button"
+                  aria-label="Clear receipt lookup"
+                  onClick={() => setReceiptLookupTerm('')}
+                  className="min-h-11 rounded-xl px-3 text-xs font-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                  style={{ color: '#475569', backgroundColor: '#F8FAFC' }}
+                >
+                  Clear
+                  <span className="sr-only"> receipt lookup</span>
+                </button>
+              )}
             </div>
-            <div className="mt-3 rounded-xl p-3 bg-white" style={{ border: '1px solid #E2E8F0' }}>
+            <div
+              id="receipt-reference-result"
+              role="status"
+              aria-live="polite"
+              className="mt-3 rounded-xl p-3 bg-white"
+              style={{ border: '1px solid #E2E8F0' }}
+            >
               <p className="text-xs font-black text-slate-700">
                 {receiptLookup.status === 'found' ? `${receiptLookup.reference?.label}: ${receiptLookup.reference?.value}` : 'Receipt lookup'}
               </p>
               <p className="text-xs text-slate-500 mt-1">{receiptLookup.message}</p>
               {receiptLookup.reference?.lookupUrl && (
-                <a
-                  href={receiptLookup.reference.lookupUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 py-2"
-                  style={{ color: '#008055', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}
-                >
-                  <ExternalLink size={12} /> Open matched receipt
-                </a>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <a
+                    href={receiptLookup.reference.lookupUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-11 items-center gap-1.5 text-xs font-black rounded-xl px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                    style={{ color: '#008055', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}
+                  >
+                    <ExternalLink size={12} aria-hidden="true" /> Open matched receipt
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => void copyToClipboard(receiptLookup.reference?.value ?? '', 'Receipt reference')}
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-xs font-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                    style={{ color: '#334155', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
+                  >
+                    <Copy size={12} aria-hidden="true" /> Copy reference
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -572,13 +713,17 @@ export function VendorTransactions() {
           Search receipts
         </label>
         <div className="mt-2 flex items-center gap-2 rounded-2xl px-3" style={{ minHeight: 48, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-          <Search size={16} style={{ color: '#64748B' }} />
+          <Search size={16} aria-hidden="true" style={{ color: '#64748B' }} />
           <input
             id="vendor-transaction-search"
+            type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Hash, customer, memo, source, amount"
-            className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
+            placeholder="Hash, memo, source, amount"
+            autoComplete="off"
+            enterKeyHint="search"
+            spellCheck={false}
+            className="w-full bg-transparent text-base sm:text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
           />
         </div>
         <p className="mt-2 text-xs text-slate-500">
@@ -613,18 +758,19 @@ export function VendorTransactions() {
               className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
               style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}
             >
-              <AlertCircle size={24} style={{ color: '#F43F5E' }} />
+              <AlertCircle size={24} aria-hidden="true" style={{ color: '#F43F5E' }} />
             </div>
             <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {t.failedTitle}
             </p>
             <p className="text-xs text-slate-400 mb-5">{error}</p>
             <button
+              type="button"
               onClick={retry}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-5 py-2.5 rounded-xl active:scale-95 text-white"
+              className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ backgroundColor: '#008055' }}
             >
-              <RefreshCw size={12} /> {t.retry}
+              <RefreshCw size={12} aria-hidden="true" /> {t.retry}
             </button>
           </div>
         )}
@@ -635,18 +781,19 @@ export function VendorTransactions() {
               className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
               style={{ backgroundColor: '#F0FDFA', border: '1.5px solid #CCFBF1' }}
             >
-              <TrendingUp size={28} style={{ color: '#008055' }} />
+              <TrendingUp size={28} aria-hidden="true" style={{ color: '#008055' }} />
             </div>
             <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {t.emptyTitle}
             </p>
             <p className="text-xs text-slate-400 mb-5">{t.emptyDesc}</p>
             <button
+              type="button"
               onClick={() => navigate('/vendor/qr')}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-5 py-2.5 rounded-xl active:scale-95 text-white"
+              className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ backgroundColor: '#008055' }}
             >
-              <QrCode size={12} /> {t.showQr}
+              <QrCode size={12} aria-hidden="true" /> {t.showQr}
             </button>
           </div>
         )}
@@ -664,8 +811,9 @@ export function VendorTransactions() {
             </p>
             <p className="text-xs text-slate-400 mb-5">Try a hash, customer wallet, memo, source label, or amount.</p>
             <button
+              type="button"
               onClick={() => setSearchTerm('')}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-5 py-2.5 rounded-xl active:scale-95"
+              className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ color: '#008055', backgroundColor: '#F0FDFA', border: '1px solid #CCFBF1' }}
             >
               Clear search

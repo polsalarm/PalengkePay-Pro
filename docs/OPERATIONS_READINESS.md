@@ -61,7 +61,7 @@ The secret-pattern scan is intentionally conservative and checks for committed h
 4. Verify live `/api/health` includes healthy `sponsor_rate_limit`.
 5. Run wallet-backed Testnet payment smoke and preserve the hash.
 6. Verify `/admin/proofs` shows the captured hash and marks the Testnet payment smoke guide as ready.
-7. Verify receipt/history/vendor proof surfaces show the saved hash, locked PHP quote, and vendor income proof certificate summary.
+7. Verify receipt/history/vendor proof surfaces show the saved hash, locked PHP quote, vendor income proof certificate summary, downloadable certificate packet, export confirmation feedback, and certificate metadata in the JSON proof bundle.
 
 ## Current Blockers
 

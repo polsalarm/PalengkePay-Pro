@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
-    "qa:visual": "npm run build && playwright test --config=playwright.config.ts",
+    "qa:visual": "node scripts/run-visual-qa.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,77 +1,96 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { WalletProvider } from './components/WalletProvider';
 import { ToastProvider } from './components/Toast';
 import { Layout } from './components/Layout';
-import { Landing } from './pages/Landing';
-import { Connect } from './pages/Connect';
-import { Onboard } from './pages/Onboard';
-import { Dashboard } from './pages/Dashboard';
-import { TestSend } from './pages/TestSend';
-import { VendorHome } from './pages/vendor/VendorHome';
-import { VendorQR } from './pages/vendor/VendorQR';
-import { VendorTransactions } from './pages/vendor/VendorTransactions';
-import { VendorUtang } from './pages/vendor/VendorUtang';
-import { VendorProfile } from './pages/vendor/VendorProfile';
-import { CustomerHome } from './pages/customer/CustomerHome';
-import { CustomerScan } from './pages/customer/CustomerScan';
-import { CustomerHistory } from './pages/customer/CustomerHistory';
-import { CustomerUtang } from './pages/customer/CustomerUtang';
-import { AdminMarket } from './pages/admin/AdminMarket';
-import { AdminRegister } from './pages/admin/AdminRegister';
-import { AdminMetrics } from './pages/admin/AdminMetrics';
-import { AdminHealth } from './pages/admin/AdminHealth';
-import { AdminProofs } from './pages/admin/AdminProofs';
-import { VendorApply } from './pages/vendor/VendorApply';
-import { MarketDirectory } from './pages/MarketDirectory';
-import { Receipt } from './pages/Receipt';
+
+const Landing = lazy(() => import('./pages/Landing').then((module) => ({ default: module.Landing })));
+const Connect = lazy(() => import('./pages/Connect').then((module) => ({ default: module.Connect })));
+const Onboard = lazy(() => import('./pages/Onboard').then((module) => ({ default: module.Onboard })));
+const Dashboard = lazy(() => import('./pages/Dashboard').then((module) => ({ default: module.Dashboard })));
+const TestSend = lazy(() => import('./pages/TestSend').then((module) => ({ default: module.TestSend })));
+const Receipt = lazy(() => import('./pages/Receipt').then((module) => ({ default: module.Receipt })));
+const MarketDirectory = lazy(() => import('./pages/MarketDirectory').then((module) => ({ default: module.MarketDirectory })));
+const CustomerHome = lazy(() => import('./pages/customer/CustomerHome').then((module) => ({ default: module.CustomerHome })));
+const CustomerScan = lazy(() => import('./pages/customer/CustomerScan').then((module) => ({ default: module.CustomerScan })));
+const CustomerHistory = lazy(() => import('./pages/customer/CustomerHistory').then((module) => ({ default: module.CustomerHistory })));
+const CustomerUtang = lazy(() => import('./pages/customer/CustomerUtang').then((module) => ({ default: module.CustomerUtang })));
+const VendorApply = lazy(() => import('./pages/vendor/VendorApply').then((module) => ({ default: module.VendorApply })));
+const VendorHome = lazy(() => import('./pages/vendor/VendorHome').then((module) => ({ default: module.VendorHome })));
+const VendorQR = lazy(() => import('./pages/vendor/VendorQR').then((module) => ({ default: module.VendorQR })));
+const VendorTransactions = lazy(() => import('./pages/vendor/VendorTransactions').then((module) => ({ default: module.VendorTransactions })));
+const VendorUtang = lazy(() => import('./pages/vendor/VendorUtang').then((module) => ({ default: module.VendorUtang })));
+const VendorProfile = lazy(() => import('./pages/vendor/VendorProfile').then((module) => ({ default: module.VendorProfile })));
+const AdminMarket = lazy(() => import('./pages/admin/AdminMarket').then((module) => ({ default: module.AdminMarket })));
+const AdminRegister = lazy(() => import('./pages/admin/AdminRegister').then((module) => ({ default: module.AdminRegister })));
+const AdminMetrics = lazy(() => import('./pages/admin/AdminMetrics').then((module) => ({ default: module.AdminMetrics })));
+const AdminHealth = lazy(() => import('./pages/admin/AdminHealth').then((module) => ({ default: module.AdminHealth })));
+const AdminProofs = lazy(() => import('./pages/admin/AdminProofs').then((module) => ({ default: module.AdminProofs })));
+
+function RouteLoading() {
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      style={{ backgroundColor: '#F8FAFC' }}
+    >
+      <div className="h-10 w-10 rounded-2xl animate-pulse" aria-hidden="true" style={{ backgroundColor: '#008055' }} />
+      <span className="sr-only">Loading route</span>
+    </div>
+  );
+}
 
 export default function App() {
   return (
     <BrowserRouter>
       <WalletProvider>
         <ToastProvider>
-        <Routes>
-          {/* Fullscreen pages — no layout shell */}
-          <Route path="/onboard" element={<Onboard />} />
-          <Route path="/connect" element={<Connect />} />
-          <Route path="/" element={<Landing />} />
+          <Suspense fallback={<RouteLoading />}>
+            <Routes>
+              {/* Fullscreen pages — no layout shell */}
+              <Route path="/onboard" element={<Onboard />} />
+              <Route path="/connect" element={<Connect />} />
+              <Route path="/" element={<Landing />} />
 
-          {/* Layout shell */}
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/test-send" element={<TestSend />} />
-            <Route path="/receipt/:txHash" element={<Receipt />} />
+              {/* Layout shell */}
+              <Route element={<Layout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/test-send" element={<TestSend />} />
+                <Route path="/receipt/:txHash" element={<Receipt />} />
 
-            {/* Vendor */}
-            <Route path="/vendor/home" element={<VendorHome />} />
-            <Route path="/vendor/qr" element={<VendorQR />} />
-            <Route path="/vendor/transactions" element={<VendorTransactions />} />
-            <Route path="/vendor/utang" element={<VendorUtang />} />
-            <Route path="/vendor/profile" element={<VendorProfile />} />
+                {/* Vendor */}
+                <Route path="/vendor/home" element={<VendorHome />} />
+                <Route path="/vendor/qr" element={<VendorQR />} />
+                <Route path="/vendor/transactions" element={<VendorTransactions />} />
+                <Route path="/vendor/utang" element={<VendorUtang />} />
+                <Route path="/vendor/profile" element={<VendorProfile />} />
 
-            {/* Customer */}
-            <Route path="/customer/home" element={<CustomerHome />} />
-            <Route path="/customer/scan" element={<CustomerScan />} />
-            <Route path="/customer/history" element={<CustomerHistory />} />
-            <Route path="/customer/utang" element={<CustomerUtang />} />
+                {/* Customer */}
+                <Route path="/customer/home" element={<CustomerHome />} />
+                <Route path="/customer/scan" element={<CustomerScan />} />
+                <Route path="/customer/history" element={<CustomerHistory />} />
+                <Route path="/customer/utang" element={<CustomerUtang />} />
 
-            {/* Admin */}
-            <Route path="/admin/market" element={<AdminMarket />} />
-            <Route path="/admin/register" element={<AdminRegister />} />
-            <Route path="/admin/metrics" element={<AdminMetrics />} />
-            <Route path="/admin/health" element={<AdminHealth />} />
-            <Route path="/admin/proofs" element={<AdminProofs />} />
+                {/* Admin */}
+                <Route path="/admin/market" element={<AdminMarket />} />
+                <Route path="/admin/register" element={<AdminRegister />} />
+                <Route path="/admin/metrics" element={<AdminMetrics />} />
+                <Route path="/admin/health" element={<AdminHealth />} />
+                <Route path="/admin/proofs" element={<AdminProofs />} />
 
-            {/* Vendor apply (public) */}
-            <Route path="/vendor/apply" element={<VendorApply />} />
+                {/* Vendor apply (public) */}
+                <Route path="/vendor/apply" element={<VendorApply />} />
 
-            {/* Market directory */}
-            <Route path="/market" element={<MarketDirectory />} />
+                {/* Market directory */}
+                <Route path="/market" element={<MarketDirectory />} />
 
-            {/* Catch-all */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
+                {/* Catch-all */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Routes>
+          </Suspense>
         </ToastProvider>
       </WalletProvider>
     </BrowserRouter>

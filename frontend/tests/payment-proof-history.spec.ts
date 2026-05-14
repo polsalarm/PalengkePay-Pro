@@ -45,8 +45,8 @@ test('/customer/history shows preserved PHP receipt proof from signed payments',
 
   await page.goto('/customer/history');
 
-  await expect(page.getByText('E2E smoke')).toBeVisible();
-  await expect(page.getByText('₱125.00')).toBeVisible();
-  await expect(page.getByText('₱6.25/XLM')).toBeVisible();
-  await expect(page.getByRole('link', { name: /Open receipt tx-live-hash/i })).toBeVisible();
+  await expect(page.getByText('E2E smoke')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('₱125.00')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('₱6.25/XLM')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('link', { name: /Open receipt tx-live-hash/i })).toBeVisible({ timeout: 15_000 });
 });

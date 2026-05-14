@@ -74,7 +74,7 @@ export function lookupTransactionReceipt(
   if (!normalized) {
     return {
       status: 'empty',
-      message: 'Enter a transaction hash, payment ID, or local proof reference.',
+      message: 'Enter a transaction hash, contract payment ID, or local receipt reference.',
       payment: null,
       reference: null,
     };
@@ -145,6 +145,14 @@ function getFeeBumpDiagnostic(loadError: string | null | undefined, fallbackCoun
       title: 'Sponsor rate limit',
       detail: 'The gasless sponsor is throttling requests. Ask the customer to wait, then submit one fresh payment from the QR.',
       actionLabel: 'Share QR for retry',
+    };
+  }
+
+  if (raw.includes('Durable fee-bump rate limit') || raw.includes('durable fee-bump rate limit') || raw.includes('Redis REST')) {
+    return {
+      title: 'Sponsor limiter unavailable',
+      detail: 'Production gasless payments fail closed until durable Redis/KV rate-limit environment variables are configured and reachable.',
+      actionLabel: 'Verify Redis/KV env',
     };
   }
 

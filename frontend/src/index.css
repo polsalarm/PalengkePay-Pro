@@ -95,3 +95,31 @@ body {
   animation: float-y 5s ease-in-out infinite;
   animation-delay: 0.8s;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .animate-page-in,
+  .animate-fade-slide,
+  .animate-toast,
+  .animate-scan,
+  .animate-confetti,
+  .animate-border-pulse,
+  .animate-float,
+  .animate-float-slow,
+  .animate-pulse,
+  .animate-spin,
+  .skeleton {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  [class*="transition"] {
+    transition-duration: 0.001ms !important;
+  }
+}

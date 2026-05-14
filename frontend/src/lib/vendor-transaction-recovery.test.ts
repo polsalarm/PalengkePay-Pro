@@ -73,6 +73,14 @@ describe('buildVendorRecoverySummary', () => {
     expect(summary.feeBumpDiagnostic.title).toBe('Sponsor not configured');
     expect(summary.feeBumpDiagnostic.detail).toContain('No vendor funds are confirmed');
   });
+
+  it('surfaces durable limiter outages as a production fail-closed diagnostic', () => {
+    const summary = buildVendorRecoverySummary([], 'Durable fee-bump rate limit not configured');
+
+    expect(summary.feeBumpDiagnostic.title).toBe('Sponsor limiter unavailable');
+    expect(summary.feeBumpDiagnostic.detail).toContain('fail closed');
+    expect(summary.feeBumpDiagnostic.actionLabel).toBe('Verify Redis/KV env');
+  });
 });
 
 describe('lookupTransactionReceipt', () => {
@@ -99,7 +107,7 @@ describe('lookupTransactionReceipt', () => {
   it('returns operator-safe empty and missing states', () => {
     expect(lookupTransactionReceipt([], '')).toMatchObject({
       status: 'empty',
-      message: 'Enter a transaction hash, payment ID, or local proof reference.',
+      message: 'Enter a transaction hash, contract payment ID, or local receipt reference.',
     });
     expect(lookupTransactionReceipt([], 'missing')).toMatchObject({
       status: 'not_found',

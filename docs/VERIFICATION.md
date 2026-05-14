@@ -44,8 +44,8 @@ Expected:
 - Fee-bump, payment-routing, payment-source, payment-proof, vendor-QR, vendor-proof, and checkout quote test suites pass.
 - TypeScript exits 0.
 - ESLint exits 0.
-- Vite build exits 0. Chunk-size warnings are acceptable unless they become a performance task.
-- Playwright route checks pass on desktop/mobile viewports. The QA command builds first, then runs route checks against the Vite preview server with service workers blocked to avoid stale worker state during repeated local browser contexts.
+- Vite build exits 0. The first-load app shell should remain code-split; large Stellar/wallet SDK chunks are expected only as deferred route or wallet-interaction chunks.
+- Playwright route checks pass on desktop/mobile viewports. The QA command builds once, then runs desktop and mobile as separate Playwright invocations against static `dist/` test servers on `127.0.0.1:5173` and `127.0.0.1:5174` with service workers blocked and stale server reuse disabled.
 - Audit exits 0 at `high` threshold. Low-severity transitive wallet findings must be tracked in `docs/DEPENDENCY_AUDIT.md`.
 
 ## 3. Contract Commands
@@ -117,7 +117,7 @@ Policy coverage expected:
 | `/vendor/apply` | Application form loads and validates required fields |
 | `/vendor/home` | Vendor shell loads for connected wallet |
 | `/vendor/qr` | QR generation surface loads |
-| `/vendor/transactions` | History surface loads, can sync, searches receipt rows, shows income proof exports/certificate with receipt references, and exposes exact receipt lookup/recovery controls |
+| `/vendor/transactions` | History surface loads, can sync, searches receipt rows, shows income proof exports/certificate with receipt references, downloads a certificate packet, announces visible export/copy feedback, shows proof readiness, and exposes exact/latest receipt lookup/recovery controls |
 | `/vendor/utang` | Utang offer form/QR surface loads |
 | `/vendor/profile` | Profile state loads |
 | `/customer/home` | Customer shell loads |
@@ -129,7 +129,7 @@ Policy coverage expected:
 | `/admin/register` | Manual registration loads |
 | `/admin/metrics` | Metrics dashboard loads |
 | `/admin/health` | Health and public env readiness surface loads |
-| `/admin/proofs` | Proof dashboard loads, shows sponsor status, receipt source mix, and Testnet payment smoke status |
+| `/admin/proofs` | Proof dashboard loads, shows sponsor status, receipt source mix, Testnet payment smoke status, review links, and captured-hash copy control |
 
 ## 6. Claim Rules
 

@@ -45,6 +45,7 @@ export interface ProofSummary {
   vendor: ProofVendor;
   period: ProofPeriod;
   dateRange: ProofDateRange;
+  livePaymentTxHash: string | null;
   transactions: PaymentHistoryRecord[];
   totalXlm: number;
   transactionCount: number;
@@ -130,7 +131,8 @@ export function buildProofSummary(input: ProofSummaryInput): ProofSummary {
   const totalXlm = roundXlm(input.transactions.reduce((sum, payment) => sum + payment.amountXlm, 0));
   const transactionCount = input.transactions.length;
   const preservedPhpTotal = getPreservedPhpTotal(input.transactions);
-  const hasLivePaymentProof = !!input.livePaymentTxHash || !!input.hasLivePaymentProof || input.transactions.some((payment) => !!payment.txHash);
+  const livePaymentTxHash = input.livePaymentTxHash ?? input.transactions.find((payment) => !!payment.txHash)?.txHash ?? null;
+  const hasLivePaymentProof = !!livePaymentTxHash || !!input.hasLivePaymentProof;
   const uniqueCustomers = new Set(input.transactions.map((payment) => payment.from)).size;
   const sourceLabel = getSourceLabel(input.transactions);
   const hasFallbackCaveat = input.transactions.some((payment) => payment.source !== 'palengke-payment');
@@ -157,6 +159,7 @@ export function buildProofSummary(input: ProofSummaryInput): ProofSummary {
     vendor: input.vendor,
     period: input.period,
     dateRange: buildDateRange(input.transactions, input.period),
+    livePaymentTxHash,
     transactions: [...input.transactions],
     totalXlm,
     transactionCount,
@@ -204,6 +207,8 @@ export function buildProofBundle(summary: ProofSummary) {
     vendor: summary.vendor,
     period: summary.period,
     dateRange: summary.dateRange,
+    livePaymentTxHash: summary.livePaymentTxHash,
+    certificate: buildIncomeProofCertificate(summary),
     totals: {
       totalXlm: summary.totalXlm,
       transactionCount: summary.transactionCount,
@@ -239,16 +244,44 @@ export function buildIncomeProofCertificate(summary: ProofSummary): IncomeProofC
       { label: 'Total XLM', value: `${summary.totalXlm.toFixed(2)} XLM` },
       { label: 'PHP estimate', value: summary.estimatedPhpTotal !== null ? `PHP ${summary.estimatedPhpTotal.toFixed(2)}` : 'Unavailable' },
       { label: 'Source', value: summary.sourceLabel },
-    ],
+      summary.livePaymentTxHash ? { label: 'Live hash', value: summary.livePaymentTxHash } : null,
+    ].filter((item): item is { label: string; value: string } => !!item),
     attestation: summary.readiness.liveProofMissing
       ? 'Needs a wallet-signed Testnet transaction hash before external review.'
       : 'Includes at least one wallet-signed Testnet transaction reference for review.',
     verificationNotes: [
       `Date range: ${summary.dateRange.label}`,
+      summary.livePaymentTxHash ? `Live Testnet hash: ${summary.livePaymentTxHash}` : null,
       `Unique customers: ${summary.uniqueCustomers}`,
       ...summary.caveats,
-    ],
+    ].filter((note): note is string => !!note),
   };
+}
+
+export function toCertificateText(summary: ProofSummary): string {
+  const certificate = buildIncomeProofCertificate(summary);
+  const highlightLines = certificate.highlights.map((item) => `${item.label}: ${item.value}`);
+  const noteLines = certificate.verificationNotes.map((note) => `- ${note}`);
+
+  return [
+    certificate.title,
+    certificate.audience,
+    '',
+    `Vendor: ${certificate.vendorLine}`,
+    `Wallet: ${summary.vendor.wallet}`,
+    `Review status: ${certificate.reviewStatus}`,
+    certificate.generatedLine,
+    '',
+    'Highlights:',
+    ...highlightLines,
+    '',
+    'Attestation:',
+    certificate.attestation,
+    '',
+    'Verification notes:',
+    ...noteLines,
+    '',
+  ].join('\n');
 }
 
 export function buildCollectionsSummary(utangs: UtangRecord[], now = new Date()): CollectionsSummary {

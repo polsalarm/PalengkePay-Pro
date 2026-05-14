@@ -55,11 +55,18 @@ export function AdminHealth() {
 
   const apiOk = health?.status === 'ok';
   const sponsorRateLimit = health?.checks.find((check) => check.name === 'sponsor_rate_limit');
+  const healthStatus = error
+    ? `Health endpoint unavailable: ${error}`
+    : loading
+      ? 'Refreshing health checks.'
+      : health
+        ? `Last checked ${new Date(health.timestamp).toLocaleString()} with ${health.status} status.`
+        : 'Waiting for the health endpoint.';
 
   return (
-    <div className="min-h-screen px-4 py-5" style={{ backgroundColor: '#F8FAFC' }}>
+    <div className="min-h-dvh px-4 py-5" style={{ backgroundColor: '#F8FAFC' }}>
       <section className="max-w-5xl mx-auto space-y-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase tracking-widest text-slate-400">Operations</p>
             <h1 className="text-2xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
@@ -67,13 +74,15 @@ export function AdminHealth() {
             </h1>
           </div>
           <button
+            type="button"
             onClick={() => void loadHealth()}
-            className="w-11 h-11 rounded-2xl flex items-center justify-center active:scale-95"
+            className="w-11 h-11 rounded-2xl flex items-center justify-center active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             style={{ backgroundColor: '#E2E8F0', color: '#0F172A' }}
             aria-label="Refresh health"
+            aria-busy={loading}
             disabled={loading}
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={18} aria-hidden="true" className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
 
@@ -104,10 +113,24 @@ export function AdminHealth() {
           />
         </div>
 
+        <div
+          role="status"
+          aria-label="Health dashboard status"
+          aria-live="polite"
+          className="rounded-2xl p-4 text-sm font-semibold"
+          style={{
+            backgroundColor: error ? '#FFF7ED' : '#F0FDFA',
+            border: `1px solid ${error ? '#FED7AA' : '#A7F3D0'}`,
+            color: error ? '#9A3412' : '#047857',
+          }}
+        >
+          {healthStatus}
+        </div>
+
         <div className="grid gap-4 lg:grid-cols-2">
           <section className="rounded-3xl bg-white p-5" style={{ border: '1.5px solid #E2E8F0' }}>
             <div className="flex items-center gap-2 mb-4">
-              <ServerCog size={18} style={{ color: '#008055' }} />
+              <ServerCog size={18} aria-hidden="true" style={{ color: '#008055' }} />
               <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 API checks
               </h2>
@@ -119,13 +142,16 @@ export function AdminHealth() {
                     <p className="text-sm font-black text-slate-900">{check.name}</p>
                     <p className="text-xs text-slate-500 mt-1">HTTP {check.status}{check.detail ? ` · ${check.detail}` : ''}</p>
                   </div>
-                  {check.ok ? <CheckCircle2 size={18} style={{ color: '#008055' }} /> : <AlertTriangle size={18} style={{ color: '#D97706' }} />}
+                  {check.ok ? <CheckCircle2 size={18} aria-hidden="true" style={{ color: '#008055' }} /> : <AlertTriangle size={18} aria-hidden="true" style={{ color: '#D97706' }} />}
                 </div>
               ))}
               {!health?.checks?.length && (
-                <p className="text-sm text-slate-500">
-                  No health payload is available. Vite local dev may not serve Vercel API functions; verify with Vercel or deployed `/api/health`.
-                </p>
+                <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                  <p className="text-sm font-black text-slate-800">No API health payload</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Local Vite preview may not serve Vercel API functions. Verify the deployed `/api/health` or a linked Vercel dev session before release.
+                  </p>
+                </div>
               )}
             </div>
           </section>
@@ -136,16 +162,16 @@ export function AdminHealth() {
             </h2>
             <div className="space-y-2">
               {clientEnv.map((entry) => (
-                <div key={entry.key} className="rounded-2xl p-4 flex items-center justify-between gap-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                <div key={entry.key} className="rounded-2xl p-4 flex items-start justify-between gap-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
                   <div className="min-w-0">
                     <p className="text-xs font-black uppercase tracking-wider text-slate-400">{entry.key}</p>
-                    <p className="text-sm font-mono text-slate-900 truncate">
+                    <p className="text-sm font-mono text-slate-900 break-all">
                       {entry.value ? String(entry.value) : 'missing'}
                     </p>
                   </div>
                   {entry.value && entry.value !== 'PLACEHOLDER'
-                    ? <CheckCircle2 size={18} style={{ color: '#008055' }} />
-                    : <AlertTriangle size={18} style={{ color: '#D97706' }} />
+                    ? <CheckCircle2 size={18} aria-hidden="true" style={{ color: '#008055' }} />
+                    : <AlertTriangle size={18} aria-hidden="true" style={{ color: '#D97706' }} />
                   }
                 </div>
               ))}
@@ -162,9 +188,9 @@ function StatusCard({ title, value, ok, detail }: { title: string; value: string
     <div className="rounded-3xl bg-white p-5" style={{ border: '1.5px solid #E2E8F0' }}>
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-black uppercase tracking-widest text-slate-400">{title}</p>
-        {ok ? <CheckCircle2 size={18} style={{ color: '#008055' }} /> : <AlertTriangle size={18} style={{ color: '#D97706' }} />}
+        {ok ? <CheckCircle2 size={18} aria-hidden="true" style={{ color: '#008055' }} /> : <AlertTriangle size={18} aria-hidden="true" style={{ color: '#D97706' }} />}
       </div>
-      <p className="text-xl font-black text-slate-900 mt-3" style={{ fontFamily: "'Montserrat', sans-serif" }}>{value}</p>
+      <p className="text-xl font-black text-slate-900 mt-3 leading-tight break-words" style={{ fontFamily: "'Montserrat', sans-serif" }}>{value}</p>
       <p className="text-xs text-slate-500 mt-2">{detail}</p>
     </div>
   );

@@ -65,11 +65,12 @@ function ScrollToTop({ scrollRef }: { scrollRef: React.RefObject<HTMLElement | n
 
   return (
     <button
+      type="button"
       onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-40 w-10 h-10 rounded-full bg-teal-700 hover:bg-teal-600 active:scale-95 text-white shadow-lg flex items-center justify-center transition-all"
+      className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-40 w-11 h-11 rounded-full bg-teal-700 hover:bg-teal-600 active:scale-95 text-white shadow-lg flex items-center justify-center transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
       aria-label="Scroll to top"
     >
-      <ArrowUp size={16} />
+      <ArrowUp size={16} aria-hidden="true" />
     </button>
   );
 }
@@ -82,12 +83,22 @@ export function Layout() {
   const isFullscreen = pathname === '/vendor/qr' || pathname === '/onboard' || pathname === '/customer/scan';
   const pageTitle = PAGE_TITLES[pathname] ?? '';
 
+  useEffect(() => {
+    scrollRef.current?.focus({ preventScroll: true });
+  }, [pathname]);
+
   if (isFullscreen) {
     return <Outlet />;
   }
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[1000] focus:rounded-xl focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-black focus:text-teal-700 focus:shadow-lg focus:outline focus:outline-2 focus:outline-offset-2"
+      >
+        Skip to main content
+      </a>
 
       {/* ── Desktop sidebar ─────────────────────────────── */}
       <aside
@@ -128,7 +139,7 @@ export function Layout() {
                   }`
                 }
               >
-                <Icon size={18} className="shrink-0" />
+                <Icon size={18} aria-hidden="true" className="shrink-0" />
                 {!collapsed && label}
               </NavLink>
             ))}
@@ -147,14 +158,16 @@ export function Layout() {
 
         {/* Collapse Toggle Button - Fixed positioning */}
         <button
+          type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 z-10"
+          className="absolute -right-5 top-16 w-11 h-11 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
         >
           {collapsed ? (
-            <ChevronRight size={12} className="text-slate-500" />
+            <ChevronRight size={14} aria-hidden="true" className="text-slate-500" />
           ) : (
-            <ChevronLeft size={12} className="text-slate-500" />
+            <ChevronLeft size={14} aria-hidden="true" className="text-slate-500" />
           )}
         </button>
       </aside>
@@ -191,7 +204,12 @@ export function Layout() {
         </header>
 
         {/* Scrollable content */}
-        <main ref={scrollRef as React.RefObject<HTMLElement>} className="flex-1 overflow-y-auto">
+        <main
+          id="main-content"
+          ref={scrollRef as React.RefObject<HTMLElement>}
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto outline-none"
+        >
           <div key={pathname} className={`max-w-3xl mx-auto w-full px-4 lg:px-8 pt-6 animate-page-in ${navItems ? 'pb-24' : 'pb-6'}`}>
             <Outlet />
           </div>
@@ -200,7 +218,10 @@ export function Layout() {
 
       {/* ── Mobile bottom nav ───────────────────────────── */}
       {navItems && (
-        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 overflow-visible">
+        <nav
+          className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 overflow-visible"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
           <div className="flex h-16 items-center overflow-visible">
             {navItems.map((item) => {
               const { to, icon: Icon, label } = item;
@@ -220,7 +241,7 @@ export function Layout() {
                             isActive ? 'bg-teal-600' : 'bg-teal-700'
                           }`}
                         >
-                          <Icon size={22} className="text-white" />
+                          <Icon size={22} aria-hidden="true" className="text-white" />
                         </div>
                         <span className={`text-xs font-medium -mt-3.5 transition-colors ${isActive ? 'text-teal-700' : 'text-slate-400'}`}>
                           {label}
@@ -241,7 +262,7 @@ export function Layout() {
                     }`
                   }
                 >
-                  <Icon size={18} />
+                  <Icon size={18} aria-hidden="true" />
                   <span className="text-xs font-medium leading-tight">{label}</span>
                 </NavLink>
               );

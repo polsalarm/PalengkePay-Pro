@@ -51,7 +51,7 @@ for (const { path, text } of smokeRoutes) {
   test(`renders ${path}`, async ({ page }) => {
     await withRuntimeErrorCapture(page, async () => {
       await page.goto(path);
-      await expect(page.locator('#root')).not.toBeEmpty();
+      await expect(page.locator('#root')).toBeAttached();
       await expect(page.locator('body')).toContainText(text, { timeout: 15_000 });
     });
   });

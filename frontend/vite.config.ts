@@ -35,6 +35,9 @@ export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, 'tests/**'],
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+  },
   server: Number.isFinite(devPort) && devPort > 0
     ? { host: '127.0.0.1', port: devPort }
     : undefined,

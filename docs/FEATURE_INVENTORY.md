@@ -66,7 +66,8 @@ Evidence:
 - Added vendor transaction recovery desk with receipt lookup by hash/reference, QR resend guidance, and fee-bump fallback diagnostics.
 - Added vendor receipt search across hash, customer, memo, source, receipt reference, lookup URL, and amount; income proof CSV/JSON exports use the selected period plus the current search filter.
 - Added receipt reference type, value, and lookup URL to vendor proof CSV/JSON rows.
-- Added lender/co-op-friendly income proof certificate summary beside the vendor export pack.
+- Added lender/co-op-friendly income proof certificate summary beside the vendor export pack, a downloadable plain-text certificate packet, and certificate metadata inside the JSON proof bundle.
+- Hardened proof/recovery UI with mobile-safe input sizing, 44px touch targets, visible export/copy feedback, proof-readiness checklist, one-tap latest receipt lookup, and stacked small-screen section headers.
 - Added exact receipt lookup by transaction hash, contract payment ID, or local proof reference.
 - Added vendor utang creation surface with QR/manual acceptance paths.
 
@@ -225,6 +226,7 @@ Evidence:
 - Added health endpoint for Horizon, Soroban RPC, and sponsor rate-limit readiness.
 - Added admin system health route with API check status, fee-sponsor limiter status, and public client env readiness.
 - Added admin proof dashboard with Testnet smoke checklist, recent local receipt proof, source mix, sponsor status, and failed-payment diagnostics.
+- Hardened admin proof and health dashboards with live status announcements, semantic smoke-checklist steps, keyboard-visible links/actions, captured-hash copy action, and reduced-motion-safe refresh states.
 - Added CSP/security headers in Vercel config.
 - Added input sanitizer utility.
 - Added fee-bump abuse-path tests.
@@ -342,8 +344,8 @@ Evidence:
 | `cd frontend; npm test -- api/fee-bump.test.ts api/health.test.ts` | Fee-bump validation, durable limiter, and health-readiness tests | Passing: 15 tests |
 | `cd frontend; npx tsc --noEmit` | TypeScript verification | Passing |
 | `cd frontend; npm run lint` | Frontend lint | Passing |
-| `cd frontend; npm run build` | Production build | Passing with Vite chunk-size warning |
-| `cd frontend; npm run qa:visual` | Playwright desktop/mobile route checks | Passing: 16 tests |
+| `cd frontend; npm run build` | Production build | Passing; first-load app shell is code-split and large Stellar/wallet SDK bundles are deferred route chunks |
+| `cd frontend; npm run qa:visual` | Playwright desktop/mobile route checks | Passing: 92 checks, 46 desktop and 46 mobile |
 | `cd contracts; cargo test --workspace` | Rust contract test suite | Passing: 32 tests |
 
 ## 3. Future Work

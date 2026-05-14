@@ -26,6 +26,11 @@ describe('buildTestnetPaymentSmokeGuide', () => {
 
     expect(guide.status).toBe('needs_hash');
     expect(guide.capturedHash).toBeNull();
+    expect(guide.surfaces.map((surface) => surface.href)).toEqual([
+      '/customer/scan',
+      '/vendor/transactions',
+      '/admin/proofs',
+    ]);
     expect(guide.steps.map((step) => [step.id, step.status])).toEqual([
       ['connect-funded-wallet', 'todo'],
       ['make-testnet-payment', 'todo'],
@@ -41,6 +46,23 @@ describe('buildTestnetPaymentSmokeGuide', () => {
     expect(guide.status).toBe('ready');
     expect(guide.capturedHash).toBe('tx-live-hash');
     expect(guide.stellarExpertUrl).toBe('https://stellar.expert/explorer/testnet/tx/tx-live-hash');
+    expect(guide.surfaces).toEqual([
+      {
+        label: 'Customer history',
+        href: '/customer/history',
+        detail: 'Confirm the customer sees the saved PHP quote and transaction hash.',
+      },
+      {
+        label: 'Receipt page',
+        href: '/receipt/tx-live-hash',
+        detail: 'Open the shareable receipt proof for the same hash.',
+      },
+      {
+        label: 'Vendor certificate',
+        href: '/vendor/transactions',
+        detail: 'Confirm the lender/co-op income proof certificate includes the hash.',
+      },
+    ]);
     expect(guide.steps.every((step) => step.status === 'done')).toBe(true);
   });
 });
