@@ -1,0 +1,27 @@
+{
+  "timestamp_utc": "2026-05-17T22:16:08.205Z",
+  "environment": "vercel-deployment",
+  "endpoint": "/api/health",
+  "base_url": "https://palengke-pay.vercel.app",
+  "route": "/api/health",
+  "response_status": 200,
+  "screenshot_path": "route-matrix-screenshots/api-health_fullpage_2026-05-17T22-16-06-396Z.png",
+  "json_artifact": "route-matrix-screenshots/api_health_2026-05-17T22-16-06-396Z.json",
+  "response": "{\"status\":\"ok\",\"timestamp\":\"2026-05-17T22:16:08.275Z\",\"checks\":[{\"name\":\"horizon\",\"ok\":true,\"status\":200},{\"name\":\"soroban_rpc\",\"ok\":true,\"status\":200}]}",
+  "parsed": {
+    "status": "ok",
+    "timestamp": "2026-05-17T22:16:08.275Z",
+    "checks": [
+      {
+        "name": "horizon",
+        "ok": true,
+        "status": 200
+      },
+      {
+        "name": "soroban_rpc",
+        "ok": true,
+        "status": 200
+      }
+    ]
+  }
+}

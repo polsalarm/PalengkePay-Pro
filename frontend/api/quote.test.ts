@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { __resetStableCheckoutQuoteCacheForTests, getStableCheckoutRate } from './quote';
+import { __resetStableCheckoutQuoteCacheForTests, getStableCheckoutRate } from './quote.js';
 
 describe('getStableCheckoutRate', () => {
   afterEach(() => {
