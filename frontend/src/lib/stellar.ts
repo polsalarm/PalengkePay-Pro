@@ -170,6 +170,24 @@ export function stringToScVal(value: string): xdr.ScVal {
   return nativeToScVal(value, { type: 'string' });
 }
 
+export function hexToBytes(hex: string): Uint8Array {
+  const clean = hex.startsWith('0x') ? hex.slice(2) : hex;
+  if (clean.length % 2 !== 0) throw new Error('Hex string has odd length');
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
+  return out;
+}
+
+export function bytes32ToScVal(hex: string): xdr.ScVal {
+  const buf = hexToBytes(hex);
+  if (buf.length !== 32) throw new Error(`Expected 32 bytes, got ${buf.length}`);
+  return nativeToScVal(buf, { type: 'bytes' });
+}
+
+export function bytesToHex(buf: Uint8Array): string {
+  return Array.from(buf).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 // ── Fee Bump (Gasless) ────────────────────────────────────────────────────────
 
 /** Send signed inner XDR through the fee-bump server. Sponsor pays the fee.

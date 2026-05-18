@@ -1,6 +1,14 @@
 #![cfg(test)]
 use super::*;
-use soroban_sdk::{testutils::Address as _, Address, Env, String};
+use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, String};
+
+fn tx_hash(env: &Env, byte: u8) -> BytesN<32> {
+    BytesN::from_array(env, &[byte; 32])
+}
+
+fn zero_hash(env: &Env) -> BytesN<32> {
+    BytesN::from_array(env, &[0u8; 32])
+}
 
 fn setup() -> (Env, Address, VendorRegistryClient<'static>) {
     let env = Env::default();
@@ -225,4 +233,125 @@ fn test_non_admin_cannot_register() {
     let not_admin = Address::generate(&env);
     let vendor = Address::generate(&env);
     register(&env, &client, &not_admin, &vendor);
+}
+
+// ── Reputation (ratings) ──────────────────────────────────────────────────────
+
+#[test]
+fn test_submit_rating_happy_path() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    let hash = tx_hash(&env, 1);
+    client.submit_rating(&customer, &vendor, &hash, &5u32, &zero_hash(&env));
+
+    let (sum, count) = client.get_vendor_rating(&vendor);
+    assert_eq!(sum, 5);
+    assert_eq!(count, 1);
+
+    let r = client.get_rating(&vendor, &hash);
+    assert_eq!(r.stars, 5);
+    assert_eq!(r.customer, customer);
+}
+
+#[test]
+fn test_rating_aggregates_average() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    let c1 = Address::generate(&env);
+    let c2 = Address::generate(&env);
+    let c3 = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    client.submit_rating(&c1, &vendor, &tx_hash(&env, 1), &5u32, &zero_hash(&env));
+    client.submit_rating(&c2, &vendor, &tx_hash(&env, 2), &4u32, &zero_hash(&env));
+    client.submit_rating(&c3, &vendor, &tx_hash(&env, 3), &3u32, &zero_hash(&env));
+
+    let (sum, count) = client.get_vendor_rating(&vendor);
+    assert_eq!(sum, 12);
+    assert_eq!(count, 3);
+    // avg = 12/3 = 4.0
+}
+
+#[test]
+fn test_has_rated() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    let hash = tx_hash(&env, 7);
+    assert!(!client.has_rated(&vendor, &hash));
+
+    client.submit_rating(&customer, &vendor, &hash, &4u32, &zero_hash(&env));
+    assert!(client.has_rated(&vendor, &hash));
+}
+
+#[test]
+fn test_get_vendor_rating_defaults_zero() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+    let (sum, count) = client.get_vendor_rating(&vendor);
+    assert_eq!(sum, 0);
+    assert_eq!(count, 0);
+}
+
+#[test]
+#[should_panic(expected = "transaction already rated")]
+fn test_double_rating_same_tx_panics() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    let hash = tx_hash(&env, 9);
+    client.submit_rating(&customer, &vendor, &hash, &5u32, &zero_hash(&env));
+    client.submit_rating(&customer, &vendor, &hash, &4u32, &zero_hash(&env));
+}
+
+#[test]
+#[should_panic(expected = "stars must be 1-5")]
+fn test_zero_stars_panics() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+    client.submit_rating(&customer, &vendor, &tx_hash(&env, 1), &0u32, &zero_hash(&env));
+}
+
+#[test]
+#[should_panic(expected = "stars must be 1-5")]
+fn test_six_stars_panics() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+    client.submit_rating(&customer, &vendor, &tx_hash(&env, 1), &6u32, &zero_hash(&env));
+}
+
+#[test]
+#[should_panic(expected = "vendor not found")]
+fn test_rating_unknown_vendor_panics() {
+    let (env, _, client) = setup();
+    let ghost = Address::generate(&env);
+    let customer = Address::generate(&env);
+    client.submit_rating(&customer, &ghost, &tx_hash(&env, 1), &5u32, &zero_hash(&env));
+}
+
+#[test]
+fn test_distinct_tx_hashes_allow_multiple_ratings() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    client.submit_rating(&customer, &vendor, &tx_hash(&env, 1), &5u32, &zero_hash(&env));
+    client.submit_rating(&customer, &vendor, &tx_hash(&env, 2), &3u32, &zero_hash(&env));
+
+    let (sum, count) = client.get_vendor_rating(&vendor);
+    assert_eq!(sum, 8);
+    assert_eq!(count, 2);
 }

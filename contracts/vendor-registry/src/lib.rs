@@ -1,6 +1,9 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, String, Vec};
+use soroban_sdk::{
+    contract, contractimpl, contracttype, symbol_short,
+    Address, BytesN, Env, String, Vec,
+};
 
 // ── Data types ────────────────────────────────────────────────────────────────
 
@@ -49,6 +52,19 @@ pub enum DataKey {
     Application(Address),
     PendingList,
     VendorList,
+    // Reputation (added Phase 0.3) — separate keys for backwards-compat with old VendorRecord storage
+    Rating(Address, BytesN<32>),  // (vendor, tx_hash) → Rating
+    RatingSum(Address),           // vendor → cumulative stars sum (u32)
+    RatingCount(Address),         // vendor → total ratings (u32)
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct Rating {
+    pub customer: Address,
+    pub stars: u32,
+    pub comment_hash: BytesN<32>,  // SHA256 of off-chain comment text, zero-bytes when no comment
+    pub created_at: u64,
 }
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -58,6 +74,14 @@ pub struct VendorRegisteredEvent {
     pub vendor_id: u64,
     pub wallet: Address,
     pub market_id: String,
+}
+
+#[contracttype]
+pub struct RatingSubmittedEvent {
+    pub vendor: Address,
+    pub customer: Address,
+    pub stars: u32,
+    pub tx_hash: BytesN<32>,
 }
 
 // ── Contract ──────────────────────────────────────────────────────────────────
@@ -458,6 +482,85 @@ impl VendorRegistry {
             .get(&DataKey::PendingList)
             .unwrap_or(Vec::new(&env));
         pending.len()
+    }
+
+    // ── Reputation (ratings) ──────────────────────────────────────────────────
+
+    pub fn submit_rating(
+        env: Env,
+        customer: Address,
+        vendor: Address,
+        tx_hash: BytesN<32>,
+        stars: u32,
+        comment_hash: BytesN<32>,
+    ) {
+        customer.require_auth();
+
+        if stars < 1 || stars > 5 {
+            panic!("stars must be 1-5");
+        }
+
+        if !env.storage().persistent().has(&DataKey::Vendor(vendor.clone())) {
+            panic!("vendor not found");
+        }
+
+        let rating_key = DataKey::Rating(vendor.clone(), tx_hash.clone());
+        if env.storage().persistent().has(&rating_key) {
+            panic!("transaction already rated");
+        }
+
+        let rating = Rating {
+            customer: customer.clone(),
+            stars,
+            comment_hash,
+            created_at: env.ledger().timestamp(),
+        };
+        env.storage().persistent().set(&rating_key, &rating);
+
+        let sum: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RatingSum(vendor.clone()))
+            .unwrap_or(0);
+        let count: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RatingCount(vendor.clone()))
+            .unwrap_or(0);
+        env.storage().persistent().set(&DataKey::RatingSum(vendor.clone()), &(sum + stars));
+        env.storage().persistent().set(&DataKey::RatingCount(vendor.clone()), &(count + 1));
+
+        env.events().publish(
+            (symbol_short!("rating"), symbol_short!("sub")),
+            RatingSubmittedEvent { vendor, customer, stars, tx_hash },
+        );
+    }
+
+    pub fn get_vendor_rating(env: Env, vendor: Address) -> (u32, u32) {
+        let sum: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RatingSum(vendor.clone()))
+            .unwrap_or(0);
+        let count: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RatingCount(vendor))
+            .unwrap_or(0);
+        (sum, count)
+    }
+
+    pub fn get_rating(env: Env, vendor: Address, tx_hash: BytesN<32>) -> Rating {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Rating(vendor, tx_hash))
+            .expect("rating not found")
+    }
+
+    pub fn has_rated(env: Env, vendor: Address, tx_hash: BytesN<32>) -> bool {
+        env.storage()
+            .persistent()
+            .has(&DataKey::Rating(vendor, tx_hash))
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────
