@@ -1,0 +1,277 @@
+{
+  "generated_at_utc": "2026-05-18T21:48:43.722Z",
+  "base_url": "https://palengke-pay.vercel.app",
+  "started_at_utc": "2026-05-18T21:48:33.836Z",
+  "routes": [
+    {
+      "route": "/",
+      "url": "https://palengke-pay.vercel.app/",
+      "timestamp_utc": "2026-05-18T21:48:35.201Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/root_fullpage_2026-05-18T21-48-33-836Z.png",
+      "body_preview": "\n    ₱PalengkePayFor VendorsFor CustomersHow it worksFeaturesGet StartedGet Started — It's FreeLive on Stellar TestnetDigitalpaymentspara sa palengkeScan. Pay. Done. — powered by Stellar blockchain.No"
+    },
+    {
+      "route": "/connect",
+      "url": "https://palengke-pay.vercel.app/connect",
+      "timestamp_utc": "2026-05-18T21:48:35.446Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/connect_fullpage_2026-05-18T21-48-35-202Z.png",
+      "body_preview": "\n    ₱PalengkePayStep into thedigital palengke.12,400+ vendors already accept XLM.Every transaction settles in 3 seconds.\"Before, I was always short on change. Now they just scan. Faster and safer.\"AN"
+    },
+    {
+      "route": "/onboard",
+      "url": "https://palengke-pay.vercel.app/onboard",
+      "timestamp_utc": "2026-05-18T21:48:35.672Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/onboard_fullpage_2026-05-18T21-48-35-446Z.png",
+      "body_preview": "\n    ₱PalengkePayFour steps.Three minutes.Let's finish your setup. After this, you can start accepting payments.1First, get a wallet2Connect your wallet3Get free test money4You're ready!Secured by Ste"
+    },
+    {
+      "route": "/dashboard",
+      "url": "https://palengke-pay.vercel.app/dashboard",
+      "timestamp_utc": "2026-05-18T21:48:35.930Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/dashboard_fullpage_2026-05-18T21-48-35-672Z.png",
+      "body_preview": "\n    ₱PalengkePayStep into thedigital palengke.12,400+ vendors already accept XLM.Every transaction settles in 3 seconds.\"Before, I was always short on change. Now they just scan. Faster and safer.\"AN"
+    },
+    {
+      "route": "/test-send",
+      "url": "https://palengke-pay.vercel.app/test-send",
+      "timestamp_utc": "2026-05-18T21:48:36.175Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/test-send_fullpage_2026-05-18T21-48-35-930Z.png",
+      "body_preview": "\n    ₱PalengkePayConnect Wallet₱PalengkePayConnect WalletConnect WalletTest Send XLMConnect your wallet to send XLM.Connect WalletRecipient AddressAmount (XLM)Memo (optional)Send XLM\n  \n\n"
+    },
+    {
+      "route": "/receipt/demo-hash",
+      "url": "https://palengke-pay.vercel.app/receipt/demo-hash",
+      "timestamp_utc": "2026-05-18T21:48:36.810Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/receipt-demo-hash_fullpage_2026-05-18T21-48-36-175Z.png",
+      "body_preview": "\n    ₱PalengkePayConnect Wallet₱PalengkePayConnect WalletConnect Wallet\n  \n\n"
+    },
+    {
+      "route": "/customer/home",
+      "url": "https://palengke-pay.vercel.app/customer/home",
+      "timestamp_utc": "2026-05-18T21:48:37.340Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/customer-home_fullpage_2026-05-18T21-48-36-810Z.png",
+      "body_preview": "\n    ₱PalengkePayHomeHistoryScanUtangMarketConnect Wallet₱PalengkePayConnect WalletHomeConnect Wallet₱Iyong BalanseENTL—XLMHindi nakakonektaKabuuang Gastos0.00 XLMMga Transaksyon0I-Scan at BayaranI-ai"
+    },
+    {
+      "route": "/customer/scan",
+      "url": "https://palengke-pay.vercel.app/customer/scan",
+      "timestamp_utc": "2026-05-18T21:48:37.636Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/customer-scan_fullpage_2026-05-18T21-48-37-340Z.png",
+      "body_preview": "\n    Connect your walletKailangan ng wallet para mag-scan at magbayad.I-connect ang Wallet\n  \n\n"
+    },
+    {
+      "route": "/customer/history",
+      "url": "https://palengke-pay.vercel.app/customer/history",
+      "timestamp_utc": "2026-05-18T21:48:37.902Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/customer-history_fullpage_2026-05-18T21-48-37-636Z.png",
+      "body_preview": "\n    ₱PalengkePayHomeHistoryScanUtangMarketConnect Wallet₱PalengkePayConnect WalletPayment HistoryConnect Wallet₱Kasaysayan ng BayadENTL0.00XLM kabuuang gastosMga Transaksyon0Avg bawat bayad0.00XLMWal"
+    },
+    {
+      "route": "/customer/utang",
+      "url": "https://palengke-pay.vercel.app/customer/utang",
+      "timestamp_utc": "2026-05-18T21:48:38.156Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/customer-utang_fullpage_2026-05-18T21-48-37-902Z.png",
+      "body_preview": "\n    ₱PalengkePayHomeHistoryScanUtangMarketConnect Wallet₱PalengkePayConnect WalletMy UtangConnect WalletMy UtangIyong mga installment plansUpload QRWalang aktibong planHumingi ng installment QR sa iy"
+    },
+    {
+      "route": "/vendor/home",
+      "url": "https://palengke-pay.vercel.app/vendor/home",
+      "timestamp_utc": "2026-05-18T21:48:38.451Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/vendor-home_fullpage_2026-05-18T21-48-38-157Z.png",
+      "body_preview": "\n    ₱PalengkePayHomeMy QRHistoryUtangProfileConnect Wallet₱PalengkePayConnect WalletHomeConnect Wallet₱Magandang umaga, VendorENTLKita Ngayon0.00XLM0 bayad ngayonKabuuan0.00XLMMga Bayad0Pitaka—XLMIpa"
+    },
+    {
+      "route": "/vendor/apply",
+      "url": "https://palengke-pay.vercel.app/vendor/apply",
+      "timestamp_utc": "2026-05-18T21:48:38.763Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/vendor-apply_fullpage_2026-05-18T21-48-38-451Z.png",
+      "body_preview": "\n    ₱PalengkePayHomeMy QRHistoryUtangProfileConnect Wallet₱PalengkePayConnect WalletApply as VendorConnect WalletApply as VendorI-submit ang stall info. Admin ang mag-approve ng registration mo.Conne"
+    },
+    {
+      "route": "/vendor/qr",
+      "url": "https://palengke-pay.vercel.app/vendor/qr",
+      "timestamp_utc": "2026-05-18T21:48:38.998Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/vendor-qr_fullpage_2026-05-18T21-48-38-763Z.png",
+      "body_preview": "\n    Connect wallet to see your QR code.\n  \n\n"
+    },
+    {
+      "route": "/vendor/transactions",
+      "url": "https://palengke-pay.vercel.app/vendor/transactions",
+      "timestamp_utc": "2026-05-18T21:48:39.254Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/vendor-transactions_fullpage_2026-05-18T21-48-38-998Z.png",
+      "body_preview": "\n    ₱PalengkePayHomeMy QRHistoryUtangProfileConnect Wallet₱PalengkePayConnect WalletTransactionsConnect Wallet₱Lahat ng KitaENTL0.00XLM kabuuanKita Ngayon0.00XLMMga Bayad Ngayon0paymentsWala pang bay"
+    },
+    {
+      "route": "/vendor/utang",
+      "url": "https://palengke-pay.vercel.app/vendor/utang",
+      "timestamp_utc": "2026-05-18T21:48:39.529Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/vendor-utang_fullpage_2026-05-18T21-48-39-254Z.png",
+      "body_preview": "\n    ₱PalengkePayHomeMy QRHistoryUtangProfileConnect Wallet₱PalengkePayConnect WalletUtangConnect WalletUtang (BNPL)I-manage ang mga installmentENBagong UtangWalang kasunduan paGumawa ng installment p"
+    },
+    {
+      "route": "/vendor/profile",
+      "url": "https://palengke-pay.vercel.app/vendor/profile",
+      "timestamp_utc": "2026-05-18T21:48:39.789Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/vendor-profile_fullpage_2026-05-18T21-48-39-529Z.png",
+      "body_preview": "\n    ₱PalengkePayHomeMy QRHistoryUtangProfileConnect Wallet₱PalengkePayConnect WalletProfileConnect Wallet₱🛒VendorStall DetailsNot registered as vendor.HomeMy QRHistoryUtangProfile\n  \n\n"
+    },
+    {
+      "route": "/admin/market",
+      "url": "https://palengke-pay.vercel.app/admin/market",
+      "timestamp_utc": "2026-05-18T21:48:40.056Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/admin-market_fullpage_2026-05-18T21-48-39-789Z.png",
+      "body_preview": "\n    ₱PalengkePayDashboardRegisterConnect Wallet₱PalengkePayConnect WalletMarket DashboardConnect WalletAdmin DashboardConnect admin wallet to manage vendorsConnect WalletDashboardRegister\n  \n\n"
+    },
+    {
+      "route": "/admin/register",
+      "url": "https://palengke-pay.vercel.app/admin/register",
+      "timestamp_utc": "2026-05-18T21:48:40.272Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/admin-register_fullpage_2026-05-18T21-48-40-056Z.png",
+      "body_preview": "\n    ₱PalengkePayDashboardRegisterConnect Wallet₱PalengkePayConnect WalletRegister VendorConnect WalletRegister VendorDirect on-chain registration via VendorRegistry contract.Connect WalletVendor Name"
+    },
+    {
+      "route": "/admin/metrics",
+      "url": "https://palengke-pay.vercel.app/admin/metrics",
+      "timestamp_utc": "2026-05-18T21:48:40.552Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/admin-metrics_fullpage_2026-05-18T21-48-40-272Z.png",
+      "body_preview": "\n    ₱PalengkePayDashboardRegisterConnect Wallet₱PalengkePayConnect WalletConnect WalletMetrics DashboardConnect admin wallet to view live metricsConnect WalletDashboardRegister\n  \n\n"
+    },
+    {
+      "route": "/admin/health",
+      "url": "https://palengke-pay.vercel.app/admin/health",
+      "timestamp_utc": "2026-05-18T21:48:41.336Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/admin-health_fullpage_2026-05-18T21-48-40-552Z.png",
+      "body_preview": "\n    ₱PalengkePayDashboardRegisterConnect Wallet₱PalengkePayConnect WalletConnect WalletDashboardRegister\n  \n\n"
+    },
+    {
+      "route": "/admin/proofs",
+      "url": "https://palengke-pay.vercel.app/admin/proofs",
+      "timestamp_utc": "2026-05-18T21:48:42.050Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/admin-proofs_fullpage_2026-05-18T21-48-41-336Z.png",
+      "body_preview": "\n    ₱PalengkePayFor VendorsFor CustomersHow it worksFeaturesGet StartedGet Started — It's FreeLive on Stellar TestnetDigitalpaymentspara sa palengkeScan. Pay. Done. — powered by Stellar blockchain.No"
+    },
+    {
+      "route": "/market",
+      "url": "https://palengke-pay.vercel.app/market",
+      "timestamp_utc": "2026-05-18T21:48:42.411Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/market_fullpage_2026-05-18T21-48-42-050Z.png",
+      "body_preview": "\n    ₱PalengkePayHomeHistoryScanUtangMarketConnect Wallet₱PalengkePayConnect WalletMarket DirectoryConnect WalletPalengke Directory…Lahat🐟Fish🥩Meat🥦Vegetables🍎Fruits🌾Rice & Grains🌶️Spices🛒Other"
+    },
+    {
+      "route": "/api/health",
+      "url": "https://palengke-pay.vercel.app/api/health",
+      "timestamp_utc": "2026-05-18T21:48:43.584Z",
+      "playwright_status": 200,
+      "loaded": true,
+      "http_status": 200,
+      "http_ok": true,
+      "screenshot_path": "route-matrix-screenshots/api-health_fullpage_2026-05-18T21-48-42-412Z.png",
+      "body_preview": "{\"status\":\"ok\",\"timestamp\":\"2026-05-18T21:48:43.021Z\",\"checks\":[{\"name\":\"horizon\",\"ok\":true,\"status\":200},{\"name\":\"soroban_rpc\",\"ok\":true,\"status\":200}]}",
+      "http_body": "{\"status\":\"ok\",\"timestamp\":\"2026-05-18T21:48:43.021Z\",\"checks\":[{\"name\":\"horizon\",\"ok\":true,\"status\":200},{\"name\":\"soroban_rpc\",\"ok\":true,\"status\":200}]}",
+      "health_parsed": {
+        "status": "ok",
+        "timestamp": "2026-05-18T21:48:43.021Z",
+        "checks": [
+          {
+            "name": "horizon",
+            "ok": true,
+            "status": 200
+          },
+          {
+            "name": "soroban_rpc",
+            "ok": true,
+            "status": 200
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "status": "ok",
+  "timestamp": "2026-05-18T21:48:43.021Z",
+  "checks": [
+    {
+      "name": "horizon",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "name": "soroban_rpc",
+      "ok": true,
+      "status": 200
+    }
+  ]
+}
