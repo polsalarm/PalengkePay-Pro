@@ -14,7 +14,7 @@
 
 ## 🔗 Live Demo
 
-**[palengke-pay.vercel.app](https://palengke-pay.vercel.app)**
+**[palengkepay-pro.vercel.app](https://palengkepay-pro.vercel.app)**
 
 ## 🎥 Demo Video
 
