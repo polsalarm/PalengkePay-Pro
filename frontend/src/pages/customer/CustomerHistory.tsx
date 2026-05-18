@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ExternalLink, ShoppingBag, ScanLine } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ExternalLink, ShoppingBag, ScanLine, Receipt as ReceiptIcon } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useCustomerTransactions, relativeTime } from '../../lib/hooks/useTransactions';
 import type { TxRecord } from '../../lib/hooks/useTransactions';
@@ -88,12 +88,21 @@ function TxRow({ tx }: { tx: TxRecord }) {
           </p>
           <p className="text-xs text-slate-400">XLM</p>
         </div>
+        <Link
+          to={`/receipt/${tx.id}`}
+          className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95"
+          style={{ backgroundColor: '#F0FDF4' }}
+          aria-label="View receipt"
+        >
+          <ReceiptIcon size={12} style={{ color: '#15803D' }} />
+        </Link>
         <a
           href={stellarExpertUrl(tx.id)}
           target="_blank"
           rel="noopener noreferrer"
           className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95"
           style={{ backgroundColor: '#F8FAFC' }}
+          aria-label="View on Stellar Expert"
         >
           <ExternalLink size={12} style={{ color: '#94A3B8' }} />
         </a>

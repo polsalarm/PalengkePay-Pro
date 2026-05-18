@@ -10,6 +10,7 @@ const vendorNameCache = new Map<string, string>();
 
 export interface VendorProfile {
   id: number;
+  wallet: string;
   name: string;
   stallNumber: string;
   productType: string;
@@ -36,6 +37,7 @@ const CONTRACT_ID = import.meta.env.VITE_VENDOR_REGISTRY_CONTRACT_ID as string |
 function mapVendor(r: Record<string, unknown>): VendorProfile {
   return {
     id: Number(r.id),
+    wallet: String(r.wallet ?? ''),
     name: String(r.name ?? ''),
     stallNumber: String(r.stall_number ?? ''),
     productType: String(r.product_type ?? ''),

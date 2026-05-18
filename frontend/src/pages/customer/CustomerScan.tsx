@@ -5,6 +5,7 @@ import { QRScanner } from '../../components/QRScanner';
 import type { QRScanMeta } from '../../components/QRScanner';
 import { PaymentForm } from '../../components/PaymentForm';
 import { TxStatusTracker } from '../../components/TxStatusTracker';
+import { RatingPrompt } from '../../components/RatingPrompt';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { usePayment } from '../../lib/hooks/usePayment';
@@ -482,6 +483,13 @@ export function CustomerScan() {
 
             {/* Actions */}
             <div className="bg-white p-5 space-y-3">
+              {txHash && vendor && (
+                <RatingPrompt
+                  vendorAddress={vendorAddress}
+                  vendorName={vendor.name}
+                  paymentTxHash={txHash}
+                />
+              )}
               {txHash && (
                 <a
                   href={stellarExpertUrl(txHash)}

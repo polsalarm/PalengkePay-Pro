@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Edit2, Check, X, Loader2, MapPin, Tag, Phone, BarChart2, Coins } from 'lucide-react';
+import { Edit2, Check, X, Loader2, MapPin, Tag, Phone, BarChart2, Coins, Power, Star } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
+import { useVendorStatus, useToggleVendorStatus } from '../../lib/hooks/useVendorStatus';
+import { useVendorRating } from '../../lib/hooks/useRating';
 import { useToast } from '../../components/Toast';
 import { truncateAddress, prepareContractTx, submitSorobanTx, addressToScVal, stringToScVal } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
@@ -17,7 +19,21 @@ const PRODUCT_EMOJIS: Record<string, string> = {
 export function VendorProfile() {
   const { address } = useWallet();
   const { vendor, isLoading } = useVendor(address);
+  const { status: openStatus, refetch: refetchStatus } = useVendorStatus(address);
+  const { toggle: toggleStatus, isPending: statusPending } = useToggleVendorStatus(address);
+  const { summary: ratingSummary } = useVendorRating(address);
   const { showToast } = useToast();
+  const isOpen = openStatus?.isOpen ?? true;
+
+  const handleToggleStatus = async () => {
+    const ok = await toggleStatus(!isOpen);
+    if (ok) {
+      showToast(!isOpen ? 'Stall set to OPEN.' : 'Stall set to CLOSED.', 'success');
+      refetchStatus();
+    } else {
+      showToast('Could not update status', 'error');
+    }
+  };
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', stallNumber: '', phone: '', productType: 'fish' });
@@ -111,9 +127,9 @@ export function VendorProfile() {
             </div>
           )}
 
-          {/* Status badge */}
+          {/* Status badges + Open/Closed toggle */}
           {vendor && (
-            <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
               <span
                 className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full"
                 style={vendor.isActive
@@ -127,10 +143,87 @@ export function VendorProfile() {
                 />
                 {vendor.isActive ? 'Active' : 'Inactive'}
               </span>
+
+              {vendor.isActive && (
+                <button
+                  onClick={handleToggleStatus}
+                  disabled={statusPending}
+                  className="w-full rounded-2xl px-4 py-3 flex items-center justify-between active:scale-[0.98] transition-all disabled:opacity-60"
+                  style={{
+                    backgroundColor: isOpen ? 'rgba(34,197,94,0.12)' : 'rgba(244,63,94,0.12)',
+                    border: `1.5px solid ${isOpen ? 'rgba(34,197,94,0.35)' : 'rgba(244,63,94,0.35)'}`,
+                  }}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{
+                        backgroundColor: isOpen ? '#22C55E' : '#F43F5E',
+                        boxShadow: `0 0 8px ${isOpen ? '#22C55E' : '#F43F5E'}`,
+                      }}
+                    />
+                    <div className="text-left min-w-0">
+                      <p className="text-sm font-black text-white truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                        {isOpen ? 'Stall is open' : 'Stall is closed'}
+                      </p>
+                      <p className="text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                        {isOpen ? 'Tap to close — hide from live directory' : 'Tap to open — show in live directory'}
+                      </p>
+                    </div>
+                  </div>
+                  {statusPending
+                    ? <Loader2 size={16} className="animate-spin shrink-0" style={{ color: 'rgba(255,255,255,0.6)' }} />
+                    : <Power size={16} className="shrink-0" style={{ color: isOpen ? '#22C55E' : '#F43F5E' }} />
+                  }
+                </button>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* ── REPUTATION ── */}
+      {vendor && (
+        <div
+          className="rounded-2xl px-5 py-4 flex items-center gap-4"
+          style={{ backgroundColor: '#FEFCE8', border: '1.5px solid #FEF08A' }}
+        >
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: '#FEF9C3' }}
+          >
+            <Star size={20} fill="#FACC15" style={{ color: '#FACC15' }} />
+          </div>
+          <div className="min-w-0 flex-1">
+            {ratingSummary && ratingSummary.count > 0 ? (
+              <>
+                <p
+                  className="font-black text-2xl leading-none"
+                  style={{ fontFamily: "'Montserrat', sans-serif", color: '#854D0E' }}
+                >
+                  {ratingSummary.average.toFixed(1)}
+                  <span className="text-sm font-bold ml-1" style={{ color: '#A16207' }}>/ 5</span>
+                </p>
+                <p className="text-xs mt-1" style={{ color: '#A16207' }}>
+                  from {ratingSummary.count} customer rating{ratingSummary.count !== 1 ? 's' : ''} on-chain
+                </p>
+              </>
+            ) : (
+              <>
+                <p
+                  className="font-black text-base leading-tight"
+                  style={{ fontFamily: "'Montserrat', sans-serif", color: '#854D0E' }}
+                >
+                  No ratings yet
+                </p>
+                <p className="text-xs mt-1" style={{ color: '#A16207' }}>
+                  Customers can rate you after each payment
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── STATS ── */}
       {vendor && (

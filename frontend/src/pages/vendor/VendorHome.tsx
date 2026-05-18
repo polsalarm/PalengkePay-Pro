@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QrCode, HandCoins, ExternalLink, TrendingUp, ArrowRight, Zap, AlertCircle, RefreshCw } from 'lucide-react';
+import { QrCode, HandCoins, ExternalLink, TrendingUp, ArrowRight, Zap, AlertCircle, RefreshCw, Power, Loader2 } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useBalance } from '../../lib/hooks/useBalance';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
+import { useVendorStatus, useToggleVendorStatus } from '../../lib/hooks/useVendorStatus';
 import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { useToast } from '../../components/Toast';
 import { truncateAddress, stellarExpertUrl, getServer } from '../../lib/stellar';
@@ -33,6 +34,13 @@ const STRINGS = {
     showQRBtn: 'Show my QR',
     today: 'Today',
     yesterday: 'Yesterday',
+    stallOpen: 'Stall is open',
+    stallClosed: 'Stall is closed',
+    tapToClose: 'Tap to close',
+    tapToOpen: 'Tap to open',
+    statusToastOpen: 'Stall set to OPEN. Customers can see you live.',
+    statusToastClosed: 'Stall set to CLOSED. You won\'t appear in the live directory.',
+    statusError: 'Could not update status',
   },
   tl: {
     greeting: (name: string, time: string) => `${time}, ${name}`,
@@ -57,6 +65,13 @@ const STRINGS = {
     showQRBtn: 'Ipakita ang QR ko',
     today: 'Ngayon',
     yesterday: 'Kahapon',
+    stallOpen: 'Bukas ang stall',
+    stallClosed: 'Sarado ang stall',
+    tapToClose: 'I-tap para magsara',
+    tapToOpen: 'I-tap para magbukas',
+    statusToastOpen: 'Bukas na ang stall. Makikita ka ng mga kustomer.',
+    statusToastClosed: 'Sarado na. Hindi ka mapapakita sa live directory.',
+    statusError: 'Hindi na-update ang status',
   },
 };
 
@@ -85,10 +100,23 @@ export function VendorHome() {
   const { vendor, notFound } = useVendor(address);
   const { balance } = useBalance(address);
   const { transactions, isLoading, error, retry, todayEarnings, todayCount } = useVendorTransactions(address);
+  const { status: openStatus, refetch: refetchStatus } = useVendorStatus(address);
+  const { toggle: toggleStatus, isPending: statusPending } = useToggleVendorStatus(address);
   const { showToast } = useToast();
   const prevCountRef = useRef<number | null>(null);
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
   const t = STRINGS[lang];
+
+  const isOpen = openStatus?.isOpen ?? true;
+  const handleToggleStatus = async () => {
+    const ok = await toggleStatus(!isOpen);
+    if (ok) {
+      showToast(!isOpen ? t.statusToastOpen : t.statusToastClosed, 'success');
+      refetchStatus();
+    } else {
+      showToast(t.statusError, 'error');
+    }
+  };
 
   useEffect(() => {
     if (address && notFound) navigate('/vendor/apply', { replace: true });
@@ -226,6 +254,40 @@ export function VendorHome() {
               ))}
             </div>
           </div>
+
+          {/* Open / Closed status toggle */}
+          <button
+            onClick={handleToggleStatus}
+            disabled={statusPending}
+            className="w-full mb-4 rounded-2xl px-4 py-3 flex items-center justify-between active:scale-[0.98] transition-all disabled:opacity-60"
+            style={{
+              backgroundColor: isOpen ? 'rgba(34,197,94,0.12)' : 'rgba(244,63,94,0.12)',
+              border: `1.5px solid ${isOpen ? 'rgba(34,197,94,0.35)' : 'rgba(244,63,94,0.35)'}`,
+            }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{
+                  backgroundColor: isOpen ? '#22C55E' : '#F43F5E',
+                  boxShadow: `0 0 8px ${isOpen ? '#22C55E' : '#F43F5E'}`,
+                  animation: isOpen ? 'pulse 2s infinite' : undefined,
+                }}
+              />
+              <div className="text-left min-w-0">
+                <p className="text-sm font-black text-white truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  {isOpen ? t.stallOpen : t.stallClosed}
+                </p>
+                <p className="text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  {isOpen ? t.tapToClose : t.tapToOpen}
+                </p>
+              </div>
+            </div>
+            {statusPending
+              ? <Loader2 size={16} className="animate-spin shrink-0" style={{ color: 'rgba(255,255,255,0.6)' }} />
+              : <Power size={16} className="shrink-0" style={{ color: isOpen ? '#22C55E' : '#F43F5E' }} />
+            }
+          </button>
 
           {/* Earnings — full width, no competing chip */}
           <div className="mb-1">

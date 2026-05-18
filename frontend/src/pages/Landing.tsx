@@ -190,6 +190,28 @@ export function Landing() {
 </header>
 
       {/* ══ HERO ════════════════════════════════════════════════════════════ */}
+      <style>{`
+        .phone-mockup-frame { width: 200px; }
+        @media (min-width: 640px) { .phone-mockup-frame { width: 280px; } }
+        @media (min-width: 1024px) { .phone-mockup-frame { width: 320px; } }
+        .cta-bg-section { background-position: center; }
+        @media (max-width: 768px) {
+          .cta-bg-section { background-position: 75% center; }
+        }
+        .float-card-store { width: 150px !important; padding: 8px !important; top: 3% !important; left: 3% !important; transform: scale(0.85); transform-origin: top left; }
+        .float-card-paid { padding: 6px 10px !important; top: 28% !important; right: 3% !important; transform: scale(0.85); transform-origin: top right; }
+        .float-card-feed { width: 150px !important; bottom: 5% !important; left: 3% !important; transform: scale(0.85); transform-origin: bottom left; }
+        @media (min-width: 640px) {
+          .float-card-store { width: 170px !important; top: 5% !important; transform: scale(0.9); }
+          .float-card-feed { width: 170px !important; bottom: 8% !important; transform: scale(0.9); }
+          .float-card-paid { transform: scale(0.9); }
+        }
+        @media (min-width: 1024px) {
+          .float-card-store { width: 200px !important; padding: 12px !important; top: 8% !important; left: 2% !important; transform: none; }
+          .float-card-paid { padding: 10px 14px !important; top: 35% !important; right: 3% !important; transform: none; }
+          .float-card-feed { width: 185px !important; bottom: 12% !important; left: 2% !important; transform: none; }
+        }
+      `}</style>
       <section
   className="lg:grid lg:grid-cols-[75fr_75fr]"  // 75% left, 25% right
   style={{ minHeight: 'calc(100vh - 64px)' }}
@@ -225,7 +247,7 @@ export function Landing() {
 
             <h1
               className="font-black text-slate-900 leading-[1.05] tracking-tight mb-6"
-              style={{ fontSize: 'clamp(2.8rem, 3.4vw, 4.4rem)', fontFamily: "'Montserrat', sans-serif" }}
+              style={{ fontSize: 'clamp(2rem, 5vw, 4.4rem)', fontFamily: "'Montserrat', sans-serif" }}
             >
               Digital<br />payments<br />
               <span style={{ color: '#008055' }}>para sa</span>{' '}
@@ -281,8 +303,8 @@ export function Landing() {
 
         {/* ── Right panel — dark teal (improved floating elements) ── */}
         <div
-          className="relative flex items-center justify-center overflow-hidden"
-          style={{ backgroundColor: '#00284B', borderBottomLeftRadius: 64, minHeight: '70vh' }}
+          className="relative flex items-center justify-center overflow-hidden py-12 lg:py-0"
+          style={{ backgroundColor: '#00284B', borderBottomLeftRadius: 64, minHeight: '50vh' }}
         >
           {/* Ambient glow */}
           <div
@@ -299,15 +321,12 @@ export function Landing() {
 
           {/* ── Aling Nena store card — enhanced ── */}
           <div
-            className="absolute z-20 hidden lg:block animate-float"
+            className="absolute z-20 animate-float float-card-store"
             style={{
-              top: '8%', left: '2%',
-              width: 240,
               backgroundColor: 'rgba(10,30,28,0.88)',
               border: '1px solid rgba(255,255,255,0.15)',
               backdropFilter: 'blur(20px)',
               borderRadius: 20,
-              padding: '16px',
               boxShadow: '0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
             }}
           >
@@ -362,12 +381,11 @@ export function Landing() {
 
           {/* ── Phone — centered ── */}
           {/* ── Phone — centered with better padding ── */}
-<div className="relative z-10" style={{ transform: 'rotate(12deg)' }}>
+<div className="relative z-10 phone-mockup-wrap" style={{ transform: 'rotate(12deg)' }}>
   <div className="animate-float" style={{ animationDelay: '0.2s' }}>
     <div
-      className="relative shadow-2xl"
+      className="relative shadow-2xl phone-mockup-frame"
       style={{
-        width: '320px',
         backgroundColor: '#1C2B3A',
         borderRadius: '3.2rem',
         padding: '8px',
@@ -407,12 +425,10 @@ export function Landing() {
 
           {/* ── Payment received card — enhanced ── */}
           <div
-            className="absolute z-20 animate-float-slow hidden lg:flex items-center gap-3"
+            className="absolute z-20 animate-float-slow flex items-center gap-2 float-card-paid"
             style={{
-              top: '35%', right: '3%',
               backgroundColor: 'rgba(255,255,255,0.98)',
               borderRadius: 18,
-              padding: '12px 18px',
               boxShadow: '0 20px 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.1)',
               backdropFilter: 'blur(4px)',
             }}
@@ -431,8 +447,8 @@ export function Landing() {
 
           {/* ── Recent payments feed — improved styling ── */}
           <div
-            className="absolute z-20 hidden lg:block animate-float-slow"
-            style={{ bottom: '12%', left: '2%', width: 220, animationDelay: '0.6s' }}
+            className="absolute z-20 animate-float-slow float-card-feed"
+            style={{ animationDelay: '0.6s' }}
           >
             <div
               className="rounded-2xl p-3"
@@ -766,12 +782,11 @@ export function Landing() {
 </section>
 
     {/* ══ BOTTOM CTA - Pure Background Image, No Overlay ═══════════════════════ */}
-<section 
-  className="relative w-full"
-  style={{ 
+<section
+  className="relative w-full cta-bg-section"
+  style={{
     backgroundImage: `url(${ctaBgImg})`,
     backgroundSize: 'cover',
-    backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
   }}
 >

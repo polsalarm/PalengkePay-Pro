@@ -102,24 +102,30 @@ Beta users were onboarded via a Google Form collecting name, email, wallet addre
 
 ## Problem
 
-Philippine wet market vendors operate almost entirely in cash. This creates real friction:
+The Philippine wet market economy runs almost entirely on cash, and the people running it are locked out of the formal financial system.
 
-- **No payment history** — disputes over what was paid, when, and how much
-- **Manual utang tracking** — credit ("utang") managed on paper or memory, prone to loss and fraud
-- **No digital trail** — vendors can't prove income for loans or government support
-- **Exclusion from financial systems** — no bank account means no digital payments, no receipts, no records
+- **~37.6 million Filipinos remain unbanked** — among the top 10 globally — and only **50.2% of adults own a financial account** (World Bank Findex 2025)
+- **45% of self-employed Filipinos are unbanked** (BSP, 2021), tracking utang on paper or by memory
+- **99.63% of registered Philippine businesses are MSMEs** (DTI 2024) — most palengke vendors operate on daily revenues of only ₱1,000–₱4,999
+- Only **54% of unbanked Filipinos understand formal credit products** vs. 70% of the general population (TransUnion 2024)
 
-Customers face matching problems: no receipt for purchases, no structured repayment for credit, no visibility into what they owe.
+The cycle: vendors can't prove income to qualify for loans or aid. Customers receive no receipts and have no structured way to repay credit. Disputes, fraud, lost records — permanent exclusion of millions of micro-entrepreneurs who power the country's everyday economy.
 
 ---
 
 ## Solution
 
-PalengkePay puts a Stellar wallet in every vendor's pocket and a QR code on every stall. Payments settle on-chain in seconds. Credit agreements are recorded as smart contracts — tamper-proof, visible to both parties, and repaid installment by installment.
+PalengkePay is a Stellar-powered Progressive Web App that brings cashless payments and transparent installment credit to Philippine wet market vendors. Vendors generate a QR code at their stall; customers scan and pay in seconds with **zero network fees through server-side fee sponsorship**. Utang (BNPL) agreements are recorded on-chain as Soroban smart contracts — tamper-proof, visible to both parties, repaid installment by installment.
 
-- Vendor generates a QR code → customer scans and pays
-- Vendor offers installment credit (utang) → QR-based or manual → customer accepts on their phone
-- Every transaction is on-chain: immutable, auditable, no middleman
+**Core differentiators**
+
+- **Gasless transactions** via Stellar `FeeBumpTransaction` — sponsor wallet absorbs all network fees so first-time crypto users transact at zero cost
+- **Three Soroban smart contracts** — `VendorRegistry`, `PalengkePayment`, `UTangEscrow` — with inter-contract calls that build verifiable on-chain financial identity per vendor
+- **On-chain reputation** — customers rate vendors after every payment; stars + counts stored on-chain, aggregate into a credit profile no bank could produce
+- **Live vendor status** — open/closed toggle visible to customers in real time, recorded via Stellar account data entries
+- **Shareable on-chain receipts** — every payment generates a verifiable public receipt link (Web Share API) — no more "pero ang receipt?" moments
+- **Multi-wallet support** — Freighter, xBull, Albedo (desktop) and LOBSTR via WalletConnect (mobile)
+- **PWA** — installable on Android/iOS via Add to Home Screen, no app store required
 
 ---
 
@@ -189,35 +195,69 @@ Cursor-based Horizon payment indexer with localStorage caching.
 - Offline-capable shell
 - Branded icons and manifest
 
+### Receipts & Sharing
+- **Public receipt page** `/receipt/:txHash` — read-only, no auth, no wallet required
+- **Web Share API** — native share sheet on mobile (SMS, Messenger, Viber), clipboard fallback on desktop
+- **Open Graph meta tags** — receipts preview cleanly when pasted into messaging apps
+- **Direct verification** — every receipt links straight to Stellar Expert for cryptographic proof
+- Available from payment confirmation screen + every row in transaction history
+
+### Vendor Status (Open / Closed)
+- Vendor toggles their stall **Open / Closed** with a single tap from `/vendor/home` and `/vendor/profile`
+- Status stored as a Stellar account data entry — survives device changes, customers see it instantly
+- **Sponsored reserves** via `/api/sponsor-data` — sponsor wallet covers the 0.5 XLM base reserve so the toggle stays truly gasless
+- Customer-side `/customer/market` shows live Open / Closed badges per vendor card + "Show open stalls only" filter
+
+### Vendor Reputation (On-Chain Ratings)
+- After every payment (one-shot or full utang completion), customer is prompted to rate the vendor **1–5 stars**
+- Ratings stored on-chain via `VendorRegistry.submit_rating()` — one rating per `(vendor, tx_hash)` pair
+- Optional comment for 1–3 star ratings — comment text hashed (SHA-256) on-chain, body kept off-chain for moderation
+- Vendor profile shows average + total count; market directory cards display star badges
+- Sort directory by **Top Rated**; filter by **★ 3+ / 4+ / 5** minimum rating
+- Anti-abuse: vendor must exist, stars 1–5 only, customer must `require_auth()`, no double-rating same tx
+
+### Market Directory Filters
+- Full-text search across name, stall, product type
+- Product type chips (fish, meat, vegetables, fruits, rice & grains, spices, other)
+- **Section dropdown** — auto-populates with unique stall-prefix letters (A, B, C, D…)
+- **Min rating** chips — All / ★ 3+ / ★ 4+ / ★ 5
+- **Open-only** toggle in the hero search box
+- Sort cycle: A–Z → Most Active → Top Rated
+
 ---
 
 ## Contracts
 
-| Contract | Contract ID | Purpose |
-|----------|-------------|---------|
-| `VendorRegistry` | `CA5QQ2SE4XTBX3K4XNHLNAL36GIJOJ3KXYDS2VLAYZC4Q5FAYMDWZUJH` | Vendor registration, apply/approve/reject/deactivate, profiles |
-| `PalengkePayment` | `CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF` | QR-based payments with fee support and stat tracking |
-| `UTangEscrow` | `CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG` | BNPL installment agreements — create, pay, complete, default |
+PalengkePay runs on **both Stellar Testnet (live now) and Stellar Mainnet (Phase 2 — pending audit)**. The same Rust source compiles to both; only contract IDs and the `VITE_STELLAR_NETWORK` env var differ. Testnet stays alive after Mainnet launch as the staging/demo environment.
 
-All deployed on **Stellar Testnet**. See [`docs/contract-deployment.md`](docs/contract-deployment.md) for deployment guide.
+| Contract | Purpose | Testnet ID | Mainnet ID |
+|----------|---------|------------|------------|
+| `VendorRegistry` | Vendor registration, apply/approve/reject/deactivate, profiles | `CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU` | _Pending — Phase 2_ |
+| `PalengkePayment` | QR-based payments with fee support and stat tracking | `CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF` | _Pending — Phase 2_ |
+| `UTangEscrow` | BNPL installment agreements — create, pay, complete, default | `CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG` | _Pending — Phase 2_ |
 
-> **Note:** Stellar Testnet resets periodically (~quarterly). Contract IDs above are from the April 2026 deployment. After a reset, redeploy via `docs/contract-deployment.md` and update `.env.local` and this table.
+See [`docs/contract-deployment.md`](docs/contract-deployment.md) for the deployment guide and [`plan.md`](plan.md) for the dual-network rollout checklist.
+
+> **Note:** Stellar Testnet resets periodically (~quarterly). Testnet IDs above are from the April 2026 deployment. After a reset, redeploy via `docs/contract-deployment.md` and update `.env.local` and this table. Mainnet does not reset.
 
 ### VendorRegistry
 
-`CA5QQ2SE4XTBX3K4XNHLNAL36GIJOJ3KXYDS2VLAYZC4Q5FAYMDWZUJH` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CA5QQ2SE4XTBX3K4XNHLNAL36GIJOJ3KXYDS2VLAYZC4Q5FAYMDWZUJH)
+- **Testnet:** `CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU)
+- **Mainnet:** _Pending — Phase 2 (post-audit)_
 
 <img src="UI/CONTRACT/VendorRegistry.png" alt="VendorRegistry contract on Stellar Expert" width="100%" />
 
 ### PalengkePayment
 
-`CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF)
+- **Testnet:** `CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF)
+- **Mainnet:** _Pending — Phase 2 (post-audit)_
 
 <img src="UI/CONTRACT/PalengkeyPayment.png" alt="PalengkePayment contract on Stellar Expert" width="100%" />
 
 ### UTangEscrow
 
-`CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG)
+- **Testnet:** `CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG)
+- **Mainnet:** _Pending — Phase 2 (post-audit)_
 
 <img src="UI/CONTRACT/UtangEscrow.png" alt="UTangEscrow contract on Stellar Expert" width="100%" />
 
@@ -399,7 +439,7 @@ Create `frontend/.env.local`:
 ```env
 VITE_STELLAR_NETWORK=testnet
 VITE_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
-VITE_VENDOR_REGISTRY_CONTRACT_ID=CA5QQ2SE4XTBX3K4XNHLNAL36GIJOJ3KXYDS2VLAYZC4Q5FAYMDWZUJH
+VITE_VENDOR_REGISTRY_CONTRACT_ID=CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU
 VITE_PALENGKE_PAYMENT_CONTRACT_ID=CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF
 VITE_UTANG_ESCROW_CONTRACT_ID=CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG
 VITE_UTANG_FEE_XLM=1

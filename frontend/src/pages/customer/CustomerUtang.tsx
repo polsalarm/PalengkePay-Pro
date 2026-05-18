@@ -7,7 +7,9 @@ import { useCustomerUtangs, usePayInstallment, useCreateUtang } from '../../lib/
 import type { UtangRecord } from '../../lib/hooks/useUtang';
 import type { UtangOfferPayload } from '../vendor/VendorUtang';
 import { UtangCard } from '../../components/UtangCard';
-import { stellarExpertUrl } from '../../lib/stellar';
+import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
+import { useVendorName } from '../../lib/hooks/useVendor';
+import { RatingPrompt } from '../../components/RatingPrompt';
 
 const STROOPS = 10_000_000;
 const INTERVAL_LABELS: Record<number, string> = { 604800: 'weekly', 1209600: 'biweekly', 2592000: 'monthly' };
@@ -22,7 +24,9 @@ export function CustomerUtang() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [paying, setPaying] = useState<UtangRecord | null>(null);
+  const [wasFinalInstallment, setWasFinalInstallment] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
+  const payingVendorName = useVendorName(paying?.vendorWallet ?? null);
   const [uploadedOffer, setUploadedOffer] = useState<UtangOfferPayload | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -104,13 +108,17 @@ export function CustomerUtang() {
 
   async function confirmPay() {
     if (!paying || !address) return;
+    const isFinal = paying.installmentsPaid + 1 >= paying.installmentsTotal;
+    setWasFinalInstallment(isFinal);
     await payInstallment(paying, address);
     refetch();
+    if (isFinal) setFilter('completed');
   }
 
   function handleClosePayModal() {
     if (status === 'building' || status === 'signing' || status === 'submitting') return;
     setPaying(null);
+    setWasFinalInstallment(false);
     reset();
   }
 
@@ -535,11 +543,32 @@ export function CustomerUtang() {
                 <div className="space-y-3">
                   <div
                     className="flex items-center gap-3 p-4 rounded-2xl"
-                    style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}
+                    style={{
+                      backgroundColor: wasFinalInstallment ? '#FEFCE8' : '#F0FDF4',
+                      border: `1.5px solid ${wasFinalInstallment ? '#FEF08A' : '#BBF7D0'}`,
+                    }}
                   >
-                    <CheckCircle size={20} style={{ color: '#16A34A' }} />
-                    <p className="text-sm font-bold text-green-800">Bayad na!</p>
+                    <CheckCircle size={20} style={{ color: wasFinalInstallment ? '#CA8A04' : '#16A34A' }} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold" style={{ color: wasFinalInstallment ? '#854D0E' : '#15803D' }}>
+                        {wasFinalInstallment ? 'Tapos na ang utang!' : 'Bayad na!'}
+                      </p>
+                      {wasFinalInstallment && (
+                        <p className="text-xs mt-0.5" style={{ color: '#A16207' }}>
+                          Lipat na sa "completed" tab — naka-record on-chain.
+                        </p>
+                      )}
+                    </div>
                   </div>
+
+                  {wasFinalInstallment && txHash && paying && (
+                    <RatingPrompt
+                      vendorAddress={paying.vendorWallet}
+                      vendorName={payingVendorName ?? truncateAddress(paying.vendorWallet)}
+                      paymentTxHash={txHash}
+                    />
+                  )}
+
                   {txHash && (
                     <a
                       href={stellarExpertUrl(txHash)}

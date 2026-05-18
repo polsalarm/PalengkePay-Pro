@@ -21,6 +21,7 @@ import { AdminRegister } from './pages/admin/AdminRegister';
 import { AdminMetrics } from './pages/admin/AdminMetrics';
 import { VendorApply } from './pages/vendor/VendorApply';
 import { MarketDirectory } from './pages/MarketDirectory';
+import { Receipt } from './pages/Receipt';
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/onboard" element={<Onboard />} />
           <Route path="/connect" element={<Connect />} />
           <Route path="/" element={<Landing />} />
+          <Route path="/receipt/:txHash" element={<Receipt />} />
 
           {/* Layout shell */}
           <Route element={<Layout />}>

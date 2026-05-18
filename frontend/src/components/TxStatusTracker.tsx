@@ -1,6 +1,9 @@
-import { Loader2, Lock, CheckCircle, XCircle, ExternalLink, Zap } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, Lock, CheckCircle, XCircle, ExternalLink, Zap, Share2, Check } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { TxStatus } from '../lib/hooks/usePayment';
 import { stellarExpertUrl } from '../lib/stellar';
+import { shareReceipt } from '../lib/receipt';
 
 interface Props {
   status: TxStatus;
@@ -15,9 +18,23 @@ interface Props {
 const BASE_FEE = '0.00001';
 
 export function TxStatusTracker({ status, txHash, error, amount, recipientName, fee, onRetry }: Props) {
+  const [shareState, setShareState] = useState<'idle' | 'sharing' | 'copied'>('idle');
+
   if (status === 'idle') return null;
 
   const displayFee = fee ?? BASE_FEE;
+
+  const handleShare = async () => {
+    if (!txHash) return;
+    setShareState('sharing');
+    try {
+      const result = await shareReceipt(txHash, recipientName, amount);
+      setShareState(result === 'copied' ? 'copied' : 'idle');
+      if (result === 'copied') setTimeout(() => setShareState('idle'), 2000);
+    } catch {
+      setShareState('idle');
+    }
+  };
 
   if (status === 'building') {
     return (
@@ -109,25 +126,46 @@ export function TxStatusTracker({ status, txHash, error, amount, recipientName, 
             )}
           </div>
         </div>
-        <div
-          className="px-5 py-3 flex items-center justify-between"
-          style={{ backgroundColor: 'white', borderTop: '1px solid #BBF7D0' }}
-        >
-          <span className="text-xs text-slate-400">
-            Fee: <span className="font-mono">{displayFee} XLM</span>
-          </span>
-          {txHash && (
-            <a
-              href={stellarExpertUrl(txHash)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs font-bold active:scale-95"
-              style={{ color: '#008055' }}
-            >
-              <ExternalLink size={11} /> Stellar Expert
-            </a>
-          )}
-        </div>
+        {txHash && (
+          <div
+            className="bg-white"
+            style={{ borderTop: '1px solid #BBF7D0' }}
+          >
+            <div className="px-5 pt-3 pb-2 flex items-center justify-between">
+              <span className="text-xs text-slate-400">
+                Fee: <span className="font-mono">{displayFee} XLM</span>
+              </span>
+              <a
+                href={stellarExpertUrl(txHash)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs font-bold active:scale-95"
+                style={{ color: '#008055' }}
+              >
+                <ExternalLink size={11} /> Stellar Expert
+              </a>
+            </div>
+            <div className="px-5 pb-4 pt-2 grid grid-cols-2 gap-2">
+              <button
+                onClick={handleShare}
+                disabled={shareState === 'sharing'}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-xs text-white active:scale-95 transition-all disabled:opacity-60"
+                style={{ backgroundColor: '#008055' }}
+              >
+                {shareState === 'sharing' ? <Loader2 size={13} className="animate-spin" />
+                  : shareState === 'copied' ? <><Check size={13} /> Link copied</>
+                  : <><Share2 size={13} /> Share Receipt</>}
+              </button>
+              <Link
+                to={`/receipt/${txHash}`}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-xs active:scale-95 transition-all"
+                style={{ backgroundColor: '#F0FDF4', color: '#15803D', border: '1.5px solid #BBF7D0' }}
+              >
+                <ExternalLink size={12} /> View Receipt
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
