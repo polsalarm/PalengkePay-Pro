@@ -1,11 +1,15 @@
-import { useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle, XCircle, Loader2, Users, Clock, ExternalLink, UserPlus,
-  RefreshCw, ShieldCheck, PowerOff, AlertTriangle, X, BarChart2 } from 'lucide-react';
+  RefreshCw, ShieldCheck, PowerOff, AlertTriangle, X, BarChart2, Star,
+  MapPin, Phone, Hash, Wallet, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { usePendingVendors, useAllVendors, useAdminActions } from '../../lib/hooks/useVendor';
 import type { VendorProfile, VendorApplication } from '../../lib/hooks/useVendor';
 import { useToast } from '../../lib/hooks/useToast';
+import { useBulkVendorRatings } from '../../lib/hooks/useRating';
+import type { RatingSummary } from '../../lib/rating';
 import { truncateAddress } from '../../lib/stellar';
 
 const PRODUCT_META: Record<string, { emoji: string; label: string; accent: string; bg: string; chipBg: string; chipColor: string }> = {
@@ -114,18 +118,28 @@ function ApplicationCard({
 // ── Vendor card ───────────────────────────────────────────────────────────────
 
 function VendorCard({
-  vendor, onDeactivate, loading,
+  vendor, rating, onDeactivate, onOpenDetails, loading,
 }: {
   vendor: VendorProfile;
+  rating: RatingSummary | undefined;
   onDeactivate: () => void;
+  onOpenDetails: () => void;
   loading: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const meta = PRODUCT_META[vendor.productType] ?? PRODUCT_META.other;
 
+  // Stop a click on inner controls (Deactivate, confirm modal, expert link)
+  // from also triggering the card-wide details handler.
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+
   return (
     <div
-      className="rounded-3xl overflow-hidden transition-opacity"
+      onClick={onOpenDetails}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetails(); } }}
+      className="rounded-3xl overflow-hidden transition-all cursor-pointer active:scale-[0.99]"
       style={{
         border: `1.5px solid ${vendor.isActive ? meta.accent + '28' : '#F1F5F9'}`,
         opacity: vendor.isActive ? 1 : 0.55,
@@ -175,22 +189,43 @@ function VendorCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-4 px-1 py-2 rounded-2xl" style={{ backgroundColor: '#F8FAFC' }}>
+        <div className="flex items-center gap-3 px-1 py-2 rounded-2xl" style={{ backgroundColor: '#F8FAFC' }}>
           <div className="flex-1 text-center">
-            <p className="text-xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+            <p className="text-lg font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
               {vendor.totalTransactions}
             </p>
-            <p className="text-xs text-slate-400">transactions</p>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider">txns</p>
           </div>
           <div className="w-px h-8" style={{ backgroundColor: '#E2E8F0' }} />
           <div className="flex-1 text-center">
-            <p className="text-xl font-black" style={{ fontFamily: "'Montserrat', sans-serif", color: '#008055' }}>
+            <p className="text-lg font-black" style={{ fontFamily: "'Montserrat', sans-serif", color: '#008055' }}>
               {(Number(vendor.totalVolume) / 10_000_000).toFixed(1)}
             </p>
-            <p className="text-xs text-slate-400">XLM volume</p>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider">XLM</p>
+          </div>
+          <div className="w-px h-8" style={{ backgroundColor: '#E2E8F0' }} />
+          <div className="flex-1 text-center">
+            {rating && rating.count > 0 ? (
+              <>
+                <p
+                  className="text-lg font-black flex items-center justify-center gap-1"
+                  style={{ fontFamily: "'Montserrat', sans-serif", color: '#CA8A04' }}
+                >
+                  <Star size={13} fill="#FACC15" style={{ color: '#FACC15' }} />
+                  {rating.average.toFixed(1)}
+                </p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">{rating.count} {rating.count === 1 ? 'rating' : 'ratings'}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-black text-slate-300" style={{ fontFamily: "'Montserrat', sans-serif" }}>—</p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">no ratings</p>
+              </>
+            )}
           </div>
           <a
-            href={`https://stellar.expert/explorer/testnet/account/${vendor.marketId}`}
+            onClick={stop}
+            href={`https://stellar.expert/explorer/testnet/account/${vendor.wallet}`}
             target="_blank"
             rel="noopener noreferrer"
             className="pr-2 active:scale-95 transition-all"
@@ -202,7 +237,7 @@ function VendorCard({
 
         {vendor.isActive && !confirming && (
           <button
-            onClick={() => setConfirming(true)}
+            onClick={(e) => { stop(e); setConfirming(true); }}
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 font-bold rounded-2xl active:scale-95 transition-all text-sm disabled:opacity-40"
             style={{
@@ -218,7 +253,7 @@ function VendorCard({
         )}
 
         {confirming && (
-          <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}>
+          <div onClick={stop} className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}>
             <div className="flex items-center gap-2" style={{ color: '#F43F5E' }}>
               <AlertTriangle size={15} />
               <p className="text-sm font-black" style={{ fontFamily: "'Montserrat', sans-serif" }}>
@@ -230,7 +265,7 @@ function VendorCard({
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => { setConfirming(false); onDeactivate(); }}
+                onClick={(e) => { stop(e); setConfirming(false); onDeactivate(); }}
                 disabled={loading}
                 className="flex items-center justify-center gap-1.5 text-white font-black rounded-2xl active:scale-95 transition-all text-sm disabled:opacity-40"
                 style={{ backgroundColor: '#F43F5E', minHeight: '44px', fontFamily: "'Montserrat', sans-serif" }}
@@ -239,7 +274,7 @@ function VendorCard({
                 Deactivate
               </button>
               <button
-                onClick={() => setConfirming(false)}
+                onClick={(e) => { stop(e); setConfirming(false); }}
                 className="flex items-center justify-center gap-1.5 font-bold rounded-2xl active:scale-95 transition-all text-sm"
                 style={{ minHeight: '44px', border: '1.5px solid #FECDD3', color: '#F43F5E', backgroundColor: 'transparent' }}
               >
@@ -254,6 +289,152 @@ function VendorCard({
   );
 }
 
+// ── Vendor detail drawer ──────────────────────────────────────────────────────
+
+function VendorDetailDrawer({
+  vendor, rating, onClose,
+}: {
+  vendor: VendorProfile;
+  rating: RatingSummary | undefined;
+  onClose: () => void;
+}) {
+  const meta = PRODUCT_META[vendor.productType] ?? PRODUCT_META.other;
+  const xlm = (Number(vendor.totalVolume) / 10_000_000).toFixed(2);
+
+  // Lock body scroll while drawer open.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Render via portal so we escape any ancestor with `transform` (which
+  // would otherwise become the containing block for our `position: fixed`).
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+      style={{ backgroundColor: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-white rounded-3xl overflow-hidden animate-slide-up shadow-2xl"
+      >
+        {/* Header strip */}
+        <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3" style={{ backgroundColor: meta.bg }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-4xl leading-none select-none">{meta.emoji}</span>
+            <div className="min-w-0">
+              <p className="text-lg font-black text-slate-900 truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {vendor.name}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
+                  style={{ backgroundColor: meta.chipBg, color: meta.chipColor }}
+                >
+                  {meta.label}
+                </span>
+                {vendor.isActive ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}>
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#22C55E' }} />
+                    Active
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#F8FAFC', color: '#94A3B8' }}>
+                    Inactive
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-2xl flex items-center justify-center active:scale-95 shrink-0"
+            style={{ backgroundColor: 'rgba(255,255,255,0.7)' }}
+          >
+            <X size={16} style={{ color: '#475569' }} />
+          </button>
+        </div>
+
+        {/* Stats triplet */}
+        <div className="px-5 pt-4">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-2xl p-3 text-center" style={{ backgroundColor: '#F8FAFC' }}>
+              <p className="text-xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {vendor.totalTransactions}
+              </p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">transactions</p>
+            </div>
+            <div className="rounded-2xl p-3 text-center" style={{ backgroundColor: '#F8FAFC' }}>
+              <p className="text-xl font-black" style={{ fontFamily: "'Montserrat', sans-serif", color: '#008055' }}>
+                {xlm}
+              </p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">XLM volume</p>
+            </div>
+            <div className="rounded-2xl p-3 text-center" style={{ backgroundColor: '#FFFBEB' }}>
+              {rating && rating.count > 0 ? (
+                <>
+                  <p className="text-xl font-black flex items-center justify-center gap-1" style={{ fontFamily: "'Montserrat', sans-serif", color: '#CA8A04' }}>
+                    <Star size={14} fill="#FACC15" style={{ color: '#FACC15' }} />
+                    {rating.average.toFixed(1)}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: '#A16207' }}>
+                    {rating.count} {rating.count === 1 ? 'rating' : 'ratings'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xl font-black text-slate-300" style={{ fontFamily: "'Montserrat', sans-serif" }}>—</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">no ratings</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Detail rows */}
+        <div className="px-5 py-4 space-y-3">
+          <DetailRow icon={<Hash size={14} />} label="Vendor ID" value={`#${vendor.id}`} />
+          <DetailRow icon={<MapPin size={14} />} label="Stall" value={vendor.stallNumber} />
+          <DetailRow icon={<Tag size={14} />} label="Product type" value={meta.label} />
+          <DetailRow icon={<MapPin size={14} />} label="Market" value={vendor.marketId} />
+          {vendor.phone && <DetailRow icon={<Phone size={14} />} label="Phone" value={vendor.phone} />}
+          <DetailRow
+            icon={<Wallet size={14} />}
+            label="Wallet"
+            value={
+              <a
+                href={`https://stellar.expert/explorer/testnet/account/${vendor.wallet}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-xs underline decoration-dotted"
+                style={{ color: '#2563EB' }}
+              >
+                {truncateAddress(vendor.wallet)}
+                <ExternalLink size={10} className="inline ml-1" />
+              </a>
+            }
+          />
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2 border-b last:border-b-0" style={{ borderColor: '#F1F5F9' }}>
+      <div className="flex items-center gap-2 text-slate-400">
+        {icon}
+        <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
+      </div>
+      <div className="text-sm font-bold text-slate-900 text-right min-w-0 truncate">{value}</div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function AdminMarket() {
@@ -264,8 +445,11 @@ export function AdminMarket() {
   const { vendors, isLoading: loadingVendors, error: vendorsError, refetch: refetchVendors } = useAllVendors();
   const { approve, reject, deactivate, loadingWallet, error: actionError } = useAdminActions();
   const { showToast } = useToast();
+  const [selected, setSelected] = useState<VendorProfile | null>(null);
 
   const activeVendors = vendors.filter((v) => v.isActive);
+  const vendorAddresses = useMemo(() => vendors.map((v) => v.wallet).filter(Boolean), [vendors]);
+  const { summaries: ratings } = useBulkVendorRatings(vendorAddresses);
 
   const handleApprove = async (vendorWallet: string, name: string) => {
     if (!address) return;
@@ -489,11 +673,21 @@ export function AdminMarket() {
             <VendorCard
               key={v.id}
               vendor={v}
-              loading={loadingWallet === v.marketId}
-              onDeactivate={() => handleDeactivate(v.marketId, v.name)}
+              rating={ratings.get(v.wallet)}
+              loading={loadingWallet === v.wallet}
+              onDeactivate={() => handleDeactivate(v.wallet, v.name)}
+              onOpenDetails={() => setSelected(v)}
             />
           ))}
         </div>
+      )}
+
+      {selected && (
+        <VendorDetailDrawer
+          vendor={selected}
+          rating={ratings.get(selected.wallet)}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   );

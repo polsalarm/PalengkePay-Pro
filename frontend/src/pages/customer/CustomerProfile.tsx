@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { User, Copy, Check, Store, ExternalLink, ShieldCheck } from 'lucide-react';
+import { User, Copy, Check, Store, ExternalLink, ShieldCheck, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useBalance } from '../../lib/hooks/useBalance';
 import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
@@ -22,6 +22,10 @@ const STRINGS = {
     notifDesc: 'Get alerts on utang reminders and receipts',
     market: 'Browse Market',
     marketSub: 'Find vendors near you',
+    cashIn: 'Cash In',
+    cashInSub: 'PHP → XLM via PDAX',
+    cashOut: 'Cash Out',
+    cashOutSub: 'XLM → PHP to your bank',
     preferences: 'Display',
     prefDesc: 'Choose how amounts are shown',
     privacy: 'Privacy',
@@ -40,6 +44,10 @@ const STRINGS = {
     notifDesc: 'Tumanggap ng alerts sa utang at resibo',
     market: 'Tingnan ang Market',
     marketSub: 'Hanapin ang mga vendor',
+    cashIn: 'Mag Cash In',
+    cashInSub: 'PHP → XLM sa PDAX',
+    cashOut: 'Mag Cash Out',
+    cashOutSub: 'XLM → PHP papunta sa bangko',
     preferences: 'Display',
     prefDesc: 'Piliin kung paano ipakita ang halaga',
     privacy: 'Privacy',
@@ -196,6 +204,36 @@ export function CustomerProfile() {
           </div>
           <PrivacyToggle variant="light" />
         </div>
+      </div>
+
+      {/* Cash in / out */}
+      <div className="grid grid-cols-2 gap-2">
+        <NavLink
+          to="/customer/cashin"
+          className="rounded-2xl px-4 py-4 flex flex-col items-start gap-2 active:scale-[0.98] transition-all"
+          style={{ backgroundColor: 'white', border: '1.5px solid #F1F5F9' }}
+        >
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#F0FDFA' }}>
+            <ArrowUpFromLine size={16} style={{ color: '#008055' }} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-slate-900">{t.cashIn}</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">{t.cashInSub}</p>
+          </div>
+        </NavLink>
+        <NavLink
+          to="/customer/cashout"
+          className="rounded-2xl px-4 py-4 flex flex-col items-start gap-2 active:scale-[0.98] transition-all"
+          style={{ backgroundColor: 'white', border: '1.5px solid #F1F5F9' }}
+        >
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#F0FDFA' }}>
+            <ArrowDownToLine size={16} style={{ color: '#008055' }} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-slate-900">{t.cashOut}</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">{t.cashOutSub}</p>
+          </div>
+        </NavLink>
       </div>
 
       {/* Browse market */}

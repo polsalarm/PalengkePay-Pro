@@ -74,6 +74,14 @@ body {
   animation: page-in 0.22s ease-out forwards;
 }
 
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }

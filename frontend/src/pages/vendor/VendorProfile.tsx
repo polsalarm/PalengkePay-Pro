@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, ArrowRight, Edit2, Check, X, Loader2, MapPin, Tag, Phone, BarChart2, Coins, Store } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Edit2, Check, X, Loader2, MapPin, Tag, Phone, BarChart2, Coins, Store, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
+import { useVendorRating } from '../../lib/hooks/useRating';
 import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, prepareContractTx, submitSorobanTx, addressToScVal, stringToScVal } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { PushPrompt } from '../../components/PushPrompt';
 
 const REGISTRY_ID = import.meta.env.VITE_VENDOR_REGISTRY_CONTRACT_ID as string | undefined;
 const PRODUCT_TYPES = ['fish', 'meat', 'vegetables', 'fruits', 'rice & grains', 'spices', 'other'];
@@ -20,6 +22,7 @@ export function VendorProfile() {
   const navigate = useNavigate();
   const { address } = useWallet();
   const { vendor, isLoading } = useVendor(address);
+  const { summary: ratingSummary } = useVendorRating(address);
   const { showToast } = useToast();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -138,6 +141,67 @@ export function VendorProfile() {
           )}
         </div>
       </div>
+
+      {/* ── PUSH NOTIFICATIONS ── */}
+      <PushPrompt role="vendor" wallet={address} />
+
+      {/* ── WITHDRAW TO BANK ── */}
+      <a
+        href="/customer/cashout"
+        className="rounded-2xl px-5 py-4 flex items-center gap-4 active:scale-[0.98] transition-all block"
+        style={{ backgroundColor: 'white', border: '1.5px solid #F1F5F9' }}
+      >
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#F0FDFA' }}>
+          <Coins size={20} style={{ color: '#008055' }} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-slate-900">Withdraw earnings</p>
+          <p className="text-xs text-slate-400 mt-0.5">Cash out XLM → PHP via PDAX</p>
+        </div>
+      </a>
+
+      {/* ── REPUTATION ── */}
+      {vendor && (
+        <div
+          className="rounded-2xl px-5 py-4 flex items-center gap-4"
+          style={{ backgroundColor: '#FEFCE8', border: '1.5px solid #FEF08A' }}
+        >
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: '#FEF9C3' }}
+          >
+            <Star size={20} fill="#FACC15" style={{ color: '#FACC15' }} />
+          </div>
+          <div className="min-w-0 flex-1">
+            {ratingSummary && ratingSummary.count > 0 ? (
+              <>
+                <p
+                  className="font-black text-2xl leading-none"
+                  style={{ fontFamily: "'Montserrat', sans-serif", color: '#854D0E' }}
+                >
+                  {ratingSummary.average.toFixed(1)}
+                  <span className="text-sm font-bold ml-1" style={{ color: '#A16207' }}>/ 5</span>
+                </p>
+                <p className="text-xs mt-1" style={{ color: '#A16207' }}>
+                  from {ratingSummary.count} customer rating{ratingSummary.count !== 1 ? 's' : ''} on-chain
+                </p>
+              </>
+            ) : (
+              <>
+                <p
+                  className="font-black text-base leading-tight"
+                  style={{ fontFamily: "'Montserrat', sans-serif", color: '#854D0E' }}
+                >
+                  No ratings yet
+                </p>
+                <p className="text-xs mt-1" style={{ color: '#A16207' }}>
+                  Customers can rate you after each payment
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── STATS ── */}
       {vendor && (

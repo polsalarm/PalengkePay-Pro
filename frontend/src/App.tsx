@@ -15,6 +15,9 @@ const CustomerHome = lazy(() => import('./pages/customer/CustomerHome').then((mo
 const CustomerScan = lazy(() => import('./pages/customer/CustomerScan').then((module) => ({ default: module.CustomerScan })));
 const CustomerHistory = lazy(() => import('./pages/customer/CustomerHistory').then((module) => ({ default: module.CustomerHistory })));
 const CustomerUtang = lazy(() => import('./pages/customer/CustomerUtang').then((module) => ({ default: module.CustomerUtang })));
+const CustomerProfile = lazy(() => import('./pages/customer/CustomerProfile').then((module) => ({ default: module.CustomerProfile })));
+const CustomerCashin = lazy(() => import('./pages/customer/CustomerCashin').then((module) => ({ default: module.CustomerCashin })));
+const CustomerCashout = lazy(() => import('./pages/customer/CustomerCashout').then((module) => ({ default: module.CustomerCashout })));
 const VendorApply = lazy(() => import('./pages/vendor/VendorApply').then((module) => ({ default: module.VendorApply })));
 const VendorHome = lazy(() => import('./pages/vendor/VendorHome').then((module) => ({ default: module.VendorHome })));
 const VendorQR = lazy(() => import('./pages/vendor/VendorQR').then((module) => ({ default: module.VendorQR })));
@@ -26,6 +29,7 @@ const AdminRegister = lazy(() => import('./pages/admin/AdminRegister').then((mod
 const AdminMetrics = lazy(() => import('./pages/admin/AdminMetrics').then((module) => ({ default: module.AdminMetrics })));
 const AdminHealth = lazy(() => import('./pages/admin/AdminHealth').then((module) => ({ default: module.AdminHealth })));
 const AdminProofs = lazy(() => import('./pages/admin/AdminProofs').then((module) => ({ default: module.AdminProofs })));
+const AdminRamps = lazy(() => import('./pages/admin/AdminRamps').then((module) => ({ default: module.AdminRamps })));
 
 function RouteLoading() {
   return (
@@ -49,7 +53,7 @@ export default function App() {
         <ToastProvider>
           <Suspense fallback={<RouteLoading />}>
             <Routes>
-              {/* Fullscreen pages — no layout shell */}
+              {/* Fullscreen pages - no layout shell */}
               <Route path="/onboard" element={<Onboard />} />
               <Route path="/connect" element={<Connect />} />
               <Route path="/" element={<Landing />} />
@@ -72,6 +76,9 @@ export default function App() {
                 <Route path="/customer/scan" element={<CustomerScan />} />
                 <Route path="/customer/history" element={<CustomerHistory />} />
                 <Route path="/customer/utang" element={<CustomerUtang />} />
+                <Route path="/customer/profile" element={<CustomerProfile />} />
+                <Route path="/customer/cashin" element={<CustomerCashin />} />
+                <Route path="/customer/cashout" element={<CustomerCashout />} />
 
                 {/* Admin */}
                 <Route path="/admin/market" element={<AdminMarket />} />
@@ -79,6 +86,7 @@ export default function App() {
                 <Route path="/admin/metrics" element={<AdminMetrics />} />
                 <Route path="/admin/health" element={<AdminHealth />} />
                 <Route path="/admin/proofs" element={<AdminProofs />} />
+                <Route path="/admin/ramps" element={<AdminRamps />} />
 
                 {/* Vendor apply (public) */}
                 <Route path="/vendor/apply" element={<VendorApply />} />
