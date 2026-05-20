@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle, XCircle, Loader2, Users, Clock, ExternalLink, UserPlus,
   RefreshCw, ShieldCheck, PowerOff, AlertTriangle, X, BarChart2, Star,
   MapPin, Phone, Hash, Wallet, Tag } from 'lucide-react';
@@ -300,15 +301,24 @@ function VendorDetailDrawer({
   const meta = PRODUCT_META[vendor.productType] ?? PRODUCT_META.other;
   const xlm = (Number(vendor.totalVolume) / 10_000_000).toFixed(2);
 
-  return (
+  // Lock body scroll while drawer open.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Render via portal so we escape any ancestor with `transform` (which
+  // would otherwise become the containing block for our `position: fixed`).
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-8"
       style={{ backgroundColor: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden animate-slide-up max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-md bg-white rounded-3xl overflow-hidden animate-slide-up shadow-2xl"
       >
         {/* Header strip */}
         <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3" style={{ backgroundColor: meta.bg }}>
@@ -408,7 +418,8 @@ function VendorDetailDrawer({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
