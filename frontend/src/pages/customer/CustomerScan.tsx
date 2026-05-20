@@ -12,6 +12,7 @@ import { usePayment } from '../../lib/hooks/usePayment';
 import { useCreateUtang } from '../../lib/hooks/useUtang';
 import type { UtangOfferPayload } from '../vendor/VendorUtang';
 import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
+import { notifyWallet } from '../../lib/notify';
 
 const STROOPS = 10_000_000;
 
@@ -52,8 +53,18 @@ export function CustomerScan() {
   const { createUtang, isCreating } = useCreateUtang();
 
   useEffect(() => {
-    if (step === 'confirm' && status === 'confirmed') setStep('done');
-  }, [step, status]);
+    if (step === 'confirm' && status === 'confirmed') {
+      setStep('done');
+      if (vendorAddress && pendingPayment) {
+        notifyWallet(vendorAddress, {
+          title: 'PalengkePay — bayad natanggap',
+          body: `${pendingPayment.amount} XLM received${pendingPayment.memo ? ` · ${pendingPayment.memo}` : ''}`,
+          tag: `pay-${txHash ?? Date.now()}`,
+          url: '/vendor/transactions',
+        });
+      }
+    }
+  }, [step, status, vendorAddress, pendingPayment, txHash]);
 
   const handleRawScan = (raw: string): boolean => {
     try {
@@ -116,6 +127,14 @@ export function CustomerScan() {
       setUtangTxHash(hash);
       setUtangAcceptStatus('confirmed');
       setStep('utang_done');
+      if (utangOffer?.v) {
+        notifyWallet(utangOffer.v, {
+          title: 'PalengkePay — tinanggap ang utang',
+          body: `Customer accepted: ${utangOffer.d ?? 'installment agreement'}`,
+          tag: `utang-${hash}`,
+          url: '/vendor/utang',
+        });
+      }
     } else {
       setUtangError('Transaction failed — check wallet and try again');
       setUtangAcceptStatus('failed');

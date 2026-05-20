@@ -69,3 +69,4 @@ frontend/README.md
 .agents/
 
 .vercel
+.env*.local

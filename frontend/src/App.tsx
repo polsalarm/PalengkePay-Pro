@@ -16,6 +16,7 @@ import { CustomerHome } from './pages/customer/CustomerHome';
 import { CustomerScan } from './pages/customer/CustomerScan';
 import { CustomerHistory } from './pages/customer/CustomerHistory';
 import { CustomerUtang } from './pages/customer/CustomerUtang';
+import { CustomerProfile } from './pages/customer/CustomerProfile';
 import { AdminMarket } from './pages/admin/AdminMarket';
 import { AdminRegister } from './pages/admin/AdminRegister';
 import { AdminMetrics } from './pages/admin/AdminMetrics';
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="/customer/scan" element={<CustomerScan />} />
             <Route path="/customer/history" element={<CustomerHistory />} />
             <Route path="/customer/utang" element={<CustomerUtang />} />
+            <Route path="/customer/profile" element={<CustomerProfile />} />
 
             {/* Admin */}
             <Route path="/admin/market" element={<AdminMarket />} />

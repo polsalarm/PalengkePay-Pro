@@ -6,6 +6,9 @@ import { useCustomerTransactions, relativeTime } from '../../lib/hooks/useTransa
 import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
 import { useVendorName } from '../../lib/hooks/useVendor';
+import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
+import { UnitToggle } from '../../components/UnitToggle';
+import { PrivacyToggle } from '../../components/PrivacyToggle';
 
 const STRINGS = {
   en: {
@@ -63,6 +66,7 @@ function TxRow({ tx }: { tx: TxRecord }) {
   const display = vendorName || truncateAddress(tx.to);
   const [bgColor, textColor] = hashColor(tx.to);
   const initial = display[0]?.toUpperCase() ?? '?';
+  const { unit, format } = useFormatAmount();
 
   return (
     <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
@@ -84,9 +88,9 @@ function TxRow({ tx }: { tx: TxRecord }) {
       <div className="flex items-center gap-2 shrink-0 ml-3">
         <div className="text-right">
           <p className="text-sm font-black" style={{ color: '#F43F5E' }}>
-            -{tx.amountXlm.toFixed(2)}
+            -{format(tx.amountXlm, { showSuffix: false })}
           </p>
-          <p className="text-xs text-slate-400">XLM</p>
+          <p className="text-xs text-slate-400">{unit === 'php' ? 'PHP' : 'XLM'}</p>
         </div>
         <Link
           to={`/receipt/${tx.id}`}
@@ -120,6 +124,12 @@ export function CustomerHistory() {
 
   const totalSpent = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
   const groups = groupByDate(transactions, t);
+  const { unit: displayUnit, format: formatAmt } = useFormatAmount();
+  const totalSpentStr = formatAmt(totalSpent, { showSuffix: false });
+  const avgPayment = transactions.length ? totalSpent / transactions.length : 0;
+  const avgPaymentStr = formatAmt(avgPayment, { showSuffix: false });
+  const unitLabel = displayUnit === 'php' ? 'PHP' : 'XLM';
+  const totalSpentSub = displayUnit === 'php' ? 'PHP total spent' : t.totalSpentSub;
 
   return (
     <div className="space-y-4 animate-page-in">
@@ -161,23 +171,27 @@ export function CustomerHistory() {
             <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
               {t.header}
             </p>
-            <div
-              className="flex items-center rounded-full p-0.5"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-            >
-              {(['en', 'tl'] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  className="text-xs font-bold px-3 py-1 rounded-full transition-all"
-                  style={lang === l
-                    ? { backgroundColor: '#008055', color: 'white' }
-                    : { color: 'rgba(255,255,255,0.45)' }
-                  }
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
+            <div className="flex items-center gap-2 shrink-0">
+              <PrivacyToggle variant="dark" />
+              <UnitToggle variant="dark" />
+              <div
+                className="flex items-center rounded-full p-0.5"
+                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+              >
+                {(['en', 'tl'] as const).map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setLang(l)}
+                    className="text-xs font-bold px-3 py-1 rounded-full transition-all"
+                    style={lang === l
+                      ? { backgroundColor: '#008055', color: 'white' }
+                      : { color: 'rgba(255,255,255,0.45)' }
+                    }
+                  >
+                    {l.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -191,15 +205,15 @@ export function CustomerHistory() {
               <p
                 className="font-black text-white leading-none mb-1"
                 style={{
-                  fontSize: totalSpent.toFixed(2).length > 8 ? '2rem' : '2.5rem',
+                  fontSize: totalSpentStr.length > 8 ? '2rem' : '2.5rem',
                   fontFamily: "'Montserrat', sans-serif",
                   letterSpacing: '-0.02em',
                 }}
               >
-                {totalSpent.toFixed(2)}
+                {totalSpentStr}
               </p>
               <p className="text-sm font-semibold mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                {t.totalSpentSub}
+                {totalSpentSub}
               </p>
 
               <div className="grid grid-cols-2 gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
@@ -216,8 +230,8 @@ export function CustomerHistory() {
                     {t.avgPerPayment}
                   </p>
                   <p className="text-base font-black text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                    {transactions.length ? (totalSpent / transactions.length).toFixed(2) : '0.00'}
-                    <span className="text-xs font-normal ml-1" style={{ color: 'rgba(255,255,255,0.4)' }}>XLM</span>
+                    {avgPaymentStr}
+                    <span className="text-xs font-normal ml-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{unitLabel}</span>
                   </p>
                 </div>
               </div>

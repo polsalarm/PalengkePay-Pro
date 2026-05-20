@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ExternalLink, QrCode, TrendingUp, AlertCircle, RefreshCw, Zap, Receipt as ReceiptIcon } from 'lucide-react';
+import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
+import { UnitToggle } from '../../components/UnitToggle';
+import { PrivacyToggle } from '../../components/PrivacyToggle';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
 import type { TxRecord } from '../../lib/hooks/useTransactions';
@@ -65,6 +68,7 @@ function TxRow({ tx }: { tx: TxRecord }) {
   const display = truncateAddress(tx.from);
   const [bgColor, textColor] = hashColor(tx.from);
   const initial = tx.from[1]?.toUpperCase() ?? 'G';
+  const { unit, format } = useFormatAmount();
 
   return (
     <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
@@ -86,9 +90,9 @@ function TxRow({ tx }: { tx: TxRecord }) {
       <div className="flex items-center gap-2 shrink-0 ml-3">
         <div className="text-right">
           <p className="text-sm font-black" style={{ color: '#16A34A' }}>
-            +{tx.amountXlm.toFixed(2)}
+            +{format(tx.amountXlm, { showSuffix: false })}
           </p>
-          <p className="text-xs text-slate-400">XLM</p>
+          <p className="text-xs text-slate-400">{unit === 'php' ? 'PHP' : 'XLM'}</p>
         </div>
         <Link
           to={`/receipt/${tx.id}`}
@@ -124,6 +128,12 @@ export function VendorTransactions() {
   const count = todayCount();
   const allTimeTotal = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
   const groups = groupByDate(transactions, t);
+
+  const { unit: displayUnit, format: formatAmt } = useFormatAmount();
+  const allTimeStr = formatAmt(allTimeTotal, { showSuffix: false });
+  const earningsStr = formatAmt(earnings, { showSuffix: false });
+  const unitLabel = displayUnit === 'php' ? 'PHP' : 'XLM';
+  const allTimeSub = displayUnit === 'php' ? 'PHP all-time' : t.allTimeSub;
 
   return (
     <div className="space-y-4 animate-page-in">
@@ -165,23 +175,27 @@ export function VendorTransactions() {
             <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
               {t.header}
             </p>
-            <div
-              className="flex items-center rounded-full p-0.5"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-            >
-              {(['en', 'tl'] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  className="text-xs font-bold px-3 py-1 rounded-full transition-all"
-                  style={lang === l
-                    ? { backgroundColor: '#008055', color: 'white' }
-                    : { color: 'rgba(255,255,255,0.45)' }
-                  }
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
+            <div className="flex items-center gap-2 shrink-0">
+              <PrivacyToggle variant="dark" />
+              <UnitToggle variant="dark" />
+              <div
+                className="flex items-center rounded-full p-0.5"
+                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+              >
+                {(['en', 'tl'] as const).map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setLang(l)}
+                    className="text-xs font-bold px-3 py-1 rounded-full transition-all"
+                    style={lang === l
+                      ? { backgroundColor: '#008055', color: 'white' }
+                      : { color: 'rgba(255,255,255,0.45)' }
+                    }
+                  >
+                    {l.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -195,15 +209,15 @@ export function VendorTransactions() {
               <p
                 className="font-black text-white leading-none mb-1"
                 style={{
-                  fontSize: allTimeTotal.toFixed(2).length > 8 ? '2rem' : '2.5rem',
+                  fontSize: allTimeStr.length > 8 ? '2rem' : '2.5rem',
                   fontFamily: "'Montserrat', sans-serif",
                   letterSpacing: '-0.02em',
                 }}
               >
-                {allTimeTotal.toFixed(2)}
+                {allTimeStr}
               </p>
               <p className="text-sm font-semibold mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                {t.allTimeSub}
+                {allTimeSub}
               </p>
 
               <div className="grid grid-cols-2 gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
@@ -213,8 +227,8 @@ export function VendorTransactions() {
                   </p>
                   <p className="text-base font-black text-white flex items-center gap-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     <Zap size={13} style={{ color: '#FDE68A' }} />
-                    {earnings.toFixed(2)}
-                    <span className="text-xs font-normal" style={{ color: 'rgba(255,255,255,0.4)' }}>XLM</span>
+                    {earningsStr}
+                    <span className="text-xs font-normal" style={{ color: 'rgba(255,255,255,0.4)' }}>{unitLabel}</span>
                   </p>
                 </div>
                 <div>

@@ -8,6 +8,9 @@ import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { useCustomerUtangs, isOverdue } from '../../lib/hooks/useUtang';
 import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
 import { useVendorName } from '../../lib/hooks/useVendor';
+import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
+import { UnitToggle } from '../../components/UnitToggle';
+import { PrivacyToggle } from '../../components/PrivacyToggle';
 
 const STRINGS = {
   en: {
@@ -134,9 +137,12 @@ export function CustomerHome() {
   const groups = groupByDate(recent, lang);
   const totalSpent = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
 
+  const { unit, format, formatCompanion } = useFormatAmount();
   const balanceNum = balance ? parseFloat(balance) : null;
-  const balanceStr = balanceNum !== null ? balanceNum.toFixed(2) : '—';
+  const balanceStr = balanceNum !== null ? format(balanceNum, { showSuffix: false }) : '—';
   const balanceFontSize = balanceStr.length >= 10 ? '1.6rem' : balanceStr.length >= 8 ? '2rem' : balanceStr.length >= 6 ? '2.6rem' : '3.2rem';
+  const balanceUnitLabel = unit === 'php' ? 'PHP' : 'XLM';
+  const balanceCompanion = balanceNum !== null ? formatCompanion(balanceNum) : null;
 
   return (
     <div className="animate-page-in" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
@@ -189,24 +195,28 @@ export function CustomerHome() {
               style={{ color: 'rgba(255,255,255,0.4)' }}
             >{t.balance}</p>
 
-            {/* Language toggle */}
-            <div
-              className="flex items-center rounded-full p-0.5"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-            >
-              {(['en', 'tl'] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  className="text-xs font-bold px-3 py-1 rounded-full transition-all"
-                  style={lang === l
-                    ? { backgroundColor: '#008055', color: 'white' }
-                    : { color: 'rgba(255,255,255,0.45)' }
-                  }
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
+            {/* Privacy + Unit + Language toggles */}
+            <div className="flex items-center gap-2 shrink-0">
+              <PrivacyToggle variant="dark" />
+              <UnitToggle variant="dark" />
+              <div
+                className="flex items-center rounded-full p-0.5"
+                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+              >
+                {(['en', 'tl'] as const).map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setLang(l)}
+                    className="text-xs font-bold px-3 py-1 rounded-full transition-all"
+                    style={lang === l
+                      ? { backgroundColor: '#008055', color: 'white' }
+                      : { color: 'rgba(255,255,255,0.45)' }
+                    }
+                  >
+                    {l.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -227,8 +237,13 @@ export function CustomerHome() {
               <span
                 className="text-base font-bold shrink-0"
                 style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Montserrat', sans-serif" }}
-              >XLM</span>
+              >{balanceUnitLabel}</span>
             </div>
+            {balanceCompanion && (
+              <p className="text-xs font-medium mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                {balanceCompanion}
+              </p>
+            )}
           </div>
 
           <p

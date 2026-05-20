@@ -224,6 +224,38 @@ Cursor-based Horizon payment indexer with localStorage caching.
 - **Open-only** toggle in the hero search box
 - Sort cycle: A–Z → Most Active → Top Rated
 
+### Display Unit Toggle (PHP / XLM)
+- **XLM ⇄ ₱ switcher** mirrors the EN/TL language toggle styling, available on vendor and customer dashboards
+- XLM stays the on-chain settlement asset — toggle only changes UI presentation
+- Companion line below every amount (`≈ ₱22.50` when primary is XLM, and vice versa)
+- Hook: `useFormatAmount()` in `frontend/src/lib/hooks/useDisplayUnit.ts` — used by balance heroes, history rows, payment forms
+
+### Live PHP / XLM Exchange Rate
+- Fetched from CoinGecko public API (`stellar/php`), cached in `localStorage` with 5-minute TTL
+- Sane fallback rate (₱22 / XLM) when network/API unreachable so the app never shows blank balances
+- `frontend/src/lib/rate.ts` — `fetchPhpRate()`, `getCachedRate()`, `xlmToPhp()`, `formatPhp()`
+- Single-flight deduping via `usePhpRate()` hook so concurrent renders share one network call
+
+### Hide-Balance Privacy Mode
+- One-tap **eye icon** masks every balance figure with `••••` — useful in public/palengke environments
+- Persists in `localStorage` across reloads; broadcasts via `CustomEvent('pp:privacy-change')` so all subscribed components update in sync
+- `PrivacyToggle` component (`dark` / `light` variants) wired into both vendor and customer balance heroes + Customer Profile
+- `useFormatAmount()` respects the hidden flag — every formatted amount in the app stays masked while privacy is on
+
+### Web Push Notifications
+- **Vendor receives push** on payment received, utang accepted, each installment paid, and final utang completion
+- **Customer receives push** when vendor manually creates a new utang for their wallet, and when an installment is due within 24h or already overdue (daily cron)
+- VAPID-backed Web Push via service worker (`frontend/src/sw.ts`) registered through `vite-plugin-pwa`'s `registerSW()` in `main.tsx`
+- Wallet-keyed subscription store in Upstash Redis (Vercel Marketplace integration `palengkepay`) — subscriptions survive serverless cold starts
+- Endpoints: `api/push-subscribe.ts` (register), `api/push-notify.ts` (fan-out by wallet), `api/cron/utang-reminders.ts` (daily reminder cron at `0 0 * * *`)
+- Subscriptions returning HTTP 404/410 are pruned automatically from Redis
+- Notification copy supports Tagalog (`"bayad natanggap"`, `"utang paalala"`, `"tinanggap ang utang"`) for vendor + customer flows
+
+### Customer Profile Page
+- New `/customer/profile` page — wallet card with copy + Stellar Expert link, balance summary, push notification toggle, display preferences (unit + privacy), and Market Directory shortcut
+- Customer bottom-nav reshuffled: **Home · History · Scan · Utang · Profile** (Market dropped from nav; still reachable from Home's "Find Vendors" and from the Profile page)
+- EN / TL language toggle inline on the page header
+
 ---
 
 ## Contracts
@@ -382,21 +414,24 @@ The following wallets connected to the app and tested core functionality on Stel
 
 ## Next Phase — Improvements Based on User Feedback
 
-The following improvements are planned for Phase 2, derived directly from beta user feedback collected via the Google Form above.
+The following improvements are planned for Phase 2, derived directly from beta user feedback collected via the Google Form above. Items marked **✓ Shipped** are live in production today.
 
 ### UI / UX
-- **Peso (PHP) display alongside XLM** — users unfamiliar with XLM amounts requested a live PHP conversion using a public exchange rate API. Commit: [`1039c68`](https://github.com/polsalarm/PalengkePay/commit/1039c68) _(Phase 1 redesign laid the groundwork for the balance hero)_
-- **Push notifications on mobile** — vendors reported missing payment alerts when the app is backgrounded. Will implement Web Push via service worker.
+- **✓ Shipped — Peso (PHP) display alongside XLM** — live PHP conversion via CoinGecko with 5-min cache + ₱22 fallback. PHP / XLM toggle mirrors EN/TL switcher. See [Display Unit Toggle](#display-unit-toggle-php--xlm) above.
+- **✓ Shipped — Push notifications on mobile** — VAPID Web Push via service worker. Vendor + customer notifications wired into payments, utang creation, installment payments, and a daily due-date reminder cron. See [Web Push Notifications](#web-push-notifications) above.
+- **✓ Shipped — Hide-balance privacy mode** — one-tap eye icon masks every figure in the app; persists across reloads via `localStorage`. See [Hide-Balance Privacy Mode](#hide-balance-privacy-mode) above.
+- **✓ Shipped — Customer Profile page** — consolidated wallet info, display preferences, and notification controls under `/customer/profile`. See [Customer Profile Page](#customer-profile-page) above.
 - **Vendor search / filter in market directory** — customers want to find vendors by product type or stall number faster.
 
 ### Features
-- **Recurring utang reminders** — customers requested in-app due date reminders before installments are due, not just after they're overdue.
+- **✓ Shipped — Recurring utang reminders** — daily cron at `0 0 * * *` scans every subscribed wallet for installments due within 24h or already overdue and pushes a notification to the customer.
 - **QR print-ready layout** — vendors want a printer-friendly QR page (A5 sticker format) they can paste on their stall. Builds on the download QR feature in commit [`dfcb790`](https://github.com/polsalarm/PalengkePay/commit/dfcb790).
 - **Partial payment support** — some customers requested paying more than one installment at a time to close their utang early.
 
 ### Technical
 - **Mainnet deployment** — migrate from Stellar Testnet to Mainnet once contracts are audited. Contract architecture is already production-ready (commit [`8c305b4`](https://github.com/polsalarm/PalengkePay/commit/8c305b4) fixed prod white-screen for WalletConnect).
-- **Firebase / Supabase off-chain layer** — store vendor metadata and push notification tokens off-chain to reduce Soroban RPC calls and improve load time.
+- **✓ Shipped — Off-chain push subscription store** — Upstash Redis via Vercel Marketplace integration `palengkepay`; subscriptions keyed by Stellar wallet, durable across serverless cold starts, 410/404 endpoints pruned automatically.
+- **Firebase / Supabase off-chain metadata layer** — vendor metadata caching to reduce Soroban RPC calls and improve load time.
 - **Multi-language (Filipino / English)** — EN·TL toggle already stubbed in the UI; wire up `i18n` library with full Tagalog translations.
 
 ---
@@ -443,9 +478,21 @@ VITE_VENDOR_REGISTRY_CONTRACT_ID=CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGN
 VITE_PALENGKE_PAYMENT_CONTRACT_ID=CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF
 VITE_UTANG_ESCROW_CONTRACT_ID=CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG
 VITE_UTANG_FEE_XLM=1
+
+# Web Push (VAPID) — generate via `npx web-push generate-vapid-keys`
+VITE_VAPID_PUBLIC_KEY=<base64-url public key, exposed to client>
+VAPID_PRIVATE_KEY=<base64-url private key, server only>
+VAPID_SUBJECT=mailto:you@example.com
+
+# Upstash Redis — auto-injected by the Vercel Marketplace integration; only
+# needed locally if you want push subscriptions durable in dev as well.
+KV_REST_API_URL=
+KV_REST_API_TOKEN=
 ```
 
 `VITE_UTANG_FEE_XLM` — XLM fee charged to vendors per utang QR creation (default: `1`).
+
+`VITE_VAPID_PUBLIC_KEY` is read by both the client (push subscribe) and the server (web-push send). `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` must stay server-only. `KV_REST_API_URL` / `KV_REST_API_TOKEN` are provisioned automatically when the Upstash for Redis Marketplace integration is linked to the Vercel project — `frontend/api/_pushStore.ts` falls back to an in-memory map when these are unset (lossy across cold starts, fine for local dev).
 
 ---
 
@@ -457,8 +504,10 @@ VITE_UTANG_FEE_XLM=1
 | Wallet | `@creit.tech/stellar-wallets-kit` — WalletConnect (mobile via LOBSTR), Freighter / xBull / Albedo (desktop) |
 | Blockchain | Stellar Testnet + Soroban smart contracts (Rust, `soroban-sdk` 22.x) |
 | QR | `qrcode.react` (generate + download) · `html5-qrcode` (camera scan + image upload) |
-| PWA | `vite-plugin-pwa` + Workbox |
+| PWA | `vite-plugin-pwa` + Workbox · `registerSW()` boot in `main.tsx` |
 | Fee Sponsorship | Vercel serverless function (`api/fee-bump.ts`) + Stellar FeeBumpTransaction |
+| Push Notifications | `web-push` + VAPID · service worker push/notificationclick handlers in `src/sw.ts` · Upstash Redis subscription store via Vercel Marketplace · daily `vercel.json` cron for utang reminders |
+| Pricing / Rates | CoinGecko `stellar/php` simple-price endpoint · 5-min `localStorage` cache · ₱22 fallback |
 | Monitoring | `@sentry/react` + `/api/health` Horizon + RPC liveness check |
 | Security | CSP + X-Frame-Options headers in `vercel.json` · input sanitization in `src/lib/sanitize.ts` |
 

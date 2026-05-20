@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, QrCode, ScanLine, List, User, UserPlus, Users, HandCoins, Store, ChevronLeft, ChevronRight, ArrowUp } from 'lucide-react';
+import { Home, QrCode, ScanLine, List, User, UserPlus, Users, HandCoins, ChevronLeft, ChevronRight, ArrowUp } from 'lucide-react';
 import { WalletButton } from './WalletButton';
 import logoImg from '../assets/logo.png';
 
@@ -17,7 +17,7 @@ const customerNav = [
   { to: '/customer/history', icon: List, label: 'History', center: false },
   { to: '/customer/scan', icon: ScanLine, label: 'Scan', center: true },
   { to: '/customer/utang', icon: HandCoins, label: 'Utang', center: false },
-  { to: '/market', icon: Store, label: 'Market', center: false },
+  { to: '/customer/profile', icon: User, label: 'Profile', center: false },
 ];
 
 const adminNav = [
@@ -35,6 +35,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/customer/history': 'Payment History',
   '/customer/scan': 'Scan & Pay',
   '/customer/utang': 'My Utang',
+  '/customer/profile': 'Profile',
   '/market': 'Market Directory',
   '/admin/market': 'Market Dashboard',
   '/admin/register': 'Register Vendor',

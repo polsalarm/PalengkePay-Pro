@@ -5,6 +5,7 @@ import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorStatus, useToggleVendorStatus } from '../../lib/hooks/useVendorStatus';
 import { useVendorRating } from '../../lib/hooks/useRating';
 import { useToast } from '../../components/Toast';
+import { PushPrompt } from '../../components/PushPrompt';
 import { truncateAddress, prepareContractTx, submitSorobanTx, addressToScVal, stringToScVal } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 
@@ -181,6 +182,9 @@ export function VendorProfile() {
           )}
         </div>
       </div>
+
+      {/* ── PUSH NOTIFICATIONS ── */}
+      <PushPrompt role="vendor" wallet={address} />
 
       {/* ── REPUTATION ── */}
       {vendor && (

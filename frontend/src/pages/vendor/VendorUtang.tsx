@@ -8,6 +8,7 @@ import { UtangCard } from '../../components/UtangCard';
 import { QRScanner } from '../../components/QRScanner';
 import { buildPaymentTx, submitTx } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { notifyWallet } from '../../lib/notify';
 
 const ESCROW_ID = import.meta.env.VITE_UTANG_ESCROW_CONTRACT_ID as string | undefined;
 const FEE_XLM = import.meta.env.VITE_UTANG_FEE_XLM ?? '1';
@@ -156,7 +157,16 @@ export function VendorUtang() {
       },
       address
     );
-    if (hash) { handleClose(); refetch(); }
+    if (hash) {
+      notifyWallet(form.customerWallet.trim(), {
+        title: 'PalengkePay — bagong utang',
+        body: `${form.description.trim()} · ${form.installmentsTotal} × ${(Number(form.totalAmountXlm) / form.installmentsTotal).toFixed(2)} XLM`,
+        tag: `utang-new-${hash}`,
+        url: '/customer/utang',
+      });
+      handleClose();
+      refetch();
+    }
     else if (createError) setFormError(createError);
   }
 

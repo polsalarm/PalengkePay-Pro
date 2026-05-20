@@ -5,6 +5,7 @@ import {
   addressToScVal, u64ToScVal, u32ToScVal, i128ToScVal, stringToScVal,
 } from '../stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { notifyWallet } from '../notify';
 
 const ESCROW_ID = import.meta.env.VITE_UTANG_ESCROW_CONTRACT_ID as string | undefined;
 
@@ -203,6 +204,16 @@ export function usePayInstallment() {
         const hash = await submitSorobanTx(signedTxXdr);
         setTxHash(hash);
         setStatus('confirmed');
+        const nextNum = utang.installmentsPaid + 1;
+        const isFinal = nextNum >= utang.installmentsTotal;
+        notifyWallet(utang.vendorWallet, {
+          title: isFinal ? 'PalengkePay — utang tapos na!' : 'PalengkePay — installment bayad',
+          body: isFinal
+            ? `Customer fully paid: ${utang.description}`
+            : `Installment ${nextNum}/${utang.installmentsTotal} received · ${utang.installmentAmountXlm.toFixed(2)} XLM · ${utang.description}`,
+          tag: `utang-pay-${hash}`,
+          url: '/vendor/utang',
+        });
       } else {
         // Fallback: direct XLM transfer when contract not deployed
         const remaining = utang.installmentsTotal - utang.installmentsPaid;
@@ -228,6 +239,16 @@ export function usePayInstallment() {
         const result = await submitTx(signedTxXdr);
         setTxHash(result.hash);
         setStatus('confirmed');
+        const nextNum = utang.installmentsPaid + 1;
+        const isFinal = nextNum >= utang.installmentsTotal;
+        notifyWallet(utang.vendorWallet, {
+          title: isFinal ? 'PalengkePay — utang tapos na!' : 'PalengkePay — installment bayad',
+          body: isFinal
+            ? `Customer fully paid: ${utang.description}`
+            : `Installment ${nextNum}/${utang.installmentsTotal} received · ${payAmount.toFixed(2)} XLM · ${utang.description}`,
+          tag: `utang-pay-${result.hash}`,
+          url: '/vendor/utang',
+        });
       }
     } catch (err: unknown) {
       const msg = (err as { message?: string }).message ?? String(err);
