@@ -1,8 +1,7 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short,
-    Address, BytesN, Env, String, Vec,
+    contract, contractimpl, contracttype, symbol_short, Address, BytesN, Env, String, Vec,
 };
 
 // ── Data types ────────────────────────────────────────────────────────────────
@@ -53,9 +52,9 @@ pub enum DataKey {
     PendingList,
     VendorList,
     // Reputation (added Phase 0.3) — separate keys for backwards-compat with old VendorRecord storage
-    Rating(Address, BytesN<32>),  // (vendor, tx_hash) → Rating
-    RatingSum(Address),           // vendor → cumulative stars sum (u32)
-    RatingCount(Address),         // vendor → total ratings (u32)
+    Rating(Address, BytesN<32>), // (vendor, tx_hash) → Rating
+    RatingSum(Address),          // vendor → cumulative stars sum (u32)
+    RatingCount(Address),        // vendor → total ratings (u32)
 }
 
 #[contracttype]
@@ -63,7 +62,7 @@ pub enum DataKey {
 pub struct Rating {
     pub customer: Address,
     pub stars: u32,
-    pub comment_hash: BytesN<32>,  // SHA256 of off-chain comment text, zero-bytes when no comment
+    pub comment_hash: BytesN<32>, // SHA256 of off-chain comment text, zero-bytes when no comment
     pub created_at: u64,
 }
 
@@ -500,7 +499,11 @@ impl VendorRegistry {
             panic!("stars must be 1-5");
         }
 
-        if !env.storage().persistent().has(&DataKey::Vendor(vendor.clone())) {
+        if !env
+            .storage()
+            .persistent()
+            .has(&DataKey::Vendor(vendor.clone()))
+        {
             panic!("vendor not found");
         }
 
@@ -527,12 +530,21 @@ impl VendorRegistry {
             .persistent()
             .get(&DataKey::RatingCount(vendor.clone()))
             .unwrap_or(0);
-        env.storage().persistent().set(&DataKey::RatingSum(vendor.clone()), &(sum + stars));
-        env.storage().persistent().set(&DataKey::RatingCount(vendor.clone()), &(count + 1));
+        env.storage()
+            .persistent()
+            .set(&DataKey::RatingSum(vendor.clone()), &(sum + stars));
+        env.storage()
+            .persistent()
+            .set(&DataKey::RatingCount(vendor.clone()), &(count + 1));
 
         env.events().publish(
             (symbol_short!("rating"), symbol_short!("sub")),
-            RatingSubmittedEvent { vendor, customer, stars, tx_hash },
+            RatingSubmittedEvent {
+                vendor,
+                customer,
+                stars,
+                tx_hash,
+            },
         );
     }
 

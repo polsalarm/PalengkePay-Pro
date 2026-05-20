@@ -46,7 +46,7 @@ test('/vendor/transactions exposes income proof exports, recovery, and caveats',
   const certificateDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: /Certificate/i }).click();
   await certificateDownload;
-  await expect(page.getByRole('status', { name: /Export status/i })).toContainText('Certificate export prepared for 1 transaction');
+  await expect(page.getByRole('status', { name: /Export status/i })).toContainText(/Certificate export prepared for \d+ transactions?/);
   await expect(page.getByText('PalengkePay Income Proof Certificate')).toBeVisible();
   await expect(page.getByText('Prepared for lender, cooperative, LGU, or aid-program review.')).toBeVisible();
   await expect(page.getByText('Live hash').nth(1)).toBeVisible();

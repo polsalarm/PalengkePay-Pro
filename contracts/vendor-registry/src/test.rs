@@ -319,7 +319,13 @@ fn test_zero_stars_panics() {
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
-    client.submit_rating(&customer, &vendor, &tx_hash(&env, 1), &0u32, &zero_hash(&env));
+    client.submit_rating(
+        &customer,
+        &vendor,
+        &tx_hash(&env, 1),
+        &0u32,
+        &zero_hash(&env),
+    );
 }
 
 #[test]
@@ -329,7 +335,13 @@ fn test_six_stars_panics() {
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
-    client.submit_rating(&customer, &vendor, &tx_hash(&env, 1), &6u32, &zero_hash(&env));
+    client.submit_rating(
+        &customer,
+        &vendor,
+        &tx_hash(&env, 1),
+        &6u32,
+        &zero_hash(&env),
+    );
 }
 
 #[test]
@@ -338,7 +350,13 @@ fn test_rating_unknown_vendor_panics() {
     let (env, _, client) = setup();
     let ghost = Address::generate(&env);
     let customer = Address::generate(&env);
-    client.submit_rating(&customer, &ghost, &tx_hash(&env, 1), &5u32, &zero_hash(&env));
+    client.submit_rating(
+        &customer,
+        &ghost,
+        &tx_hash(&env, 1),
+        &5u32,
+        &zero_hash(&env),
+    );
 }
 
 #[test]
@@ -348,8 +366,20 @@ fn test_distinct_tx_hashes_allow_multiple_ratings() {
     let customer = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
 
-    client.submit_rating(&customer, &vendor, &tx_hash(&env, 1), &5u32, &zero_hash(&env));
-    client.submit_rating(&customer, &vendor, &tx_hash(&env, 2), &3u32, &zero_hash(&env));
+    client.submit_rating(
+        &customer,
+        &vendor,
+        &tx_hash(&env, 1),
+        &5u32,
+        &zero_hash(&env),
+    );
+    client.submit_rating(
+        &customer,
+        &vendor,
+        &tx_hash(&env, 2),
+        &3u32,
+        &zero_hash(&env),
+    );
 
     let (sum, count) = client.get_vendor_rating(&vendor);
     assert_eq!(sum, 8);
