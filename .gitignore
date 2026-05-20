@@ -70,9 +70,15 @@ docs/
 !docs/contract-deployment.md
 UI_UX_IMPROVEMENTS.md
 frontend/README.md
+ROADMAP.md
+plan.md
+paper.md
+palengkepay-hackathon-application.md
+palengkepay-phase2-features.md
 
 # Claude Code local config — personal, not project files
 .claude/
 .agents/
 
 .vercel
+.env*.local

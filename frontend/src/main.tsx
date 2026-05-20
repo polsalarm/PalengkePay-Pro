@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as Sentry from '@sentry/react'
+import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
 
@@ -11,6 +12,10 @@ Sentry.init({
   tracesSampleRate: 0.2,
   release: 'palengkepay@1.0.0',
 });
+
+if (typeof window !== 'undefined') {
+  registerSW({ immediate: true });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

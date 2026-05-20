@@ -25,7 +25,9 @@
     "tailwindcss": "^4.2.4",
     "viem": "^2.48.11",
     "vite-plugin-pwa": "^1.2.0",
-    "workbox-window": "^7.4.0"
+    "workbox-window": "^7.4.0",
+    "web-push": "^3.6.7",
+    "workbox-precaching": "^7.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -46,7 +48,8 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.10",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "@types/web-push": "^3.6.4"
   },
   "overrides": {
     "axios": "^1.16.1",

@@ -11,6 +11,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+      },
       manifest: {
         name: 'PalengkePay',
         short_name: 'PalengkePay',
@@ -25,10 +32,6 @@ export default defineConfig({
           { src: '/icon-192.svg', sizes: '192x192', type: 'image/svg+xml' },
           { src: '/icon-512.svg', sizes: '512x512', type: 'image/svg+xml' },
         ],
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
     }),
   ],
