@@ -27,6 +27,9 @@ export function CustomerCashin() {
   const [latest, setLatest] = useState<RampTxn | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [senderName, setSenderName] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [proofConfirmed, setProofConfirmed] = useState(false);
 
   const phpNum = Number(amountPhp) || 0;
   const estXlm = phpPerXlm && phpPerXlm > 0 ? (phpNum / phpPerXlm).toFixed(4) : null;
@@ -48,7 +51,12 @@ export function CustomerCashin() {
     if (!quote) return;
     setStage('confirming');
     try {
-      const r = await confirmCashin({ id: quote.id, reference: quote.instructions.reference });
+      const r = await confirmCashin({
+        id: quote.id,
+        reference: paymentReference.trim() || quote.proofReference || quote.instructions.reference,
+        proofReference: quote.proofReference ?? quote.instructions.reference,
+        operatorNote: senderName.trim() ? `Sender: ${senderName.trim()}` : undefined,
+      });
       setStage(stageFromStatus(r.status));
       if (address) notifyWallet(address, {
         title: 'PalengkePay — payment received',
@@ -145,11 +153,18 @@ export function CustomerCashin() {
               <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Rate</span>
               <span className="text-xs text-slate-500">1 XLM = PHP {quote.rate}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Fee / spread</span>
+              <span className="text-xs text-slate-500">PHP {quote.feePhp ?? '0.00'} · {quote.spreadBps ?? 0} bps</span>
+            </div>
+            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#008055' }}>
+              {quote.railMode === 'partner_api' ? 'Partner API mode' : quote.railMode === 'manual_operator' ? 'Manual operator mode' : 'Demo settlement mode'}
+            </p>
           </div>
 
           <div className="rounded-2xl p-4 bg-white border space-y-2" style={{ borderColor: '#F1F5F9' }}>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Pay via {quote.instructions.rail}</p>
-            <p className="text-xs text-slate-500">Send PHP {quote.amountPhp} from your bank/e-wallet to PalengkePay PDAX. Use this reference:</p>
+            <p className="text-xs text-slate-500">Send PHP {quote.amountPhp} from GCash, QR Ph, or bank transfer. Use this reference:</p>
             <div className="flex items-center justify-between rounded-xl px-3 py-2" style={{ backgroundColor: '#F8FAFC' }}>
               <span className="font-mono text-sm font-bold">{quote.instructions.reference}</span>
               <button onClick={() => handleCopy(quote.instructions.reference)} className="px-2 py-1 rounded-md text-[11px] font-bold flex items-center gap-1" style={{ backgroundColor: '#F0FDFA', color: '#008055' }}>
@@ -159,9 +174,37 @@ export function CustomerCashin() {
             <p className="text-[11px] text-slate-400">Quote expires {new Date(quote.expiresAt).toLocaleTimeString()}</p>
           </div>
 
+          <div className="rounded-2xl p-4 bg-white border space-y-3" style={{ borderColor: '#F1F5F9' }}>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Payment proof</p>
+            <input
+              value={senderName}
+              onChange={(e) => setSenderName(e.target.value)}
+              placeholder="Sender name"
+              className="w-full px-3 py-2 rounded-xl border text-sm"
+              style={{ borderColor: '#E2E8F0' }}
+            />
+            <input
+              value={paymentReference}
+              onChange={(e) => setPaymentReference(e.target.value)}
+              placeholder="GCash / QR Ph reference number"
+              className="w-full px-3 py-2 rounded-xl border text-sm"
+              style={{ borderColor: '#E2E8F0' }}
+            />
+            <label className="flex items-start gap-2 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                checked={proofConfirmed}
+                onChange={(e) => setProofConfirmed(e.target.checked)}
+                className="mt-0.5"
+              />
+              I sent the PHP payment and understand operator confirmation is required in demo settlement mode.
+            </label>
+          </div>
+
           <button
             onClick={handleConfirm}
-            className="w-full py-3 rounded-2xl font-black text-white active:scale-[0.98] transition-all"
+            disabled={!proofConfirmed}
+            className="w-full py-3 rounded-2xl font-black text-white active:scale-[0.98] transition-all disabled:opacity-40"
             style={{ backgroundColor: '#008055', fontFamily: "'Montserrat', sans-serif" }}
           >
             I have paid — proceed

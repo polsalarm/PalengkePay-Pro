@@ -18,15 +18,32 @@ export interface RampTxn {
   wallet: string;
   kind: 'deposit' | 'withdraw';
   status: string;
+  network?: 'testnet' | 'mainnet';
   asset: string;
   amountIn: string;
   amountOut?: string;
   amountFee?: string;
   rate?: string;
   rail?: string;
+  railProvider?: string;
+  railMode?: 'mock' | 'manual_operator' | 'partner_api';
+  feePhp?: string;
+  spreadBps?: number;
+  proofReference?: string;
   destination?: string;
   stellarTxHash?: string;
   externalTxId?: string;
+  providerStatus?: string;
+  operatorNote?: string;
+  settlementEvents?: Array<{
+    at: number;
+    status: string;
+    label: string;
+    message?: string;
+    operatorNote?: string;
+    externalTxId?: string;
+    providerStatus?: string;
+  }>;
   message?: string;
   startedAt: number;
   updatedAt: number;
@@ -43,6 +60,10 @@ export interface CashoutCreateResult {
   destination: string;
   beneficiaryName: string;
   status: string;
+  network?: 'testnet' | 'mainnet';
+  railProvider?: string;
+  railMode?: 'mock' | 'manual_operator' | 'partner_api';
+  spreadBps?: number;
 }
 
 export interface CashinQuoteResult {
@@ -50,6 +71,11 @@ export interface CashinQuoteResult {
   amountPhp: string;
   amountXlm: string;
   rate: string;
+  feePhp?: string;
+  spreadBps?: number;
+  railProvider?: string;
+  railMode?: 'mock' | 'manual_operator' | 'partner_api';
+  proofReference?: string;
   expiresAt: number;
   instructions: { rail: string; reference: string };
 }
@@ -77,7 +103,7 @@ export function quoteCashin(params: { wallet: string; amountPhp: string }): Prom
   return post<CashinQuoteResult>('/api/ramp/cashin?action=quote', params);
 }
 
-export function confirmCashin(params: { id: string; reference?: string }): Promise<{ id: string; status: string; amountXlm?: string }> {
+export function confirmCashin(params: { id: string; reference?: string; proofReference?: string; operatorNote?: string }): Promise<{ id: string; status: string; amountXlm?: string }> {
   return post('/api/ramp/cashin?action=confirm', params);
 }
 

@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getLiquidityProfile, getMainnetReadiness } from './liquidity-profile.js';
 
-const HORIZON_URL = 'https://horizon-testnet.stellar.org';
-const RPC_URL = process.env.SOROBAN_RPC_URL ?? 'https://soroban-testnet.stellar.org';
+const liquidityProfile = getLiquidityProfile();
+const HORIZON_URL = liquidityProfile.horizonUrl;
+const RPC_URL = liquidityProfile.sorobanRpcUrl || 'https://soroban-testnet.stellar.org';
 
 interface HealthCheck {
   name: string;
@@ -74,12 +76,21 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     c.status === 'fulfilled' ? c.value : { name: 'unknown', ok: false, status: 0, detail: c.reason instanceof Error ? c.reason.message : 'check failed' },
   );
   results.push(getSponsorRateLimitReadiness());
+  results.push(getMainnetReadiness());
 
   const allOk = results.every((r) => r.ok);
 
   return res.status(allOk ? 200 : 503).json({
     status: allOk ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
+    networkProfile: {
+      profile: liquidityProfile.profile,
+      network: liquidityProfile.network,
+      railProvider: liquidityProfile.railProvider,
+      railMode: liquidityProfile.railMode,
+      liveFiatClaimsEnabled: liquidityProfile.liveFiatClaimsEnabled,
+      warning: liquidityProfile.warning,
+    },
     checks: results,
   });
 }

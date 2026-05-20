@@ -188,6 +188,9 @@ export function CustomerCashout() {
           <div className="rounded-2xl p-4 bg-white border" style={{ borderColor: '#F1F5F9' }}>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Send XLM to anchor</p>
             <p className="font-mono text-xs mt-2 break-all">{order.depositAddress}</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest mt-3" style={{ color: '#008055' }}>
+              {order.railMode === 'partner_api' ? 'Partner API mode' : order.railMode === 'manual_operator' ? 'Manual operator mode' : 'Demo settlement mode'} · {order.network ?? 'testnet'}
+            </p>
             <div className="flex items-center justify-between mt-3">
               <div>
                 <p className="text-xs text-slate-400">Memo (required)</p>
@@ -198,6 +201,7 @@ export function CustomerCashout() {
               </button>
             </div>
             <p className="text-[11px] text-slate-400 mt-3">Amount: <span className="font-bold">{order.amountXlm} XLM</span></p>
+            <p className="text-[11px] text-slate-400 mt-1">Settlement: PDAX-style liquidity quote to GCash / QR Ph settlement rail. Spread: {order.spreadBps ?? 0} bps.</p>
           </div>
           <button
             onClick={handleSend}

@@ -122,7 +122,7 @@ export function AdminRamps() {
         {cashouts.map((t) => (
           <RampCard key={t.id} txn={t} busy={busyId === t.id}>
             <button
-              onClick={() => act(t.id, 'mark_php_sent')}
+              onClick={() => act(t.id, 'mark_php_sent', prompt('Operator note or provider reference?') ?? undefined)}
               className="px-3 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1"
               style={{ backgroundColor: '#008055' }}
             >
@@ -196,6 +196,12 @@ function RampCard({ txn, busy, children }: { txn: RampTxn; busy: boolean; childr
             </a>
           )}
           {txn.message && <p className="text-[11px] text-slate-400 mt-1">{txn.message}</p>}
+          <p className="text-[11px] text-slate-400 mt-1">
+            {(txn.network ?? 'testnet').toUpperCase()} · {txn.railProvider ?? 'PDAX_STYLE'} · {txn.railMode ?? 'mock'}
+            {txn.feePhp && ` · fee PHP ${txn.feePhp}`}
+            {txn.spreadBps !== undefined && ` · spread ${txn.spreadBps} bps`}
+          </p>
+          {txn.proofReference && <p className="text-[11px] font-mono text-slate-400 mt-1">Proof: {txn.proofReference}</p>}
         </div>
         <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full shrink-0" style={{ backgroundColor: '#F0FDFA', color: '#008055' }}>
           {txn.status}
@@ -204,6 +210,21 @@ function RampCard({ txn, busy, children }: { txn: RampTxn; busy: boolean; childr
       <div className="flex gap-2" style={{ opacity: busy ? 0.5 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
         {children}
       </div>
+      {txn.settlementEvents && txn.settlementEvents.length > 0 && (
+        <div className="mt-2 rounded-xl px-3 py-2" style={{ backgroundColor: '#F8FAFC' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Audit timeline</p>
+          <div className="mt-1 space-y-1">
+            {txn.settlementEvents.slice(-4).map((event) => (
+              <p key={`${event.at}-${event.status}`} className="text-[11px] text-slate-500">
+                <span className="font-bold text-slate-700">{event.label}</span>
+                {event.message ? ` · ${event.message}` : ''}
+                {event.externalTxId ? ` · ${event.externalTxId}` : ''}
+                {event.operatorNote ? ` · ${event.operatorNote}` : ''}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

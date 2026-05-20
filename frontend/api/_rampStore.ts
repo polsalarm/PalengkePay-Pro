@@ -11,6 +11,8 @@
  *   - pp:ramp:pending         -> set of ids that need polling/finalization
  */
 
+import { getLiquidityProfile, type LiquidityNetwork, type RailMode, type RailProvider } from './liquidity-profile.js';
+
 const REDIS_URL = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -30,15 +32,24 @@ export interface RampTxn {
   wallet: string;
   kind: RampKind;
   status: RampStatus;
+  network?: LiquidityNetwork;
   asset: string;
   amountIn: string;
   amountOut?: string;
   amountFee?: string;
   rate?: string;
   rail?: string;
+  railProvider?: RailProvider;
+  railMode?: RailMode;
+  feePhp?: string;
+  spreadBps?: number;
+  proofReference?: string;
   destination?: string;
   stellarTxHash?: string;
   externalTxId?: string;
+  providerStatus?: string;
+  operatorNote?: string;
+  settlementEvents?: SettlementEvent[];
   pdaxOrderId?: string;
   pdaxCashoutId?: string;
   pdaxWithdrawId?: string;
@@ -46,6 +57,16 @@ export interface RampTxn {
   startedAt: number;
   updatedAt: number;
   completedAt?: number;
+}
+
+export interface SettlementEvent {
+  at: number;
+  status: RampStatus;
+  label: string;
+  message?: string;
+  operatorNote?: string;
+  externalTxId?: string;
+  providerStatus?: string;
 }
 
 interface MemoryStore {
@@ -91,9 +112,49 @@ function isTerminal(status: RampStatus): boolean {
   return status === 'completed' || status === 'error' || status === 'no_market';
 }
 
+function labelFor(status: RampStatus): string {
+  const labels: Record<RampStatus, string> = {
+    incomplete: 'Ramp created',
+    pending_user_transfer_start: 'Waiting for customer transfer',
+    pending_anchor: 'Anchor processing',
+    pending_external: 'Waiting for GCash / QR Ph settlement rail',
+    pending_stellar: 'Sending XLM',
+    completed: 'Completed',
+    no_market: 'No market available',
+    error: 'Failed',
+  };
+  return labels[status];
+}
+
+function eventFrom(txn: Pick<RampTxn, 'status' | 'message' | 'operatorNote' | 'externalTxId' | 'providerStatus'>): SettlementEvent {
+  return {
+    at: Date.now(),
+    status: txn.status,
+    label: labelFor(txn.status),
+    message: txn.message,
+    operatorNote: txn.operatorNote,
+    externalTxId: txn.externalTxId,
+    providerStatus: txn.providerStatus,
+  };
+}
+
 export async function createTxn(params: Omit<RampTxn, 'id' | 'startedAt' | 'updatedAt'>): Promise<RampTxn> {
   const now = Date.now();
-  const txn: RampTxn = { ...params, id: newId(), startedAt: now, updatedAt: now };
+  const profile = getLiquidityProfile();
+  const baseTxn: RampTxn = {
+    network: profile.network,
+    railProvider: profile.railProvider,
+    railMode: profile.railMode,
+    spreadBps: profile.spreadBps,
+    ...params,
+    id: newId(),
+    startedAt: now,
+    updatedAt: now,
+  };
+  const txn: RampTxn = {
+    ...baseTxn,
+    settlementEvents: params.settlementEvents ?? [eventFrom(baseTxn)],
+  };
   const blob = JSON.stringify(txn);
   if (hasRedis()) {
     await redis(['SET', txnKey(txn.id), blob]);
@@ -123,6 +184,16 @@ export async function updateTxn(id: string, patch: Partial<Omit<RampTxn, 'id' | 
   const current = await getTxn(id);
   if (!current) return null;
   const merged: RampTxn = { ...current, ...patch, updatedAt: Date.now() };
+  const shouldAppendEvent = Boolean(
+    patch.status && patch.status !== current.status
+    || patch.message && patch.message !== current.message
+    || patch.operatorNote && patch.operatorNote !== current.operatorNote
+    || patch.externalTxId && patch.externalTxId !== current.externalTxId
+    || patch.providerStatus && patch.providerStatus !== current.providerStatus,
+  );
+  if (shouldAppendEvent) {
+    merged.settlementEvents = [...(current.settlementEvents ?? []), eventFrom(merged)];
+  }
   if (isTerminal(merged.status) && !merged.completedAt) merged.completedAt = Date.now();
   const blob = JSON.stringify(merged);
   if (hasRedis()) {
@@ -163,6 +234,11 @@ export async function listPending(): Promise<RampTxn[]> {
     if (t) out.push(t);
   }
   return out;
+}
+
+export async function listPendingForNetwork(network: LiquidityNetwork): Promise<RampTxn[]> {
+  const pending = await listPending();
+  return pending.filter((txn) => (txn.network ?? 'testnet') === network);
 }
 
 export function isPersistent(): boolean {

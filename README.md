@@ -300,22 +300,24 @@ Contract-first payment history with Horizon/localStorage fallback.
 - Anchor signing key configured via `ANCHOR_SIGNING_SECRET` env var; pubkey is the same custody account that holds inbound XLM and signs outbound payments
 
 ### Cash-In / Cash-Out (PHP ↔ XLM via PDAX, hackathon-grade)
-- **`/customer/cashin`** — customer enters PHP amount, gets live quote (`1 XLM ≈ ₱7.85` via PDAX-mocked client or `RAMP_RATE_FALLBACK` env), generates payment reference, claims payment, status timeline driven by real polling
-- **`/customer/cashout`** — customer enters XLM amount + payout method (InstaPay / PesoNet / GCash / Maya / Direct bank), backend returns anchor deposit address + memo, customer signs Stellar payment from wallet, backend Horizon-verifies the deposit (memo + amount + destination match) before crediting
+- **Network profile guard** — `ANCHOR_NETWORK_PROFILE=testnet` is the safe default. `mainnet-ready` exposes production-readiness gaps without enabling live fiat claims. `mainnet` is only safe after custody, provider credentials, webhooks, durable storage, limits, and final go/no-go are complete.
+- **Realistic quote metadata** — cash-in quotes now include a PDAX-style provider label, `RAMP_FEE_PERCENT`, `RAMP_SPREAD_BPS`, expiry, and a user-facing proof reference.
+- **`/customer/cashin`** — customer enters PHP amount, gets quote (`1 XLM ≈ ₱7.85` via PDAX-mocked client or `RAMP_RATE_FALLBACK` env), pays through a GCash / QR Ph settlement rail, submits sender/reference proof, and waits for operator or partner settlement.
+- **`/customer/cashout`** — customer enters XLM amount + payout method (InstaPay / PesoNet / GCash / Maya / Direct bank), backend returns anchor deposit address + memo, customer signs Stellar payment from wallet, backend Horizon-verifies the deposit (memo + amount + destination match) before crediting.
 - **Vendor "Withdraw earnings"** shortcut on `/vendor/profile` deep-links to the cashout flow so vendors can off-ramp XLM income to PHP
 - **PDAX client** (`api/_pdax.ts`) — HMAC SHA-384 signed REST client with mock mode (`PDAX_MOCK=true`) that delegates Stellar legs to the real anchor and stubs fiat legs for operator manual settlement
 - **Anchor wallet helper** (`api/_anchor.ts`) — `sendPayment()` signs + submits real Stellar payments from the anchor account; `verifyIncomingPayment()` confirms inbound cashout txs via Horizon before triggering payout
 - **Push notifications** fire on every ramp state transition (`pending_external → completed`, `pending_external → error`) so customers can close the page and wait
-- **Ramp state store** (`api/_rampStore.ts`) — Upstash Redis-backed with in-memory fallback; tracks every txn through `incomplete → pending_user_transfer_start → pending_anchor → pending_external → completed` lifecycle, indexed by wallet + global pending set for operator queue
+- **Ramp state store** (`api/_rampStore.ts`) — Upstash Redis-backed with in-memory fallback; tracks every txn through `incomplete → pending_user_transfer_start → pending_anchor → pending_external → completed`, records Testnet/Mainnet network, rail mode, proof reference, fees/spread, and settlement audit events.
 
 ### Ramp Admin (Hidden)
 - **`/admin/ramps`** — operator settlement console for hackathon-grade ramps. **No nav link anywhere** — URL-only access.
 - Gated by `RAMP_ADMIN_KEY` env var; operator pastes the key once and it's cached in `localStorage` for the device
-- Lists all pending ramps (`listPending()` from `_rampStore`) split into "Cashouts awaiting PHP payout" and "Cashins awaiting XLM release"
+- Lists pending ramps for the current network profile only, split into "Cashouts awaiting PHP payout" and "Cashins awaiting XLM release"
 - **Mark PHP sent** closes off-ramps after operator manually pays via GCash/InstaPay
 - **Release XLM** triggers real Stellar payment from anchor to customer wallet (calls `anchor.sendPayment` under the hood) for on-ramps
 - **Fail** with reason marks any ramp as terminal `error` and push-notifies the customer
-- All actions polled every 15 s; admin push-notifies customer on settlement
+- All actions polled every 15 s; admin push-notifies customer on settlement and shows the latest settlement audit timeline
 - **Why operator gate exists:** PDAX integration is mocked → no PDAX webhook to confirm "PHP credited" / "PHP sent". Operator = human PDAX until partnership signed. Once PDAX is live, both gates become automated webhook callbacks.
 
 ---

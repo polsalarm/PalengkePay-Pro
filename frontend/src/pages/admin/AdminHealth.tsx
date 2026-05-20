@@ -11,6 +11,14 @@ interface HealthCheck {
 interface HealthResponse {
   status: 'ok' | 'degraded';
   timestamp: string;
+  networkProfile?: {
+    profile: string;
+    network: string;
+    railProvider: string;
+    railMode: string;
+    liveFiatClaimsEnabled: boolean;
+    warning?: string;
+  };
   checks: HealthCheck[];
 }
 
@@ -55,6 +63,7 @@ export function AdminHealth() {
 
   const apiOk = health?.status === 'ok';
   const sponsorRateLimit = health?.checks.find((check) => check.name === 'sponsor_rate_limit');
+  const liquidityProfile = health?.checks.find((check) => check.name === 'liquidity_network_profile');
   const healthStatus = error
     ? `Health endpoint unavailable: ${error}`
     : loading
@@ -107,9 +116,9 @@ export function AdminHealth() {
           />
           <StatusCard
             title="Payment proof"
-            value="manual hash required"
-            ok={false}
-            detail="Final E2E still needs a wallet-signed Testnet transaction hash."
+            value={health?.networkProfile?.profile ?? 'testnet'}
+            ok={!!liquidityProfile?.ok}
+            detail={liquidityProfile?.detail ?? 'Mainnet partner mode requires production credentials before live fiat claims.'}
           />
         </div>
 
@@ -125,6 +134,9 @@ export function AdminHealth() {
           }}
         >
           {healthStatus}
+          {health?.networkProfile?.warning && (
+            <p className="mt-2 text-xs font-bold">{health.networkProfile.warning}</p>
+          )}
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
