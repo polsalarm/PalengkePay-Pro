@@ -146,3 +146,100 @@ Residual limits:
 - Durable Redis/KV persistence was not fully exercised because production KV credentials were not used.
 - Wallet-signed payment and utang on-chain flows were not exercised because no connected wallet session was available for signing.
 - Full `npm run lint` still fails on pre-existing repo-wide React compiler lint debt outside this PR hardening scope.
+
+---
+
+## Testnet Liquidity Rail Production Beta Checkpoint
+
+Timestamp: 2026-05-21 06:58 Asia/Manila
+
+Branch: `main`
+
+Commit under test: `0067529 feat(liquidity): add testnet-first rail readiness`
+
+Production beta URL:
+
+- `https://palengke-pay-beta.vercel.app`
+
+Deployment evidence:
+
+- Vercel project root directory was set to `frontend`.
+- Latest production deployment inspected as Ready:
+  - Deployment URL: `https://palengke-3n6fb7rle-iron-marks-projects.vercel.app`
+  - Deployment id: `dpl_3hDCdJnyDUgURH8DvGXwuXkKcTPB`
+  - Aliased to `https://palengke-pay-beta.vercel.app`
+- Production environment variables added without exposing values:
+  - `ANCHOR_NETWORK_PROFILE`
+  - `PDAX_MOCK`
+  - `RAMP_RATE_FALLBACK`
+  - `RAMP_FEE_PERCENT`
+  - `RAMP_SPREAD_BPS`
+  - `RAMP_ADMIN_KEY`
+
+Local verification before production redeploy:
+
+| Check | Result |
+|---|---|
+| `npm test` | PASS, 15 files / 70 tests |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run qa:visual` | PASS, 46 desktop + 46 mobile checks |
+| Local Vercel route smoke | PASS for `/customer/cashin`, `/customer/cashout`, `/admin/ramps`, `/admin/health`, `/.well-known/stellar.toml`, `/api/sep24/info` |
+| Direct handler ramp lifecycle | PASS for cash-in quote/confirm/admin release and cash-out create/settle/admin complete |
+
+Production beta route smoke:
+
+| Route | Result |
+|---|---|
+| `/.well-known/stellar.toml` | HTTP 200, Testnet Stellar TOML served |
+| `/api/sep24/info` | HTTP 200 |
+| `/customer/cashin` | HTTP 200 |
+| `/customer/cashout` | HTTP 200 |
+| `/admin/ramps` | HTTP 200 |
+| `/admin/health` | HTTP 200 |
+| `/api/ramp/admin` without key | HTTP 401 |
+| `/api/ramp/admin` with generated production key | HTTP 200 |
+| `/api/health` | HTTP 503 degraded, expected until durable Redis/KV is configured |
+
+Production beta ramp E2E:
+
+| Flow | Evidence | Result |
+|---|---|---|
+| Cash-in quote | Generated PDAX-style quote with `railMode=mock`, fee, spread, and proof reference | PASS |
+| Cash-in confirm | Customer proof claim moved transaction to `pending_external` | PASS |
+| Admin queue | Cash-in transaction appeared in admin queue | PASS |
+| Admin release XLM | Operator release moved transaction to `pending_stellar`; provider status `PENDING` because `ANCHOR_SIGNING_SECRET` is not configured | PASS with known Testnet custody blocker |
+| Cash-out create | Created mock provider cash-out request with Testnet network metadata and deposit address | PASS |
+| Cash-out settle | Mock Stellar hash moved transaction to `pending_external` with calculated PHP amount | PASS |
+| Admin mark PHP sent | Operator completed payout and final status became `completed` | PASS |
+| Cash-out receipt timeline | Final status lookup showed 5 settlement events | PASS |
+
+Current production beta health:
+
+```json
+{
+  "status": "degraded",
+  "networkProfile": {
+    "profile": "testnet",
+    "network": "testnet",
+    "railProvider": "PDAX_STYLE",
+    "railMode": "mock",
+    "liveFiatClaimsEnabled": false
+  },
+  "failingCheck": {
+    "name": "sponsor_rate_limit",
+    "detail": "durable Redis REST rate limiting is required"
+  }
+}
+```
+
+Residual blockers:
+
+- Durable Redis/KV production rate limiting is not configured. Required: `UPSTASH_REDIS_REST_URL` plus `UPSTASH_REDIS_REST_TOKEN`, or `KV_REST_API_URL` plus `KV_REST_API_TOKEN`.
+- Real Testnet XLM release from the anchor is not enabled until `ANCHOR_SIGNING_SECRET` is configured and funded.
+- Mainnet activation remains blocked until production custody, provider credentials, webhook secrets, rate limits, and go/no-go checks are present.
+- `https://palengke-pay.vercel.app` is still attached to another deployment/project. Attempting to alias the latest deployment returned: `The chosen alias "palengke-pay.vercel.app" is already in use.`
+
+Demo recommendation:
+
+- Use `https://palengke-pay-beta.vercel.app` for the hackathon demo unless the stale `palengke-pay.vercel.app` alias is freed or transferred.
