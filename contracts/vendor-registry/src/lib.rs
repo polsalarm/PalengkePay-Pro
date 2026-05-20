@@ -495,7 +495,7 @@ impl VendorRegistry {
     ) {
         customer.require_auth();
 
-        if stars < 1 || stars > 5 {
+        if !(1..=5).contains(&stars) {
             panic!("stars must be 1-5");
         }
 
