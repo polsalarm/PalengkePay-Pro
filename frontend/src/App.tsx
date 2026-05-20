@@ -17,9 +17,12 @@ import { CustomerScan } from './pages/customer/CustomerScan';
 import { CustomerHistory } from './pages/customer/CustomerHistory';
 import { CustomerUtang } from './pages/customer/CustomerUtang';
 import { CustomerProfile } from './pages/customer/CustomerProfile';
+import { CustomerCashin } from './pages/customer/CustomerCashin';
+import { CustomerCashout } from './pages/customer/CustomerCashout';
 import { AdminMarket } from './pages/admin/AdminMarket';
 import { AdminRegister } from './pages/admin/AdminRegister';
 import { AdminMetrics } from './pages/admin/AdminMetrics';
+import { AdminRamps } from './pages/admin/AdminRamps';
 import { VendorApply } from './pages/vendor/VendorApply';
 import { MarketDirectory } from './pages/MarketDirectory';
 import { Receipt } from './pages/Receipt';
@@ -54,11 +57,14 @@ export default function App() {
             <Route path="/customer/history" element={<CustomerHistory />} />
             <Route path="/customer/utang" element={<CustomerUtang />} />
             <Route path="/customer/profile" element={<CustomerProfile />} />
+            <Route path="/customer/cashin" element={<CustomerCashin />} />
+            <Route path="/customer/cashout" element={<CustomerCashout />} />
 
             {/* Admin */}
             <Route path="/admin/market" element={<AdminMarket />} />
             <Route path="/admin/register" element={<AdminRegister />} />
             <Route path="/admin/metrics" element={<AdminMetrics />} />
+            <Route path="/admin/ramps" element={<AdminRamps />} />
 
             {/* Vendor apply (public) */}
             <Route path="/vendor/apply" element={<VendorApply />} />

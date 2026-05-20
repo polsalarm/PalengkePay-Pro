@@ -256,6 +256,32 @@ Cursor-based Horizon payment indexer with localStorage caching.
 - Customer bottom-nav reshuffled: **Home · History · Scan · Utang · Profile** (Market dropped from nav; still reachable from Home's "Find Vendors" and from the Profile page)
 - EN / TL language toggle inline on the page header
 
+### SEP-24 Fiat Anchor (XLM ↔ PHP)
+- **Full SEP-1 + SEP-10 + SEP-24 anchor** running at `palengkepay-pro.vercel.app` so any Stellar wallet (Lobstr, Freighter, Albedo) can discover the on/off ramp via `/.well-known/stellar.toml`
+- **Dynamic toml** at `api/stellar-toml.ts` advertises `WEB_AUTH_ENDPOINT`, `TRANSFER_SERVER_SEP0024`, anchor `SIGNING_KEY`
+- **SEP-10 web auth** at `api/sep10/auth.ts` — challenge-response transaction signed by both anchor + client, returns HS256 JWT for SEP-24 calls
+- **SEP-24 dispatcher** at `api/sep24.ts` — single consolidated function handles `/info`, `/transactions/deposit/interactive`, `/transactions/withdraw/interactive`, `/transaction`, `/transactions` (vercel.json rewrites map nested URLs to the dispatcher to stay within Hobby plan function limits)
+- Anchor signing key configured via `ANCHOR_SIGNING_SECRET` env var; pubkey is the same custody account that holds inbound XLM and signs outbound payments
+
+### Cash-In / Cash-Out (PHP ↔ XLM via PDAX, hackathon-grade)
+- **`/customer/cashin`** — customer enters PHP amount, gets live quote (`1 XLM ≈ ₱7.85` via PDAX-mocked client or `RAMP_RATE_FALLBACK` env), generates payment reference, claims payment, status timeline driven by real polling
+- **`/customer/cashout`** — customer enters XLM amount + payout method (InstaPay / PesoNet / GCash / Maya / Direct bank), backend returns anchor deposit address + memo, customer signs Stellar payment from wallet, backend Horizon-verifies the deposit (memo + amount + destination match) before crediting
+- **Vendor "Withdraw earnings"** shortcut on `/vendor/profile` deep-links to the cashout flow so vendors can off-ramp XLM income to PHP
+- **PDAX client** (`api/_pdax.ts`) — HMAC SHA-384 signed REST client with mock mode (`PDAX_MOCK=true`) that delegates Stellar legs to the real anchor and stubs fiat legs for operator manual settlement
+- **Anchor wallet helper** (`api/_anchor.ts`) — `sendPayment()` signs + submits real Stellar payments from the anchor account; `verifyIncomingPayment()` confirms inbound cashout txs via Horizon before triggering payout
+- **Push notifications** fire on every ramp state transition (`pending_external → completed`, `pending_external → error`) so customers can close the page and wait
+- **Ramp state store** (`api/_rampStore.ts`) — Upstash Redis-backed with in-memory fallback; tracks every txn through `incomplete → pending_user_transfer_start → pending_anchor → pending_external → completed` lifecycle, indexed by wallet + global pending set for operator queue
+
+### Ramp Admin (Hidden)
+- **`/admin/ramps`** — operator settlement console for hackathon-grade ramps. **No nav link anywhere** — URL-only access.
+- Gated by `RAMP_ADMIN_KEY` env var; operator pastes the key once and it's cached in `localStorage` for the device
+- Lists all pending ramps (`listPending()` from `_rampStore`) split into "Cashouts awaiting PHP payout" and "Cashins awaiting XLM release"
+- **Mark PHP sent** closes off-ramps after operator manually pays via GCash/InstaPay
+- **Release XLM** triggers real Stellar payment from anchor to customer wallet (calls `anchor.sendPayment` under the hood) for on-ramps
+- **Fail** with reason marks any ramp as terminal `error` and push-notifies the customer
+- All actions polled every 15 s; admin push-notifies customer on settlement
+- **Why operator gate exists:** PDAX integration is mocked → no PDAX webhook to confirm "PHP credited" / "PHP sent". Operator = human PDAX until partnership signed. Once PDAX is live, both gates become automated webhook callbacks.
+
 ---
 
 ## Contracts
@@ -425,11 +451,16 @@ The following improvements are planned for Phase 2, derived directly from beta u
 
 ### Features
 - **✓ Shipped — Recurring utang reminders** — daily cron at `0 0 * * *` scans every subscribed wallet for installments due within 24h or already overdue and pushes a notification to the customer.
+- **✓ Shipped — SEP-24 fiat anchor** — full SEP-1 + SEP-10 + SEP-24 implementation lets any Stellar wallet discover the PalengkePay on/off ramp. See [SEP-24 Fiat Anchor](#sep-24-fiat-anchor-xlm--php) above.
+- **✓ Shipped — Cash-In / Cash-Out (PHP ↔ XLM)** — customer-facing ramp UI backed by PDAX-mocked client + operator manual settlement. See [Cash-In / Cash-Out](#cash-in--cash-out-php--xlm-via-pdax-hackathon-grade) above.
 - **QR print-ready layout** — vendors want a printer-friendly QR page (A5 sticker format) they can paste on their stall. Builds on the download QR feature in commit [`dfcb790`](https://github.com/polsalarm/PalengkePay/commit/dfcb790).
 - **Partial payment support** — some customers requested paying more than one installment at a time to close their utang early.
 
 ### Technical
-- **Mainnet deployment** — migrate from Stellar Testnet to Mainnet once contracts are audited. Contract architecture is already production-ready (commit [`8c305b4`](https://github.com/polsalarm/PalengkePay/commit/8c305b4) fixed prod white-screen for WalletConnect).
+- **Mainnet deployment** — migrate from Stellar Testnet to Mainnet once contracts are audited. Contract architecture is already production-ready (commit [`8c305b4`](https://github.com/polsalarm/PalengkePay/commit/8c305b4) fixed prod white-screen for WalletConnect). **Phase 3 ramp is gated on PDAX CAAS partnership + KYC + KMS-backed anchor custody — see `plan.md` for full mainnet checklist.**
+- **PDAX CAAS partnership** — unlock live PHP rails (InstaPay / PesoNet / GCash / Maya) and replace the operator manual settlement console with automated PDAX webhooks for both cashin (PHP-credited webhook → auto release XLM) and cashout (PDAX cashout API → auto mark complete).
+- **KYC gating** — per-wallet verification status (`unverified | pending | verified`) wired to PDAX KYC sub-account API; block ramps above legal threshold until verified.
+- **Anchor key custody to KMS** — move `ANCHOR_SIGNING_SECRET` from Vercel env plaintext to a KMS-backed signer for mainnet.
 - **✓ Shipped — Off-chain push subscription store** — Upstash Redis via Vercel Marketplace integration `palengkepay`; subscriptions keyed by Stellar wallet, durable across serverless cold starts, 410/404 endpoints pruned automatically.
 - **Firebase / Supabase off-chain metadata layer** — vendor metadata caching to reduce Soroban RPC calls and improve load time.
 - **Multi-language (Filipino / English)** — EN·TL toggle already stubbed in the UI; wire up `i18n` library with full Tagalog translations.
@@ -488,11 +519,34 @@ VAPID_SUBJECT=mailto:you@example.com
 # needed locally if you want push subscriptions durable in dev as well.
 KV_REST_API_URL=
 KV_REST_API_TOKEN=
+
+# SEP-24 anchor (generate via `node scripts/setup-anchor.mjs`)
+ANCHOR_SIGNING_SECRET=S...
+ANCHOR_HOME_DOMAIN=palengkepay-pro.vercel.app
+ANCHOR_BASE_URL=https://palengkepay-pro.vercel.app
+ANCHOR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
+ANCHOR_HORIZON_URL=https://horizon-testnet.stellar.org
+
+# PDAX fiat rails — mock mode for hackathon, real keys for live
+PDAX_MOCK=true
+PDAX_API_KEY=
+PDAX_API_SECRET=
+PDAX_BASE_URL=https://api.pdax.ph
+RAMP_RATE_FALLBACK=7.85          # PHP per XLM when PDAX is mocked
+
+# Ramp admin operator key (random hex; pasted into /admin/ramps)
+RAMP_ADMIN_KEY=
 ```
 
 `VITE_UTANG_FEE_XLM` — XLM fee charged to vendors per utang QR creation (default: `1`).
 
 `VITE_VAPID_PUBLIC_KEY` is read by both the client (push subscribe) and the server (web-push send). `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` must stay server-only. `KV_REST_API_URL` / `KV_REST_API_TOKEN` are provisioned automatically when the Upstash for Redis Marketplace integration is linked to the Vercel project — `frontend/api/_pushStore.ts` falls back to an in-memory map when these are unset (lossy across cold starts, fine for local dev).
+
+`ANCHOR_SIGNING_SECRET` is the Stellar keypair that signs SEP-10 challenges *and* custodies inbound XLM for cashouts *and* signs outbound payments for cashins. Generate + fund via `node scripts/setup-anchor.mjs` (creates a testnet keypair and funds it via friendbot). The pubkey appears as `SIGNING_KEY` in the toml.
+
+`PDAX_MOCK=true` keeps PDAX endpoints mocked so the Stellar leg of every ramp is real but the fiat leg is stubbed for operator manual settlement at `/admin/ramps`. Flip to `false` only when a live PDAX CAAS partnership and KYC integration are wired — see `plan.md` Phase 3 mainnet section.
+
+`RAMP_ADMIN_KEY` gates `/api/ramp/admin`. The `/admin/ramps` page is hidden (no nav link anywhere) and the API rejects requests without an `x-admin-key` header matching this value.
 
 ---
 
@@ -507,6 +561,8 @@ KV_REST_API_TOKEN=
 | PWA | `vite-plugin-pwa` + Workbox · `registerSW()` boot in `main.tsx` |
 | Fee Sponsorship | Vercel serverless function (`api/fee-bump.ts`) + Stellar FeeBumpTransaction |
 | Push Notifications | `web-push` + VAPID · service worker push/notificationclick handlers in `src/sw.ts` · Upstash Redis subscription store via Vercel Marketplace · daily `vercel.json` cron for utang reminders |
+| SEP-24 Anchor | SEP-1 toml + SEP-10 web-auth (HS256 JWT) + SEP-24 deposit/withdraw consolidated dispatcher · custom HMAC SHA-384 PDAX client with mock mode · `_anchor.ts` Stellar wallet helper for inbound verification + outbound payments |
+| Ramp Settlement | Hidden `/admin/ramps` operator console gated by `RAMP_ADMIN_KEY` · Upstash Redis ramp state store (`_rampStore.ts`) with wallet + global pending indexes · automatic push notifications on every state transition |
 | Pricing / Rates | CoinGecko `stellar/php` simple-price endpoint · 5-min `localStorage` cache · ₱22 fallback |
 | Monitoring | `@sentry/react` + `/api/health` Horizon + RPC liveness check |
 | Security | CSP + X-Frame-Options headers in `vercel.json` · input sanitization in `src/lib/sanitize.ts` |

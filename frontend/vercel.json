@@ -17,7 +17,19 @@
       ]
     }
   ],
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/.well-known/stellar.toml", "destination": "/api/stellar-toml" },
+    { "source": "/api/sep24/info", "destination": "/api/sep24?_op=info" },
+    { "source": "/api/sep24/transactions/deposit/interactive", "destination": "/api/sep24?_op=deposit-interactive" },
+    { "source": "/api/sep24/transactions/withdraw/interactive", "destination": "/api/sep24?_op=withdraw-interactive" },
+    { "source": "/api/sep24/transaction", "destination": "/api/sep24?_op=transaction" },
+    { "source": "/api/sep24/transactions", "destination": "/api/sep24?_op=transactions" },
+    { "source": "/api/ramp/cashout", "destination": "/api/ramp?_op=cashout" },
+    { "source": "/api/ramp/cashin", "destination": "/api/ramp?_op=cashin" },
+    { "source": "/api/ramp/status", "destination": "/api/ramp?_op=status" },
+    { "source": "/api/ramp/admin", "destination": "/api/ramp?_op=admin" },
+    { "source": "/((?!api/|\\.well-known/).*)", "destination": "/index.html" }
+  ],
   "crons": [
     { "path": "/api/cron/utang-reminders", "schedule": "0 0 * * *" }
   ]

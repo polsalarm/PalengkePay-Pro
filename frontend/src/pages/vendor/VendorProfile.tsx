@@ -186,6 +186,21 @@ export function VendorProfile() {
       {/* ── PUSH NOTIFICATIONS ── */}
       <PushPrompt role="vendor" wallet={address} />
 
+      {/* ── WITHDRAW TO BANK ── */}
+      <a
+        href="/customer/cashout"
+        className="rounded-2xl px-5 py-4 flex items-center gap-4 active:scale-[0.98] transition-all block"
+        style={{ backgroundColor: 'white', border: '1.5px solid #F1F5F9' }}
+      >
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#F0FDFA' }}>
+          <Coins size={20} style={{ color: '#008055' }} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-slate-900">Withdraw earnings</p>
+          <p className="text-xs text-slate-400 mt-0.5">Cash out XLM → PHP via PDAX</p>
+        </div>
+      </a>
+
       {/* ── REPUTATION ── */}
       {vendor && (
         <div
