@@ -7,10 +7,9 @@ import { useCustomerUtangs, usePayInstallment, useCreateUtang } from '../../lib/
 import type { UtangRecord } from '../../lib/hooks/useUtang';
 import type { UtangOfferPayload } from '../vendor/VendorUtang';
 import { UtangCard } from '../../components/UtangCard';
-import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
-import { useVendorName } from '../../lib/hooks/useVendor';
-import { RatingPrompt } from '../../components/RatingPrompt';
-import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
+import { stellarExpertUrl } from '../../lib/stellar';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { ESCROW_CONTRACT_ID } from '../../lib/contracts';
 
 const STROOPS = 10_000_000;
 const INTERVAL_LABELS: Record<number, string> = { 604800: 'weekly', 1209600: 'biweekly', 2592000: 'monthly' };
@@ -19,23 +18,19 @@ const UTANG_FILE_DIV = 'qr-utang-file-scanner';
 
 export function CustomerUtang() {
   const { address } = useWallet();
-  const { utangs, isLoading, refetch } = useCustomerUtangs(address);
+  const { utangs, isLoading, error: fetchError, refetch } = useCustomerUtangs(address);
   const { status, txHash, error, payInstallment, reset } = usePayInstallment();
   const { createUtang, isCreating } = useCreateUtang();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [paying, setPaying] = useState<UtangRecord | null>(null);
-  const [wasFinalInstallment, setWasFinalInstallment] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
-  const payingVendorName = useVendorName(paying?.vendorWallet ?? null);
   const [uploadedOffer, setUploadedOffer] = useState<UtangOfferPayload | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [offerAcceptStatus, setOfferAcceptStatus] = useState<'idle' | 'signing' | 'confirmed' | 'failed'>('idle');
   const [offerTxHash, setOfferTxHash] = useState<string | null>(null);
   const [offerError, setOfferError] = useState<string | null>(null);
-  const { unit, format } = useFormatAmount();
-  const unitLabel = unit === 'php' ? 'PHP' : 'XLM';
 
   const handleUploadQR = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,14 +65,20 @@ export function CustomerUtang() {
       setTimeout(() => setUploadError(null), 5000);
     } finally {
       setUploadLoading(false);
-      try { await scanner.clear(); } catch {
-        // Best-effort cleanup; html5-qrcode may already be cleared.
+      try { await scanner.clear(); } catch (clearError) {
+        void clearError;
+        // File scanner cleanup is best-effort.
       }
     }
   };
 
   const handleAcceptOffer = async () => {
     if (!uploadedOffer || !address) return;
+    if (uploadedOffer.c && uploadedOffer.c !== address) {
+      setOfferError('This installment offer is assigned to another customer wallet');
+      setOfferAcceptStatus('failed');
+      return;
+    }
     setOfferAcceptStatus('signing');
     setOfferError(null);
     const hash = await createUtang(
@@ -104,7 +105,6 @@ export function CustomerUtang() {
   const active = utangs.filter((u) => u.status === 'active');
   const filtered = filter === 'all' ? utangs : utangs.filter((u) => u.status === filter);
   const totalDue = active.reduce((sum, u) => sum + u.installmentAmountXlm, 0);
-  const totalDueStr = format(totalDue, { showSuffix: false });
 
   function handlePayClick(utang: UtangRecord) {
     if (!address) return;
@@ -114,18 +114,18 @@ export function CustomerUtang() {
 
   async function confirmPay() {
     if (!paying || !address) return;
-    const isFinal = paying.installmentsPaid + 1 >= paying.installmentsTotal;
-    setWasFinalInstallment(isFinal);
     await payInstallment(paying, address);
     refetch();
-    if (isFinal) setFilter('completed');
   }
 
   function handleClosePayModal() {
     if (status === 'building' || status === 'signing' || status === 'submitting') return;
     setPaying(null);
-    setWasFinalInstallment(false);
     reset();
+  }
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your wallet to review installment plans and accept vendor credit offers." />;
   }
 
   return (
@@ -169,6 +169,42 @@ export function CustomerUtang() {
         </div>
       )}
 
+      {!ESCROW_CONTRACT_ID && (
+        <div
+          className="rounded-2xl p-4 flex gap-3"
+          style={{ backgroundColor: '#FFFBEB', border: '1.5px solid #FDE68A' }}
+        >
+          <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: '#D97706' }} />
+          <div>
+            <p className="text-sm font-black text-slate-800">Installment contract not configured</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Set VITE_UTANG_ESCROW_CONTRACT_ID before customers can load or accept installment plans.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Load error ── */}
+      {!isLoading && fetchError && ESCROW_CONTRACT_ID && (
+        <div
+          className="rounded-2xl p-4 flex gap-3"
+          style={{ backgroundColor: '#FFF1F2', color: '#BE123C', border: '1.5px solid #FECDD3' }}
+        >
+          <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-rose-800">Hindi ma-load ang installment plans</p>
+            <p className="text-xs font-medium mt-0.5 text-rose-600">{fetchError}</p>
+          </div>
+          <button
+            onClick={refetch}
+            className="text-xs font-bold px-3 py-2 rounded-xl active:scale-95 self-start"
+            style={{ backgroundColor: 'white', color: '#BE123C', border: '1px solid #FECDD3' }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* ── Due summary hero ── */}
       {active.length > 0 && (
         <div
@@ -206,14 +242,14 @@ export function CustomerUtang() {
               <span
                 className="font-black text-white leading-none"
                 style={{
-                  fontSize: totalDueStr.length >= 8 ? '2.4rem' : '3rem',
+                  fontSize: totalDue.toFixed(2).length >= 8 ? '2.4rem' : '3rem',
                   fontFamily: "'Montserrat', sans-serif",
                   letterSpacing: '-0.02em',
                 }}
               >
-                {totalDueStr}
+                {totalDue.toFixed(2)}
               </span>
-              <span className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>{unitLabel}</span>
+              <span className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>XLM</span>
             </div>
             <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>
               {active.length} aktibong plan{active.length !== 1 ? 's' : ''}
@@ -264,7 +300,7 @@ export function CustomerUtang() {
       )}
 
       {/* ── Empty state ── */}
-      {!isLoading && filtered.length === 0 && (
+      {!isLoading && !fetchError && filtered.length === 0 && (
         <div
           className="rounded-3xl p-8 text-center"
           style={{ backgroundColor: 'white', border: '1.5px solid #F1F5F9' }}
@@ -303,7 +339,7 @@ export function CustomerUtang() {
       )}
 
       {/* ── Utang cards ── */}
-      {!isLoading && filtered.length > 0 && (
+      {!isLoading && !fetchError && filtered.length > 0 && (
         <div className="space-y-3">
           {filtered.map((u) => (
             <UtangCard
@@ -361,15 +397,15 @@ export function CustomerUtang() {
                 <div className="grid grid-cols-3 divide-x divide-slate-100">
                   <div className="p-4 text-center">
                     <p className="text-xl font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                      {format(uploadedOffer.a / STROOPS, { showSuffix: false })}
+                      {(uploadedOffer.a / STROOPS).toFixed(2)}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">{unitLabel} total</p>
+                    <p className="text-xs text-slate-400 mt-0.5">XLM total</p>
                   </div>
                   <div className="p-4 text-center">
                     <p className="text-xl font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                       {uploadedOffer.n}×
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">{format(uploadedOffer.a / STROOPS / uploadedOffer.n, { showSuffix: false })} {unitLabel}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{(uploadedOffer.a / STROOPS / uploadedOffer.n).toFixed(2)} XLM</p>
                   </div>
                   <div className="p-4 text-center">
                     <p className="text-base font-black text-slate-900 leading-tight capitalize" style={{ fontFamily: "'Montserrat', sans-serif" }}>
@@ -516,10 +552,10 @@ export function CustomerUtang() {
                   {(() => {
                     const remaining = paying.installmentsTotal - paying.installmentsPaid;
                     const rest = paying.totalAmountXlm - paying.installmentAmountXlm * paying.installmentsPaid;
-                    return format(remaining === 1 ? rest : paying.installmentAmountXlm, { showSuffix: false });
+                    return (remaining === 1 ? rest : paying.installmentAmountXlm).toFixed(2);
                   })()}
                 </p>
-                <p className="text-base font-bold mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{unitLabel}</p>
+                <p className="text-base font-bold mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>XLM</p>
               </div>
 
               {status === 'idle' && (
@@ -549,32 +585,11 @@ export function CustomerUtang() {
                 <div className="space-y-3">
                   <div
                     className="flex items-center gap-3 p-4 rounded-2xl"
-                    style={{
-                      backgroundColor: wasFinalInstallment ? '#FEFCE8' : '#F0FDF4',
-                      border: `1.5px solid ${wasFinalInstallment ? '#FEF08A' : '#BBF7D0'}`,
-                    }}
+                    style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}
                   >
-                    <CheckCircle size={20} style={{ color: wasFinalInstallment ? '#CA8A04' : '#16A34A' }} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold" style={{ color: wasFinalInstallment ? '#854D0E' : '#15803D' }}>
-                        {wasFinalInstallment ? 'Tapos na ang utang!' : 'Bayad na!'}
-                      </p>
-                      {wasFinalInstallment && (
-                        <p className="text-xs mt-0.5" style={{ color: '#A16207' }}>
-                          Lipat na sa "completed" tab — naka-record on-chain.
-                        </p>
-                      )}
-                    </div>
+                    <CheckCircle size={20} style={{ color: '#16A34A' }} />
+                    <p className="text-sm font-bold text-green-800">Bayad na!</p>
                   </div>
-
-                  {wasFinalInstallment && txHash && paying && (
-                    <RatingPrompt
-                      vendorAddress={paying.vendorWallet}
-                      vendorName={payingVendorName ?? truncateAddress(paying.vendorWallet)}
-                      paymentTxHash={txHash}
-                    />
-                  )}
-
                   {txHash && (
                     <a
                       href={stellarExpertUrl(txHash)}

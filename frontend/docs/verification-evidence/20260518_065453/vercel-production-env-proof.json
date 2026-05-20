@@ -1,0 +1,40 @@
+{
+  "generated_at_local": "2026-05-18T06:55:01.0311092+08:00",
+  "generated_at_utc": "2026-05-17T22:55:01.0313799Z",
+  "vercel_project": "iron-marks-projects/palengke-pay",
+  "command": "npx vercel@50.42.0 env ls production",
+  "raw_secret_values_printed": false,
+  "production_env_status": "none_found",
+  "required_sponsor_durability_keys": [
+    "SPONSOR_SECRET",
+    "FEE_BUMP_REQUIRE_DURABLE_RATE_LIMIT",
+    "UPSTASH_REDIS_REST_URL or KV_REST_API_URL",
+    "UPSTASH_REDIS_REST_TOKEN or KV_REST_API_TOKEN"
+  ],
+  "missing_or_unconfirmed": [
+    "SPONSOR_SECRET",
+    "FEE_BUMP_REQUIRE_DURABLE_RATE_LIMIT",
+    "UPSTASH_REDIS_REST_URL or KV_REST_API_URL",
+    "UPSTASH_REDIS_REST_TOKEN or KV_REST_API_TOKEN"
+  ],
+  "health_endpoint": "https://palengke-pay.vercel.app/api/health",
+  "health_http_status": 200,
+  "health_response": {
+    "status": "ok",
+    "timestamp": "2026-05-17T22:54:55.758Z",
+    "checks": [
+      {
+        "name": "horizon",
+        "ok": true,
+        "status": 200
+      },
+      {
+        "name": "soroban_rpc",
+        "ok": true,
+        "status": 200
+      }
+    ]
+  },
+  "health_includes_sponsor_rate_limit_check": false,
+  "note": "Vercel CLI reported no production env vars. Local env files do not include SPONSOR_SECRET or Redis/KV REST limiter values, so Codex could not add production secrets without user-provided values."
+}

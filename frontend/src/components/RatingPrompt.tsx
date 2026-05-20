@@ -3,7 +3,7 @@ import { Star, Check, Loader2, X } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
 import { useHasRated, useSubmitRating } from '../lib/hooks/useRating';
 import { sha256Hex, zeroCommentHashHex, storeCommentLocally } from '../lib/rating';
-import { useToast } from './Toast';
+import { useToast } from '../lib/hooks/useToast';
 
 interface Props {
   vendorAddress: string;

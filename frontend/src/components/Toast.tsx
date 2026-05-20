@@ -1,12 +1,6 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { CheckCircle, XCircle, Info, X, AlertTriangle } from 'lucide-react';
-
-type ToastType = 'success' | 'error' | 'info' | 'warning';
-
-interface ToastAction {
-  label: string;
-  onClick: () => void;
-}
+import { ToastContext, type ToastAction, type ToastType } from '../lib/toast-context';
 
 interface Toast {
   id: number;
@@ -14,12 +8,6 @@ interface Toast {
   message: string;
   action?: ToastAction;
 }
-
-interface ToastContextValue {
-  showToast: (message: string, type?: ToastType, action?: ToastAction) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null);
 
 let counter = 0;
 const MAX_TOASTS = 3;
@@ -138,10 +126,4 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext.Provider>
   );
-}
-
-export function useToast(): ToastContextValue {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be inside ToastProvider');
-  return ctx;
 }

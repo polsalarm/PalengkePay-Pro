@@ -62,9 +62,9 @@ export function Connect() {
       >
         {/* Logo */}
         <div className="flex items-center gap-2.5">
-  <img 
-    src={logoImg2} 
-    alt="PalengkePay" 
+  <img
+    src={logoImg2}
+    alt="PalengkePay"
     className="w-9 h-9 rounded-xl object-cover"
   />
   <span className="font-black text-lg" style={{ fontFamily: "'Montserrat', sans-serif" }}>

@@ -64,52 +64,68 @@ function mapUtang(raw: RawUtang): UtangRecord {
 }
 
 async function fetchUtangs(method: string, wallet: string): Promise<UtangRecord[]> {
-  if (!ESCROW_ID) return [];
-  try {
-    const raw = await simulateViewCall(ESCROW_ID, method, [
-      addressToScVal(wallet),
-      u32ToScVal(50),
-      u32ToScVal(0),
-    ]);
-    if (!Array.isArray(raw)) return [];
-    return (raw as RawUtang[]).map(mapUtang);
-  } catch {
-    return [];
-  }
+  if (!ESCROW_ID) throw new Error('Utang contract is not configured yet.');
+  const raw = await simulateViewCall(ESCROW_ID, method, [
+    addressToScVal(wallet),
+    u32ToScVal(50),
+    u32ToScVal(0),
+  ]);
+  if (!Array.isArray(raw)) return [];
+  return (raw as RawUtang[]).map(mapUtang);
 }
 
 export function useVendorUtangs(vendorWallet: string | null) {
   const [utangs, setUtangs] = useState<UtangRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    if (!vendorWallet) return;
+    if (!vendorWallet) {
+      setUtangs([]);
+      setError(null);
+      return;
+    }
     setIsLoading(true);
+    setError(null);
     fetchUtangs('get_vendor_utangs', vendorWallet)
       .then(setUtangs)
+      .catch((err: unknown) => {
+        setError((err as { message?: string }).message ?? 'Failed to load utang agreements');
+        setUtangs([]);
+      })
       .finally(() => setIsLoading(false));
   }, [vendorWallet, tick]);
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
-  return { utangs, isLoading, refetch };
+  return { utangs, isLoading, error, refetch };
 }
 
 export function useCustomerUtangs(customerWallet: string | null) {
   const [utangs, setUtangs] = useState<UtangRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    if (!customerWallet) return;
+    if (!customerWallet) {
+      setUtangs([]);
+      setError(null);
+      return;
+    }
     setIsLoading(true);
+    setError(null);
     fetchUtangs('get_customer_utangs', customerWallet)
       .then(setUtangs)
+      .catch((err: unknown) => {
+        setError((err as { message?: string }).message ?? 'Failed to load utang agreements');
+        setUtangs([]);
+      })
       .finally(() => setIsLoading(false));
   }, [customerWallet, tick]);
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
-  return { utangs, isLoading, refetch };
+  return { utangs, isLoading, error, refetch };
 }
 
 // ── Create utang ──────────────────────────────────────────────────────────────
@@ -132,7 +148,7 @@ export function useCreateUtang() {
     signerAddress: string
   ): Promise<string | null> => {
     if (!ESCROW_ID) {
-      setError('Deploy VTangEscrow contract first. Set VITE_UTANG_ESCROW_CONTRACT_ID.');
+      setError('UTangEscrow contract is not configured. Set VITE_UTANG_ESCROW_CONTRACT_ID.');
       return null;
     }
     setIsCreating(true);

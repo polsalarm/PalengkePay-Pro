@@ -1,7 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short,
-    token, Address, Env, String, Vec,
+    contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Vec,
 };
 
 #[contracttype]
@@ -88,6 +87,8 @@ impl UTangEscrow {
         interval_seconds: u64,
         description: String,
     ) -> u64 {
+        customer.require_auth();
+
         if total_amount <= 0 {
             panic!("total_amount must be positive");
         }
@@ -99,8 +100,8 @@ impl UTangEscrow {
         }
 
         // installment_amount = ceil(total / installments_total)
-        let installment_amount = (total_amount + installments_total as i128 - 1)
-            / installments_total as i128;
+        let installment_amount =
+            (total_amount + installments_total as i128 - 1) / installments_total as i128;
 
         let mut count: u64 = env
             .storage()
@@ -124,7 +125,9 @@ impl UTangEscrow {
             status: UtangStatus::Active,
             description,
         };
-        env.storage().persistent().set(&DataKey::Utang(count), &utang);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Utang(count), &utang);
 
         // Index by customer
         let mut customer_list: Vec<u64> = env
@@ -189,19 +192,15 @@ impl UTangEscrow {
 
         // Last installment may be smaller if total doesn't divide evenly
         let remaining_installments = utang.installments_total - utang.installments_paid;
-        let remaining_amount = utang.total_amount
-            - (utang.installment_amount * utang.installments_paid as i128);
+        let remaining_amount =
+            utang.total_amount - (utang.installment_amount * utang.installments_paid as i128);
         let pay_amount = if remaining_installments == 1 {
             remaining_amount
         } else {
             utang.installment_amount
         };
 
-        token::Client::new(&env, &token_address).transfer(
-            &customer,
-            &utang.vendor,
-            &pay_amount,
-        );
+        token::Client::new(&env, &token_address).transfer(&customer, &utang.vendor, &pay_amount);
 
         utang.installments_paid += 1;
         let installment_number = utang.installments_paid;
@@ -230,7 +229,9 @@ impl UTangEscrow {
             utang.next_due += utang.interval_seconds;
         }
 
-        env.storage().persistent().set(&DataKey::Utang(utang_id), &utang);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Utang(utang_id), &utang);
     }
 
     /// Admin can mark an overdue utang as defaulted.
@@ -256,7 +257,9 @@ impl UTangEscrow {
         }
 
         utang.status = UtangStatus::Defaulted;
-        env.storage().persistent().set(&DataKey::Utang(utang_id), &utang);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Utang(utang_id), &utang);
     }
 
     pub fn get_utang(env: Env, utang_id: u64) -> Utang {
@@ -285,7 +288,10 @@ impl UTangEscrow {
     }
 
     pub fn utang_count(env: Env) -> u64 {
-        env.storage().instance().get(&DataKey::UtangCount).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::UtangCount)
+            .unwrap_or(0)
     }
 
     fn fetch_page(env: &Env, ids: Vec<u64>, limit: u32, offset: u32) -> Vec<Utang> {

@@ -1,15 +1,11 @@
 #![cfg(test)]
 use super::*;
-use soroban_sdk::{
-    testutils::Address as _,
-    token::StellarAssetClient,
-    Address, Env, String,
-};
+use soroban_sdk::{testutils::Address as _, token::StellarAssetClient, Address, Env, String};
 
 fn setup() -> (Env, PalengkePaymentClient<'static>) {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register_contract(None, PalengkePayment);
+    let contract_id = env.register(PalengkePayment, ());
     let client = PalengkePaymentClient::new(&env, &contract_id);
     (env, client)
 }
@@ -22,7 +18,7 @@ fn setup_initialized() -> (Env, PalengkePaymentClient<'static>, Address) {
     let asset = env.register_stellar_asset_contract_v2(token_admin);
     let token_address = asset.address();
 
-    let contract_id = env.register_contract(None, PalengkePayment);
+    let contract_id = env.register(PalengkePayment, ());
     let client = PalengkePaymentClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
@@ -85,6 +81,26 @@ fn test_get_vendor_payments() {
 
     let payments = client.get_vendor_payments(&vendor, &10u32, &0u32);
     assert_eq!(payments.len(), 2);
+}
+
+#[test]
+fn test_get_customer_payments() {
+    let (env, client, token) = setup_initialized();
+    let customer = Address::generate(&env);
+    let other_customer = Address::generate(&env);
+    let vendor = Address::generate(&env);
+    mint_to(&env, &token, &customer, 1_000_000_000i128);
+    mint_to(&env, &token, &other_customer, 1_000_000_000i128);
+    let memo = String::from_str(&env, "fish");
+
+    client.pay(&customer, &vendor, &10_000_000i128, &memo);
+    client.pay(&other_customer, &vendor, &20_000_000i128, &memo);
+    client.pay(&customer, &vendor, &30_000_000i128, &memo);
+
+    let payments = client.get_customer_payments(&customer, &10u32, &0u32);
+    assert_eq!(payments.len(), 2);
+    assert_eq!(payments.get(0).unwrap().amount, 10_000_000i128);
+    assert_eq!(payments.get(1).unwrap().amount, 30_000_000i128);
 }
 
 #[test]

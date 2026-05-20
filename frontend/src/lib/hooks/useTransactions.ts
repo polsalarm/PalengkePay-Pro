@@ -1,33 +1,33 @@
 import { useState, useEffect, useCallback } from 'react';
 import { syncPayments, getCachedPayments } from '../indexer';
-import type { IndexedPayment } from '../indexer';
+import {
+  fetchCustomerContractPayments,
+  fetchVendorContractPayments,
+  mergePaymentHistory,
+  normalizeFallbackPayment,
+  type PaymentHistoryRecord,
+} from '../payment-source';
+import { enrichPaymentHistoryWithProofs } from '../payment-proof';
 
-export interface TxRecord {
-  id: string;
-  from: string;
-  to: string;
-  amountXlm: number;
-  createdAt: string;
-  memo?: string;
-}
+export type TxRecord = PaymentHistoryRecord;
 
 export function useVendorTransactions(vendorWallet: string | null) {
   const [transactions, setTransactions] = useState<TxRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const toTxRecord = (p: IndexedPayment): TxRecord => p;
-
   const load = useCallback(async (wallet: string) => {
     // Show cache immediately, then sync in background
-    const cached = getCachedPayments(wallet).filter((p) => p.to === wallet);
-    if (cached.length > 0) setTransactions(cached.map(toTxRecord));
+    const cached = getCachedPayments(wallet)
+      .filter((p) => p.to === wallet)
+      .map(normalizeFallbackPayment);
+    if (cached.length > 0) setTransactions(enrichPaymentHistoryWithProofs(cached, wallet));
 
     setIsLoading(true);
     setError(null);
     try {
-      const all = await syncPayments(wallet);
-      setTransactions(all.filter((p) => p.to === wallet).map(toTxRecord));
+      const [contractPayments, fallbackPayments] = await loadVendorPaymentSources(wallet);
+      setTransactions(enrichPaymentHistoryWithProofs(mergePaymentHistory(contractPayments, fallbackPayments), wallet));
     } catch (e: unknown) {
       setError((e as { message?: string }).message ?? 'Failed to load transactions');
       if (transactions.length === 0) setTransactions([]);
@@ -68,14 +68,16 @@ export function useCustomerTransactions(customerWallet: string | null) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (wallet: string) => {
-    const cached = getCachedPayments(wallet).filter((p) => p.from === wallet);
-    if (cached.length > 0) setTransactions(cached);
+    const cached = getCachedPayments(wallet)
+      .filter((p) => p.from === wallet)
+      .map(normalizeFallbackPayment);
+    if (cached.length > 0) setTransactions(enrichPaymentHistoryWithProofs(cached, wallet));
 
     setIsLoading(true);
     setError(null);
     try {
-      const all = await syncPayments(wallet);
-      setTransactions(all.filter((p) => p.from === wallet));
+      const [contractPayments, fallbackPayments] = await loadCustomerPaymentSources(wallet);
+      setTransactions(enrichPaymentHistoryWithProofs(mergePaymentHistory(contractPayments, fallbackPayments), wallet));
     } catch (e: unknown) {
       setError((e as { message?: string }).message ?? 'Failed to load transactions');
     } finally {
@@ -93,6 +95,42 @@ export function useCustomerTransactions(customerWallet: string | null) {
   const retry = useCallback(() => { if (customerWallet) load(customerWallet); }, [customerWallet, load]);
 
   return { transactions, isLoading, error, retry };
+}
+
+async function loadVendorPaymentSources(wallet: string): Promise<[TxRecord[], TxRecord[]]> {
+  const [contractResult, fallbackResult] = await Promise.allSettled([
+    fetchVendorContractPayments(wallet),
+    syncPayments(wallet),
+  ]);
+
+  const contractPayments = contractResult.status === 'fulfilled' ? contractResult.value : [];
+  const fallbackPayments = fallbackResult.status === 'fulfilled'
+    ? fallbackResult.value.filter((p) => p.to === wallet).map(normalizeFallbackPayment)
+    : [];
+
+  if (contractResult.status === 'rejected' && fallbackResult.status === 'rejected') {
+    throw fallbackResult.reason;
+  }
+
+  return [contractPayments, fallbackPayments];
+}
+
+async function loadCustomerPaymentSources(wallet: string): Promise<[TxRecord[], TxRecord[]]> {
+  const [contractResult, fallbackResult] = await Promise.allSettled([
+    fetchCustomerContractPayments(wallet),
+    syncPayments(wallet),
+  ]);
+
+  const contractPayments = contractResult.status === 'fulfilled' ? contractResult.value : [];
+  const fallbackPayments = fallbackResult.status === 'fulfilled'
+    ? fallbackResult.value.filter((p) => p.from === wallet).map(normalizeFallbackPayment)
+    : [];
+
+  if (contractResult.status === 'rejected' && fallbackResult.status === 'rejected') {
+    throw fallbackResult.reason;
+  }
+
+  return [contractPayments, fallbackPayments];
 }
 
 export function relativeTime(isoDate: string): string {

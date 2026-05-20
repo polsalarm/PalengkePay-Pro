@@ -154,7 +154,7 @@ function StatCard({ icon: Icon, label, value, sub, color }: {
 export function AdminMetrics() {
   const navigate = useNavigate();
   const { isConnected, connect } = useWallet();
-  const { summary, productBreakdown, topVendors, isLoading, error, refetch } = useMetrics();
+  const { summary, productBreakdown, topVendors, metricsSource, isLoading, error, refetch } = useMetrics();
 
   const [countdown, setCountdown] = useState(REFRESH_SECS);
   const cdRef = useRef(REFRESH_SECS);
@@ -249,7 +249,9 @@ export function AdminMetrics() {
                 <h1 className="text-base font-black text-white truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>Metrics Dashboard</h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Live on-chain data</p>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {metricsSource === 'palengke-payment' ? 'PalengkePayment records' : 'Registry fallback'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -436,7 +438,7 @@ export function AdminMetrics() {
       )}
 
       <p className="text-center text-xs pb-2" style={{ color: '#94A3B8' }}>
-        Live from Soroban smart contracts · Stellar Testnet · refreshes every {REFRESH_SECS}s
+        {metricsSource === 'palengke-payment' ? 'Live from PalengkePayment records' : 'Using registry fallback'} · Stellar Testnet · refreshes every {REFRESH_SECS}s
       </p>
     </div>
   );

@@ -6,12 +6,10 @@ import { useBalance } from '../../lib/hooks/useBalance';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
 import { useVendorStatus, useToggleVendorStatus } from '../../lib/hooks/useVendorStatus';
-import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
 import type { TxRecord } from '../../lib/hooks/useTransactions';
-import { useToast } from '../../components/Toast';
-import { UnitToggle } from '../../components/UnitToggle';
-import { PrivacyToggle } from '../../components/PrivacyToggle';
+import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, stellarExpertUrl, getServer } from '../../lib/stellar';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
 
 const STRINGS = {
   en: {
@@ -105,7 +103,6 @@ export function VendorHome() {
   const { transactions, isLoading, error, retry, todayEarnings, todayCount } = useVendorTransactions(address);
   const { status: openStatus, refetch: refetchStatus } = useVendorStatus(address);
   const { toggle: toggleStatus, isPending: statusPending } = useToggleVendorStatus(address);
-  const { unit, format, formatCompanion } = useFormatAmount();
   const { showToast } = useToast();
   const prevCountRef = useRef<number | null>(null);
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
@@ -138,9 +135,8 @@ export function VendorHome() {
     const close = server.effects().forAccount(address).cursor('now').stream({
       onmessage: (effect: { type: string; amount?: string }) => {
         if (effect.type === 'account_credited') {
-          const rawAmount = parseFloat(effect.amount ?? '0');
-          const amt = rawAmount.toFixed(2);
-          showToast(`Payment received! +${format(rawAmount, { showSuffix: false })} ${unit === 'php' ? 'PHP' : 'XLM'}`, 'success');
+          const amt = parseFloat(effect.amount ?? '0').toFixed(2);
+          showToast(`Payment received! +${amt} XLM`, 'success');
           if ('Notification' in window && Notification.permission === 'granted') {
             server.transactions().forAccount(address).order('desc').limit(1).call()
               .then(({ records }) => {
@@ -164,16 +160,16 @@ export function VendorHome() {
       onerror: () => {},
     });
     return () => { if (typeof close === 'function') close(); };
-  }, [address, format, showToast, unit]);
+  }, [address, showToast]);
 
   useEffect(() => {
     if (prevCountRef.current === null) { prevCountRef.current = transactions.length; return; }
     if (transactions.length > prevCountRef.current) {
       const newest = transactions[0];
-      showToast(`+${format(newest.amountXlm, { showSuffix: false })} ${unit === 'php' ? 'PHP' : 'XLM'} from ${newest.from.slice(0, 8)}…`, 'success');
+      showToast(`+${newest.amountXlm.toFixed(2)} XLM from ${newest.from.slice(0, 8)}…`, 'success');
     }
     prevCountRef.current = transactions.length;
-  }, [format, showToast, transactions, unit]);
+  }, [transactions, showToast]);
 
   const h = new Date().getHours();
   const timeGreeting = h < 12 ? t.goodMorning : h < 18 ? t.goodAfternoon : t.goodEvening;
@@ -184,13 +180,13 @@ export function VendorHome() {
   const groups = groupByDate(recent, lang);
   const allTimeTotal = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
 
-  const earningsStr = format(earnings, { showSuffix: false });
+  const earningsStr = earnings.toFixed(2);
   const earningsFontSize = earningsStr.length >= 10 ? '1.6rem' : earningsStr.length >= 8 ? '2rem' : earningsStr.length >= 6 ? '2.6rem' : '3.2rem';
-  const earningsUnitLabel = unit === 'php' ? 'PHP' : 'XLM';
-  const earningsCompanion = formatCompanion(earnings);
-  const balanceStr = balance ? format(parseFloat(balance), { showSuffix: false }) : '—';
-  const statUnitLabel = unit === 'php' ? 'PHP' : 'XLM';
-  const allTimeStr = format(allTimeTotal, { showSuffix: false });
+  const balanceStr = balance ? parseFloat(balance).toFixed(2) : '—';
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your vendor wallet to view earnings, show your QR, and manage installment credit." />;
+  }
 
   return (
     <div className="animate-page-in" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
@@ -243,28 +239,24 @@ export function VendorHome() {
               {t.greeting(firstName, timeGreeting)}
             </div>
 
-            {/* Privacy + Unit + Language toggles */}
-            <div className="flex items-center gap-2 shrink-0">
-              <PrivacyToggle variant="dark" />
-              <UnitToggle variant="dark" />
-              <div
-                className="flex items-center rounded-full p-0.5"
-                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-              >
-                {(['en', 'tl'] as const).map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => setLang(l)}
-                    className="text-xs font-bold px-3 py-1 rounded-full transition-all"
-                    style={lang === l
-                      ? { backgroundColor: '#008055', color: 'white' }
-                      : { color: 'rgba(255,255,255,0.45)' }
-                    }
-                  >
-                    {l.toUpperCase()}
-                  </button>
-                ))}
-              </div>
+            {/* Language toggle */}
+            <div
+              className="flex items-center rounded-full p-0.5"
+              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+            >
+              {(['en', 'tl'] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className="text-xs font-bold px-3 py-1 rounded-full transition-all"
+                  style={lang === l
+                    ? { backgroundColor: '#008055', color: 'white' }
+                    : { color: 'rgba(255,255,255,0.45)' }
+                  }
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -327,7 +319,7 @@ export function VendorHome() {
                   <span
                     className="text-base font-bold shrink-0"
                     style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Montserrat', sans-serif" }}
-                  >{earningsUnitLabel}</span>
+                  >XLM</span>
                 </div>
               )
             }
@@ -336,9 +328,6 @@ export function VendorHome() {
               <Zap size={11} style={{ color: '#FDE68A' }} />
               <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
                 {t.paymentsToday(count)}
-              </span>
-              <span className="text-xs font-medium ml-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                · {earningsCompanion}
               </span>
             </div>
           </div>
@@ -351,9 +340,9 @@ export function VendorHome() {
             <div>
               <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.allTimeEarnings}</p>
               <p className="text-sm font-black text-white leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                {allTimeStr}
+                {allTimeTotal.toFixed(2)}
               </p>
-              <p className="text-xs opacity-40 text-white">{statUnitLabel}</p>
+              <p className="text-xs opacity-40 text-white">XLM</p>
             </div>
             <div>
               <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.totalPayments}</p>
@@ -366,7 +355,7 @@ export function VendorHome() {
               <p className="text-sm font-black text-white leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {balanceStr}
               </p>
-              <p className="text-xs opacity-40 text-white">{statUnitLabel}</p>
+              <p className="text-xs opacity-40 text-white">XLM</p>
             </div>
           </div>
         </div>
@@ -569,9 +558,9 @@ export function VendorHome() {
                           <div className="flex items-center gap-1.5 shrink-0 ml-2">
                             <div className="text-right">
                               <span className="text-sm font-black block" style={{ color: '#059669', fontFamily: "'Montserrat', sans-serif" }}>
-                                +{format(tx.amountXlm, { showSuffix: false })}
+                                +{tx.amountXlm.toFixed(2)}
                               </span>
-                              <span className="text-xs text-slate-400">{statUnitLabel}</span>
+                              <span className="text-xs text-slate-400">XLM</span>
                             </div>
                             <a
                               href={stellarExpertUrl(tx.id)}

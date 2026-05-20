@@ -1,19 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, Loader2, X, ExternalLink, AlertTriangle, Store, RotateCcw, ScanLine, Home, List, HandCoins, Store as StoreIcon } from 'lucide-react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { QRScanner } from '../../components/QRScanner';
 import type { QRScanMeta } from '../../components/QRScanner';
 import { PaymentForm } from '../../components/PaymentForm';
 import { TxStatusTracker } from '../../components/TxStatusTracker';
-import { RatingPrompt } from '../../components/RatingPrompt';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { usePayment } from '../../lib/hooks/usePayment';
 import { useCreateUtang } from '../../lib/hooks/useUtang';
 import type { UtangOfferPayload } from '../vendor/VendorUtang';
-import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
-import { notifyWallet } from '../../lib/notify';
-import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
+import { stellarExpertAccountUrl, stellarExpertUrl, truncateAddress } from '../../lib/stellar';
+import { formatPhp, formatXlm, type StableCheckoutQuote } from '../../lib/checkout-quote';
+import { ESCROW_CONTRACT_ID } from '../../lib/contracts';
+import { savePaymentProof } from '../../lib/payment-proof';
 
 const STROOPS = 10_000_000;
 
@@ -31,11 +32,12 @@ type Step = 'scan' | 'manual' | 'pay' | 'confirm' | 'done' | 'utang_offer' | 'ut
 interface PendingPayment {
   amount: string;
   memo: string;
+  quote: StableCheckoutQuote;
 }
 
 export function CustomerScan() {
   const navigate = useNavigate();
-  const { address, isConnected, connect } = useWallet();
+  const { address } = useWallet();
 
   const [step, setStep] = useState<Step>('scan');
   const [vendorAddress, setVendorAddress] = useState('');
@@ -50,28 +52,27 @@ export function CustomerScan() {
   const { vendor, isLoading: vendorLoading } = useVendor(
     step === 'pay' || step === 'confirm' || step === 'done' ? vendorAddress : null
   );
-  const { status, txHash, error, sendPayment, reset } = usePayment();
+  const { status, txHash, error, diagnostic, settlementMode, sendPayment, reset } = usePayment();
   const { createUtang, isCreating } = useCreateUtang();
-  const { unit, format } = useFormatAmount();
-  const unitLabel = unit === 'php' ? 'PHP' : 'XLM';
-  const completedPaymentRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (step === 'confirm' && status === 'confirmed') {
-      const completionKey = txHash ?? `${vendorAddress}:${pendingPayment?.amount ?? ''}:${pendingPayment?.memo ?? ''}`;
-      if (completedPaymentRef.current === completionKey) return;
-      completedPaymentRef.current = completionKey;
-      queueMicrotask(() => setStep('done'));
-      if (vendorAddress && pendingPayment) {
-        notifyWallet(vendorAddress, {
-          title: 'PalengkePay — bayad natanggap',
-          body: `${pendingPayment.amount} XLM received${pendingPayment.memo ? ` · ${pendingPayment.memo}` : ''}`,
-          tag: `pay-${txHash ?? Date.now()}`,
-          url: '/vendor/transactions',
-        });
-      }
-    }
-  }, [pendingPayment, status, step, txHash, vendorAddress]);
+    if (step === 'confirm' && status === 'confirmed') setStep('done');
+  }, [step, status]);
+
+  useEffect(() => {
+    if (status !== 'confirmed' || !txHash || !address || !pendingPayment) return;
+
+    savePaymentProof({
+      txHash,
+      from: address,
+      to: vendorAddress,
+      amountXlm: Number(pendingPayment.amount),
+      memo: pendingPayment.memo,
+      createdAt: new Date().toISOString(),
+      settlementMode,
+      quote: pendingPayment.quote,
+    });
+  }, [address, pendingPayment, settlementMode, status, txHash, vendorAddress]);
 
   const handleRawScan = (raw: string): boolean => {
     try {
@@ -84,8 +85,9 @@ export function CustomerScan() {
         setStep('utang_offer');
         return true;
       }
-    } catch {
-      // Not an utang offer payload; continue with payment QR parsing.
+    } catch (parseError) {
+      void parseError;
+      // Not an installment QR payload.
     }
     return false;
   };
@@ -106,9 +108,8 @@ export function CustomerScan() {
     }
   };
 
-  const handlePay = (amount: string, memo: string) => {
-    completedPaymentRef.current = null;
-    setPendingPayment({ amount, memo });
+  const handlePay = (amount: string, memo: string, quote: StableCheckoutQuote) => {
+    setPendingPayment({ amount, memo, quote });
     reset();
     setStep('confirm');
   };
@@ -118,8 +119,22 @@ export function CustomerScan() {
     await sendPayment(address, vendorAddress, pendingPayment.amount, pendingPayment.memo);
   };
 
+  const handleRetryPayment = () => {
+    void handleConfirm();
+  };
+
+  const handleEditPayment = () => {
+    reset();
+    setStep('pay');
+  };
+
   const handleAcceptUtang = async () => {
     if (!utangOffer || !address) return;
+    if (utangOffer.c && utangOffer.c !== address) {
+      setUtangError('This installment offer is assigned to another customer wallet');
+      setUtangAcceptStatus('failed');
+      return;
+    }
     setUtangAcceptStatus('signing');
     setUtangError(null);
     const hash = await createUtang(
@@ -137,14 +152,6 @@ export function CustomerScan() {
       setUtangTxHash(hash);
       setUtangAcceptStatus('confirmed');
       setStep('utang_done');
-      if (utangOffer?.v) {
-        notifyWallet(utangOffer.v, {
-          title: 'PalengkePay — tinanggap ang utang',
-          body: `Customer accepted: ${utangOffer.d ?? 'installment agreement'}`,
-          tag: `utang-${hash}`,
-          url: '/vendor/utang',
-        });
-      }
     } else {
       setUtangError('Transaction failed — check wallet and try again');
       setUtangAcceptStatus('failed');
@@ -171,35 +178,13 @@ export function CustomerScan() {
 
   const vendorDisplay = vendor?.name ?? scannedMeta?.name ?? truncateAddress(vendorAddress);
 
-  if (!isConnected) {
+  if (!address) {
     return (
-      <div
-        className="min-h-[60vh] flex flex-col items-center justify-center px-6 animate-page-in"
-        style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
-      >
-        <div
-          className="w-20 h-20 rounded-3xl flex items-center justify-center mb-5"
-          style={{ backgroundColor: '#F0FDFA', border: '2px solid #CCFBF1' }}
-        >
-          <ScanLine size={36} style={{ color: '#008055' }} />
-        </div>
-        <h2
-          className="text-xl font-black text-slate-900 mb-2 text-center"
-          style={{ fontFamily: "'Montserrat', sans-serif" }}
-        >
-          Connect your wallet
-        </h2>
-        <p className="text-sm text-slate-500 text-center mb-6">
-          Kailangan ng wallet para mag-scan at magbayad.
-        </p>
-        <button
-          onClick={connect}
-          className="w-full text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-base"
-          style={{ backgroundColor: '#008055', maxWidth: '320px' }}
-        >
-          I-connect ang Wallet
-        </button>
-      </div>
+      <WalletRequiredState
+        detail="Connect your wallet before scanning payment QRs or accepting installment offers."
+        fullScreen
+        tone="dark"
+      />
     );
   }
 
@@ -375,6 +360,7 @@ export function CustomerScan() {
             preloadedStallInfo={scannedMeta?.stallInfo}
             onSubmit={handlePay}
             disabled={false}
+            settlementMode={settlementMode}
           />
         </div>
       )}
@@ -414,14 +400,37 @@ export function CustomerScan() {
             <p
               className="font-black text-white leading-none mb-1"
               style={{
-                fontSize: format(parseFloat(pendingPayment.amount), { showSuffix: false }).length > 8 ? '2.2rem' : '3rem',
+                fontSize: formatPhp(pendingPayment.quote.phpAmount).length > 10 ? '2.1rem' : '3rem',
                 fontFamily: "'Montserrat', sans-serif",
                 letterSpacing: '-0.02em',
               }}
             >
-              {format(parseFloat(pendingPayment.amount), { showSuffix: false })}
+              {formatPhp(pendingPayment.quote.phpAmount)}
             </p>
-            <p className="text-base font-bold" style={{ color: 'rgba(255,255,255,0.4)' }}>{unitLabel}</p>
+            <p className="text-base font-bold" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {formatXlm(pendingPayment.quote.xlmAmount)}
+            </p>
+            <div
+              className="mt-4 pt-4 grid grid-cols-2 gap-3 text-left"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  Price lock
+                </p>
+                <p className="text-sm font-black text-white">
+                  ₱{pendingPayment.quote.phpPerXlm.toFixed(2)}/XLM
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  Expires
+                </p>
+                <p className="text-sm font-black text-white">
+                  {new Date(pendingPayment.quote.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
             {pendingPayment.memo && (
               <div
                 className="mt-4 pt-4 text-sm font-semibold"
@@ -432,13 +441,15 @@ export function CustomerScan() {
             )}
           </div>
 
-          {/* Gasless badge */}
+          {/* Settlement badge */}
           <div
             className="flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold"
             style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22C55E' }} />
-            Gasless — fees sponsored, zero cost sa iyo
+            {settlementMode === 'contract'
+              ? 'On-chain receipt — recorded by PalengkePayment'
+              : 'Gasless — fees sponsored, zero cost sa iyo'}
           </div>
 
           {status === 'idle' && (
@@ -462,9 +473,13 @@ export function CustomerScan() {
               status={status}
               txHash={txHash}
               error={error}
+              diagnostic={diagnostic}
               amount={pendingPayment.amount}
               recipientName={vendorDisplay}
-              onRetry={() => { reset(); }}
+              receiptLookupUrl={stellarExpertAccountUrl(address)}
+              onRetry={handleRetryPayment}
+              onEdit={handleEditPayment}
+              onScanAgain={backToScan}
             />
           )}
         </div>
@@ -497,10 +512,18 @@ export function CustomerScan() {
               {pendingPayment && (
                 <p
                   className="font-black text-white leading-none mt-3"
-                  style={{ fontSize: '2.5rem', fontFamily: "'Montserrat', sans-serif" }}
+                  style={{
+                    fontSize: formatPhp(pendingPayment.quote.phpAmount).length > 10 ? '2rem' : '2.5rem',
+                    fontFamily: "'Montserrat', sans-serif",
+                    letterSpacing: '-0.02em',
+                  }}
                 >
-                  {format(parseFloat(pendingPayment.amount), { showSuffix: false })}
-                  <span className="text-lg font-bold ml-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{unitLabel}</span>
+                  {formatPhp(pendingPayment.quote.phpAmount)}
+                </p>
+              )}
+              {pendingPayment && (
+                <p className="text-sm mt-2 font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  {formatXlm(pendingPayment.quote.xlmAmount)} at ₱{pendingPayment.quote.phpPerXlm.toFixed(2)}/XLM
                 </p>
               )}
               {vendorDisplay && (
@@ -512,23 +535,45 @@ export function CustomerScan() {
 
             {/* Actions */}
             <div className="bg-white p-5 space-y-3">
-              {txHash && vendor && (
-                <RatingPrompt
-                  vendorAddress={vendorAddress}
-                  vendorName={vendor.name}
-                  paymentTxHash={txHash}
-                />
+              {pendingPayment && (
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0' }}
+                >
+                  <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
+                    Dual-currency receipt
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-slate-400">Customer paid</p>
+                      <p className="text-sm font-black text-slate-900">{formatPhp(pendingPayment.quote.phpAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Settled on Stellar</p>
+                      <p className="text-sm font-black text-slate-900">{formatXlm(pendingPayment.quote.xlmAmount)}</p>
+                    </div>
+                  </div>
+                </div>
               )}
               {txHash && (
-                <a
-                  href={stellarExpertUrl(txHash)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
-                  style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
-                >
-                  <ExternalLink size={13} /> Tingnan sa Stellar Expert
-                </a>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => navigate(`/receipt/${txHash}`)}
+                    className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
+                    style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
+                  >
+                    Digital Resibo
+                  </button>
+                  <a
+                    href={stellarExpertUrl(txHash)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
+                    style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
+                  >
+                    <ExternalLink size={13} /> Stellar Expert
+                  </a>
+                </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -599,9 +644,9 @@ export function CustomerScan() {
                   className="text-xl font-black text-slate-900 leading-tight"
                   style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >
-                  {format(utangOffer.a / STROOPS, { showSuffix: false })}
+                  {(utangOffer.a / STROOPS).toFixed(2)}
                 </p>
-                <p className="text-xs text-slate-400 mt-0.5">{unitLabel} total</p>
+                <p className="text-xs text-slate-400 mt-0.5">XLM total</p>
               </div>
               <div className="p-4 text-center">
                 <p
@@ -611,7 +656,7 @@ export function CustomerScan() {
                   {utangOffer.n}×
                 </p>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {format(utangOffer.a / STROOPS / utangOffer.n, { showSuffix: false })} {unitLabel}
+                  {(utangOffer.a / STROOPS / utangOffer.n).toFixed(2)} XLM
                 </p>
               </div>
               <div className="p-4 text-center">
@@ -632,19 +677,35 @@ export function CustomerScan() {
             </div>
           </div>
 
+          {!ESCROW_CONTRACT_ID && (
+            <div
+              className="rounded-2xl p-4 flex gap-3"
+              style={{ backgroundColor: '#FFFBEB', border: '1.5px solid #FDE68A' }}
+            >
+              <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: '#D97706' }} />
+              <div>
+                <p className="text-sm font-black text-slate-800">Installment contract not configured</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  This offer can be reviewed, but it cannot be accepted until VITE_UTANG_ESCROW_CONTRACT_ID is set.
+                </p>
+              </div>
+            </div>
+          )}
+
           {utangAcceptStatus === 'idle' && (
             <button
               onClick={handleAcceptUtang}
+              disabled={!ESCROW_CONTRACT_ID}
               className="w-full text-white font-black rounded-2xl active:scale-95 transition-all"
               style={{
-                backgroundColor: '#008055',
+                backgroundColor: ESCROW_CONTRACT_ID ? '#008055' : '#94A3B8',
                 minHeight: '60px',
                 fontSize: '1.05rem',
                 fontFamily: "'Montserrat', sans-serif",
                 boxShadow: '0 6px 24px rgba(15,118,110,0.4)',
               }}
             >
-              Tanggapin at I-sign
+              {ESCROW_CONTRACT_ID ? 'Tanggapin at I-sign' : 'Contract not configured'}
             </button>
           )}
 
