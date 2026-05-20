@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
 import { useBalance } from '../lib/hooks/useBalance';
+import { useFormatAmount } from '../lib/hooks/useDisplayUnit';
 
 function timeAgo(date: Date): string {
   const secs = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -15,6 +16,7 @@ function timeAgo(date: Date): string {
 export function BalanceDisplay() {
   const { address } = useWallet();
   const { balance, isLoading, refetch } = useBalance(address);
+  const { unit, format } = useFormatAmount();
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -47,7 +49,7 @@ export function BalanceDisplay() {
     <div className="text-center">
       <div className="flex items-center justify-center gap-2">
         <p className="text-3xl font-bold text-slate-900">
-          {balance ?? '0.00'} <span className="text-teal-700">XLM</span>
+          {format(parseFloat(balance ?? '0'), { showSuffix: false })} <span className="text-teal-700">{unit === 'php' ? 'PHP' : 'XLM'}</span>
         </p>
         <button
           onClick={handleRefresh}

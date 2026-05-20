@@ -138,8 +138,9 @@ export function VendorHome() {
     const close = server.effects().forAccount(address).cursor('now').stream({
       onmessage: (effect: { type: string; amount?: string }) => {
         if (effect.type === 'account_credited') {
-          const amt = parseFloat(effect.amount ?? '0').toFixed(2);
-          showToast(`Payment received! +${amt} XLM`, 'success');
+          const rawAmount = parseFloat(effect.amount ?? '0');
+          const amt = rawAmount.toFixed(2);
+          showToast(`Payment received! +${format(rawAmount, { showSuffix: false })} ${unit === 'php' ? 'PHP' : 'XLM'}`, 'success');
           if ('Notification' in window && Notification.permission === 'granted') {
             server.transactions().forAccount(address).order('desc').limit(1).call()
               .then(({ records }) => {
@@ -163,16 +164,16 @@ export function VendorHome() {
       onerror: () => {},
     });
     return () => { if (typeof close === 'function') close(); };
-  }, [address, showToast]);
+  }, [address, format, showToast, unit]);
 
   useEffect(() => {
     if (prevCountRef.current === null) { prevCountRef.current = transactions.length; return; }
     if (transactions.length > prevCountRef.current) {
       const newest = transactions[0];
-      showToast(`+${newest.amountXlm.toFixed(2)} XLM from ${newest.from.slice(0, 8)}…`, 'success');
+      showToast(`+${format(newest.amountXlm, { showSuffix: false })} ${unit === 'php' ? 'PHP' : 'XLM'} from ${newest.from.slice(0, 8)}…`, 'success');
     }
     prevCountRef.current = transactions.length;
-  }, [transactions, showToast]);
+  }, [format, showToast, transactions, unit]);
 
   const h = new Date().getHours();
   const timeGreeting = h < 12 ? t.goodMorning : h < 18 ? t.goodAfternoon : t.goodEvening;
@@ -188,6 +189,8 @@ export function VendorHome() {
   const earningsUnitLabel = unit === 'php' ? 'PHP' : 'XLM';
   const earningsCompanion = formatCompanion(earnings);
   const balanceStr = balance ? format(parseFloat(balance), { showSuffix: false }) : '—';
+  const statUnitLabel = unit === 'php' ? 'PHP' : 'XLM';
+  const allTimeStr = format(allTimeTotal, { showSuffix: false });
 
   return (
     <div className="animate-page-in" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
@@ -348,9 +351,9 @@ export function VendorHome() {
             <div>
               <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.allTimeEarnings}</p>
               <p className="text-sm font-black text-white leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                {allTimeTotal.toFixed(2)}
+                {allTimeStr}
               </p>
-              <p className="text-xs opacity-40 text-white">XLM</p>
+              <p className="text-xs opacity-40 text-white">{statUnitLabel}</p>
             </div>
             <div>
               <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.totalPayments}</p>
@@ -363,7 +366,7 @@ export function VendorHome() {
               <p className="text-sm font-black text-white leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {balanceStr}
               </p>
-              <p className="text-xs opacity-40 text-white">XLM</p>
+              <p className="text-xs opacity-40 text-white">{statUnitLabel}</p>
             </div>
           </div>
         </div>
@@ -566,9 +569,9 @@ export function VendorHome() {
                           <div className="flex items-center gap-1.5 shrink-0 ml-2">
                             <div className="text-right">
                               <span className="text-sm font-black block" style={{ color: '#059669', fontFamily: "'Montserrat', sans-serif" }}>
-                                +{tx.amountXlm.toFixed(2)}
+                                +{format(tx.amountXlm, { showSuffix: false })}
                               </span>
-                              <span className="text-xs text-slate-400">XLM</span>
+                              <span className="text-xs text-slate-400">{statUnitLabel}</span>
                             </div>
                             <a
                               href={stellarExpertUrl(tx.id)}

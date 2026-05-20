@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Store, Zap } from 'lucide-react';
 import type { VendorProfile } from '../lib/hooks/useVendor';
+import { usePhpRate } from '../lib/hooks/usePhpRate';
+import { formatPhp, xlmToPhp } from '../lib/rate';
 
 const MEMO_MAX = 28;
-const XLM_TO_PHP = 8.5;
 
 interface Props {
   vendorAddress: string;
@@ -19,14 +20,7 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
   const [amount, setAmount] = useState('');
   const [memo, setMemo] = useState('');
   const [error, setError] = useState('');
-  const [phpRate, setPhpRate] = useState<number>(XLM_TO_PHP);
-
-  useEffect(() => {
-    fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=php')
-      .then((r) => r.json())
-      .then((d) => { if (d?.stellar?.php) setPhpRate(d.stellar.php); })
-      .catch(() => {});
-  }, []);
+  const { rate: phpRate } = usePhpRate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +38,7 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
     : preloadedStallInfo ?? null;
 
   const xlmAmt = parseFloat(amount);
-  const phpEst = !isNaN(xlmAmt) && xlmAmt > 0 ? (xlmAmt * phpRate).toFixed(2) : null;
+  const phpEst = !isNaN(xlmAmt) && xlmAmt > 0 ? formatPhp(xlmToPhp(xlmAmt, phpRate)) : null;
   const memoLeft = MEMO_MAX - memo.length;
   const memoNearLimit = memoLeft <= 8;
 
@@ -120,7 +114,7 @@ export function PaymentForm({ vendorAddress, vendor, isLoading, preloadedVendorN
         </div>
         {phpEst && (
           <p className="text-xs text-right mt-1.5 font-medium" style={{ color: '#64748B' }}>
-            ≈ <span className="font-black" style={{ color: '#008055' }}>₱{phpEst}</span>
+            ≈ <span className="font-black" style={{ color: '#008055' }}>{phpEst}</span>
             <span className="text-slate-300 ml-1">(approx)</span>
           </p>
         )}

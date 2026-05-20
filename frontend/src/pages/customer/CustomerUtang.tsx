@@ -10,6 +10,7 @@ import { UtangCard } from '../../components/UtangCard';
 import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
 import { useVendorName } from '../../lib/hooks/useVendor';
 import { RatingPrompt } from '../../components/RatingPrompt';
+import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
 
 const STROOPS = 10_000_000;
 const INTERVAL_LABELS: Record<number, string> = { 604800: 'weekly', 1209600: 'biweekly', 2592000: 'monthly' };
@@ -33,6 +34,8 @@ export function CustomerUtang() {
   const [offerAcceptStatus, setOfferAcceptStatus] = useState<'idle' | 'signing' | 'confirmed' | 'failed'>('idle');
   const [offerTxHash, setOfferTxHash] = useState<string | null>(null);
   const [offerError, setOfferError] = useState<string | null>(null);
+  const { unit, format } = useFormatAmount();
+  const unitLabel = unit === 'php' ? 'PHP' : 'XLM';
 
   const handleUploadQR = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,7 +70,9 @@ export function CustomerUtang() {
       setTimeout(() => setUploadError(null), 5000);
     } finally {
       setUploadLoading(false);
-      try { await scanner.clear(); } catch {}
+      try { await scanner.clear(); } catch {
+        // Best-effort cleanup; html5-qrcode may already be cleared.
+      }
     }
   };
 
@@ -99,6 +104,7 @@ export function CustomerUtang() {
   const active = utangs.filter((u) => u.status === 'active');
   const filtered = filter === 'all' ? utangs : utangs.filter((u) => u.status === filter);
   const totalDue = active.reduce((sum, u) => sum + u.installmentAmountXlm, 0);
+  const totalDueStr = format(totalDue, { showSuffix: false });
 
   function handlePayClick(utang: UtangRecord) {
     if (!address) return;
@@ -200,14 +206,14 @@ export function CustomerUtang() {
               <span
                 className="font-black text-white leading-none"
                 style={{
-                  fontSize: totalDue.toFixed(2).length >= 8 ? '2.4rem' : '3rem',
+                  fontSize: totalDueStr.length >= 8 ? '2.4rem' : '3rem',
                   fontFamily: "'Montserrat', sans-serif",
                   letterSpacing: '-0.02em',
                 }}
               >
-                {totalDue.toFixed(2)}
+                {totalDueStr}
               </span>
-              <span className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>XLM</span>
+              <span className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>{unitLabel}</span>
             </div>
             <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>
               {active.length} aktibong plan{active.length !== 1 ? 's' : ''}
@@ -355,15 +361,15 @@ export function CustomerUtang() {
                 <div className="grid grid-cols-3 divide-x divide-slate-100">
                   <div className="p-4 text-center">
                     <p className="text-xl font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                      {(uploadedOffer.a / STROOPS).toFixed(2)}
+                      {format(uploadedOffer.a / STROOPS, { showSuffix: false })}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">XLM total</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{unitLabel} total</p>
                   </div>
                   <div className="p-4 text-center">
                     <p className="text-xl font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                       {uploadedOffer.n}×
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">{(uploadedOffer.a / STROOPS / uploadedOffer.n).toFixed(2)} XLM</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{format(uploadedOffer.a / STROOPS / uploadedOffer.n, { showSuffix: false })} {unitLabel}</p>
                   </div>
                   <div className="p-4 text-center">
                     <p className="text-base font-black text-slate-900 leading-tight capitalize" style={{ fontFamily: "'Montserrat', sans-serif" }}>
@@ -510,10 +516,10 @@ export function CustomerUtang() {
                   {(() => {
                     const remaining = paying.installmentsTotal - paying.installmentsPaid;
                     const rest = paying.totalAmountXlm - paying.installmentAmountXlm * paying.installmentsPaid;
-                    return (remaining === 1 ? rest : paying.installmentAmountXlm).toFixed(2);
+                    return format(remaining === 1 ? rest : paying.installmentAmountXlm, { showSuffix: false });
                   })()}
                 </p>
-                <p className="text-base font-bold mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>XLM</p>
+                <p className="text-base font-bold mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{unitLabel}</p>
               </div>
 
               {status === 'idle' && (

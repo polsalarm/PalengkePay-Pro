@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { PushSubscription as WebPushSubscription } from 'web-push';
 import { addSubscription, isPersistent } from './_pushStore.js';
+import { hasServerVapid, isValidSubscription, isValidWallet } from './_pushValidation.js';
 
 /**
  * Register a Web Push subscription for a given Stellar wallet.
@@ -18,13 +18,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { wallet, subscription } = (req.body ?? {}) as {
     wallet?: string;
-    subscription?: WebPushSubscription;
+    subscription?: unknown;
   };
 
-  if (!wallet || typeof wallet !== 'string' || !wallet.startsWith('G') || wallet.length !== 56) {
+  if (!hasServerVapid()) {
+    return res.status(503).json({ error: 'VAPID keys not configured' });
+  }
+
+  if (!isValidWallet(wallet)) {
     return res.status(400).json({ error: 'valid Stellar wallet required (G..., 56 chars)' });
   }
-  if (!subscription || !subscription.endpoint) {
+  if (!isValidSubscription(subscription)) {
     return res.status(400).json({ error: 'subscription required' });
   }
 

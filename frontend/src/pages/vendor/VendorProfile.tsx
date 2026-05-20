@@ -6,6 +6,7 @@ import { useVendorStatus, useToggleVendorStatus } from '../../lib/hooks/useVendo
 import { useVendorRating } from '../../lib/hooks/useRating';
 import { useToast } from '../../components/Toast';
 import { PushPrompt } from '../../components/PushPrompt';
+import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
 import { truncateAddress, prepareContractTx, submitSorobanTx, addressToScVal, stringToScVal } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 
@@ -24,6 +25,7 @@ export function VendorProfile() {
   const { toggle: toggleStatus, isPending: statusPending } = useToggleVendorStatus(address);
   const { summary: ratingSummary } = useVendorRating(address);
   const { showToast } = useToast();
+  const { unit, format } = useFormatAmount();
   const isOpen = openStatus?.isOpen ?? true;
 
   const handleToggleStatus = async () => {
@@ -40,7 +42,14 @@ export function VendorProfile() {
   const [form, setForm] = useState({ name: '', stallNumber: '', phone: '', productType: 'fish' });
 
   useEffect(() => {
-    if (vendor) setForm({ name: vendor.name, stallNumber: vendor.stallNumber, phone: vendor.phone, productType: vendor.productType });
+    if (vendor) {
+      queueMicrotask(() => setForm({
+        name: vendor.name,
+        stallNumber: vendor.stallNumber,
+        phone: vendor.phone,
+        productType: vendor.productType,
+      }));
+    }
   }, [vendor]);
 
   const update = (k: keyof typeof form) =>
@@ -251,9 +260,9 @@ export function VendorProfile() {
               <span className="text-xs text-slate-500 font-medium">Volume</span>
             </div>
             <p className="text-3xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              {(Number(vendor.totalVolume) / 10_000_000).toFixed(1)}
+              {format(Number(vendor.totalVolume) / 10_000_000, { showSuffix: false, xlmDigits: 1 })}
             </p>
-            <p className="text-xs text-slate-400 mt-0.5">XLM</p>
+            <p className="text-xs text-slate-400 mt-0.5">{unit === 'php' ? 'PHP' : 'XLM'}</p>
           </div>
         </div>
       )}

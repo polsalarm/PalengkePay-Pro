@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { fanout } from './_pushFanout.js';
+import { isValidWallet, sanitizePayload } from './_pushValidation.js';
 
 /**
  * Fan out a push notification to every subscription registered under a Stellar wallet.
@@ -19,12 +20,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     payload?: { title?: string; body?: string; icon?: string; tag?: string; url?: string };
   };
 
-  if (!wallet || typeof wallet !== 'string') {
-    return res.status(400).json({ error: 'wallet required' });
+  if (!isValidWallet(wallet)) {
+    return res.status(400).json({ error: 'valid Stellar wallet required (G..., 56 chars)' });
   }
 
   try {
-    const result = await fanout(wallet, payload ?? {});
+    const result = await fanout(wallet, sanitizePayload(payload));
     return res.status(200).json({ ok: true, ...result });
   } catch (err: unknown) {
     return res.status(500).json({ error: (err as { message?: string }).message ?? 'fanout failed' });

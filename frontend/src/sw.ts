@@ -1,5 +1,4 @@
 /// <reference lib="webworker" />
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { precacheAndRoute } from 'workbox-precaching';
 
 declare const self: ServiceWorkerGlobalScope & {
@@ -25,7 +24,7 @@ interface PushPayload {
 }
 
 self.addEventListener('push', (event) => {
-  let payload: PushPayload = {};
+  let payload: PushPayload;
   try {
     payload = event.data ? (event.data.json() as PushPayload) : {};
   } catch {

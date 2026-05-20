@@ -5,6 +5,7 @@ import {
 } from '@stellar/stellar-sdk';
 import { listAllWallets } from '../_pushStore.js';
 import { fanout } from '../_pushFanout.js';
+import { isValidWallet } from '../_pushValidation.js';
 
 /**
  * Daily cron — scans every subscribed wallet for active utangs, sends push
@@ -59,12 +60,12 @@ async function getCustomerUtangs(wallet: string): Promise<RawUtang[]> {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Vercel cron requests carry the Authorization header with the project's CRON_SECRET.
-  // Skip the check if CRON_SECRET isn't configured (for manual testing).
-  if (CRON_SECRET) {
-    const auth = req.headers.authorization;
-    if (auth !== `Bearer ${CRON_SECRET}`) {
-      return res.status(401).json({ error: 'unauthorized' });
-    }
+  const isProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+  if (isProd && !CRON_SECRET) {
+    return res.status(500).json({ error: 'CRON_SECRET not configured' });
+  }
+  if (CRON_SECRET && req.headers.authorization !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ error: 'unauthorized' });
   }
 
   if (!ESCROW_ID) {
@@ -85,6 +86,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const stats = { walletsScanned: 0, utangsChecked: 0, notified: 0, errors: 0 };
 
   for (const wallet of wallets) {
+    if (!isValidWallet(wallet)) {
+      stats.errors++;
+      continue;
+    }
     stats.walletsScanned++;
     let utangs: RawUtang[];
     try {

@@ -78,6 +78,7 @@ function groupByDate(txs: TxRecord[], lang: 'en' | 'tl') {
 
 function RecentTxRow({ tx }: { tx: TxRecord }) {
   const vendorName = useVendorName(tx.to);
+  const { unit, format } = useFormatAmount();
   return (
     <div className="flex items-center justify-between py-3 px-3 rounded-2xl transition-colors active:bg-slate-50">
       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -100,9 +101,9 @@ function RecentTxRow({ tx }: { tx: TxRecord }) {
       <div className="flex items-center gap-1.5 shrink-0 ml-2">
         <div className="text-right">
           <span className="text-sm font-black block" style={{ color: '#F43F5E', fontFamily: "'Montserrat', sans-serif" }}>
-            -{tx.amountXlm.toFixed(2)}
+            -{format(tx.amountXlm, { showSuffix: false })}
           </span>
-          <span className="text-xs text-slate-400">XLM</span>
+          <span className="text-xs text-slate-400">{unit === 'php' ? 'PHP' : 'XLM'}</span>
         </div>
         <a
           href={stellarExpertUrl(tx.id)}
@@ -143,6 +144,9 @@ export function CustomerHome() {
   const balanceFontSize = balanceStr.length >= 10 ? '1.6rem' : balanceStr.length >= 8 ? '2rem' : balanceStr.length >= 6 ? '2.6rem' : '3.2rem';
   const balanceUnitLabel = unit === 'php' ? 'PHP' : 'XLM';
   const balanceCompanion = balanceNum !== null ? formatCompanion(balanceNum) : null;
+  const statUnitLabel = unit === 'php' ? 'PHP' : 'XLM';
+  const totalSpentStr = format(totalSpent, { showSuffix: false });
+  const totalOwedStr = format(totalOwed, { showSuffix: false });
 
   return (
     <div className="animate-page-in" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
@@ -264,7 +268,7 @@ export function CustomerHome() {
                 className="text-base font-black text-white leading-tight"
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
-                {totalSpent.toFixed(2)} <span className="text-xs font-semibold opacity-50">XLM</span>
+                {totalSpentStr} <span className="text-xs font-semibold opacity-50">{statUnitLabel}</span>
               </p>
             </div>
             <div>
@@ -319,7 +323,7 @@ export function CustomerHome() {
                       color: overdueCount > 0 ? '#F43F5E' : '#92400E',
                     }}
                   >
-                    {totalOwed.toFixed(2)} <span className="text-xs font-semibold opacity-70">XLM</span>
+                    {totalOwedStr} <span className="text-xs font-semibold opacity-70">{statUnitLabel}</span>
                   </p>
                 </div>
                 <p className="text-xs font-semibold mt-0.5" style={{ color: overdueCount > 0 ? '#F43F5E' : '#92400E' }}>

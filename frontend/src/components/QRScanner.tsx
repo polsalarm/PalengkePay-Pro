@@ -19,10 +19,17 @@ const FILE_SCAN_DIV = 'qr-file-scanner-hidden';
 export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const onScanRef = useRef(onScan);
+  const onRawScanRef = useRef(onRawScan);
   const containerId = 'qr-scanner-container';
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    onScanRef.current = onScan;
+    onRawScanRef.current = onRawScan;
+  }, [onRawScan, onScan]);
 
   useEffect(() => {
     const scanner = new Html5Qrcode(containerId);
@@ -34,7 +41,7 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
       (decodedText) => {
         const raw = decodedText.trim();
 
-        if (onRawScan?.(raw)) return;
+        if (onRawScanRef.current?.(raw)) return;
 
         let address = raw;
         let meta: QRScanMeta | undefined;
@@ -50,13 +57,13 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
         }
 
         if (address.startsWith('G') && address.length === 56) {
-          onScan(address, meta);
+          onScanRef.current(address, meta);
         } else {
           setError('QR code is not a Stellar address. Try again.');
           setTimeout(() => setError(null), 3000);
         }
       },
-      () => {}
+      () => undefined
     )
       .then(() => setStarted(true))
       .catch((err) => {
@@ -65,10 +72,10 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
 
     return () => {
       if (scannerRef.current?.isScanning) {
-        scannerRef.current.stop().catch(() => {});
+        scannerRef.current.stop().catch(() => undefined);
       }
     };
-  }, [onScan]);
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -89,7 +96,7 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
     try {
       const raw = (await tempScanner.scanFile(file, false)).trim();
 
-      if (onRawScan?.(raw)) return;
+      if (onRawScanRef.current?.(raw)) return;
 
       let address = raw;
       let meta: QRScanMeta | undefined;
@@ -99,10 +106,12 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
           address = parsed.a;
           if (parsed.n) meta = { name: parsed.n, stallInfo: parsed.s ?? undefined };
         }
-      } catch {}
+      } catch {
+        // Not JSON — treat as plain Stellar address
+      }
 
       if (address.startsWith('G') && address.length === 56) {
-        onScan(address, meta);
+        onScanRef.current(address, meta);
       } else {
         setError('QR code is not a Stellar address.');
         setTimeout(() => setError(null), 4000);
@@ -112,7 +121,9 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
       setTimeout(() => setError(null), 4000);
     } finally {
       setUploading(false);
-      try { await tempScanner.clear(); } catch {}
+      try { await tempScanner.clear(); } catch {
+        // Best-effort cleanup; html5-qrcode may already be cleared.
+      }
     }
   };
 

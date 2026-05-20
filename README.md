@@ -228,7 +228,7 @@ Cursor-based Horizon payment indexer with localStorage caching.
 - **XLM ⇄ ₱ switcher** mirrors the EN/TL language toggle styling, available on vendor and customer dashboards
 - XLM stays the on-chain settlement asset — toggle only changes UI presentation
 - Companion line below every amount (`≈ ₱22.50` when primary is XLM, and vice versa)
-- Hook: `useFormatAmount()` in `frontend/src/lib/hooks/useDisplayUnit.ts` — used by balance heroes, history rows, payment forms
+- Hook: `useFormatAmount()` in `frontend/src/lib/hooks/useDisplayUnit.ts` — used by balance heroes, wallet menus, history rows, utang cards, payment confirmations, and payment forms
 
 ### Live PHP / XLM Exchange Rate
 - Fetched from CoinGecko public API (`stellar/php`), cached in `localStorage` with 5-minute TTL
@@ -240,7 +240,7 @@ Cursor-based Horizon payment indexer with localStorage caching.
 - One-tap **eye icon** masks every balance figure with `••••` — useful in public/palengke environments
 - Persists in `localStorage` across reloads; broadcasts via `CustomEvent('pp:privacy-change')` so all subscribed components update in sync
 - `PrivacyToggle` component (`dark` / `light` variants) wired into both vendor and customer balance heroes + Customer Profile
-- `useFormatAmount()` respects the hidden flag — every formatted amount in the app stays masked while privacy is on
+- `useFormatAmount()` respects the hidden flag — formatted balances, totals, and transaction amounts stay masked while privacy is on
 
 ### Web Push Notifications
 - **Vendor receives push** on payment received, utang accepted, each installment paid, and final utang completion
@@ -249,6 +249,7 @@ Cursor-based Horizon payment indexer with localStorage caching.
 - Wallet-keyed subscription store in Upstash Redis (Vercel Marketplace integration `palengkepay`) — subscriptions survive serverless cold starts
 - Endpoints: `api/push-subscribe.ts` (register), `api/push-notify.ts` (fan-out by wallet), `api/cron/utang-reminders.ts` (daily reminder cron at `0 0 * * *`)
 - Subscriptions returning HTTP 404/410 are pruned automatically from Redis
+- Server routes validate Stellar wallet IDs, sanitize notification payloads, and require `CRON_SECRET` for production cron execution
 - Notification copy supports Tagalog (`"bayad natanggap"`, `"utang paalala"`, `"tinanggap ang utang"`) for vendor + customer flows
 
 ### Customer Profile Page
@@ -483,6 +484,7 @@ VITE_UTANG_FEE_XLM=1
 VITE_VAPID_PUBLIC_KEY=<base64-url public key, exposed to client>
 VAPID_PRIVATE_KEY=<base64-url private key, server only>
 VAPID_SUBJECT=mailto:you@example.com
+CRON_SECRET=<long random bearer token for production cron>
 
 # Upstash Redis — auto-injected by the Vercel Marketplace integration; only
 # needed locally if you want push subscriptions durable in dev as well.
@@ -492,7 +494,7 @@ KV_REST_API_TOKEN=
 
 `VITE_UTANG_FEE_XLM` — XLM fee charged to vendors per utang QR creation (default: `1`).
 
-`VITE_VAPID_PUBLIC_KEY` is read by both the client (push subscribe) and the server (web-push send). `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` must stay server-only. `KV_REST_API_URL` / `KV_REST_API_TOKEN` are provisioned automatically when the Upstash for Redis Marketplace integration is linked to the Vercel project — `frontend/api/_pushStore.ts` falls back to an in-memory map when these are unset (lossy across cold starts, fine for local dev).
+`VITE_VAPID_PUBLIC_KEY` is read by the client and also accepted by the server for web-push send. You can alternatively set server-only `VAPID_PUBLIC_KEY`. `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, and `CRON_SECRET` must stay server-only. `KV_REST_API_URL` / `KV_REST_API_TOKEN` are provisioned automatically when the Upstash for Redis Marketplace integration is linked to the Vercel project — `frontend/api/_pushStore.ts` falls back to an in-memory map when these are unset (lossy across cold starts, fine for local dev).
 
 ---
 

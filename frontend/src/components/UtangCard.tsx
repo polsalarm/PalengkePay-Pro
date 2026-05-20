@@ -2,6 +2,7 @@ import { CheckCircle, Clock, AlertTriangle, ExternalLink } from 'lucide-react';
 import type { UtangRecord } from '../lib/hooks/useUtang';
 import { dueLabel, isOverdue } from '../lib/hooks/useUtang';
 import { useVendorName } from '../lib/hooks/useVendor';
+import { useFormatAmount } from '../lib/hooks/useDisplayUnit';
 import { truncateAddress, stellarExpertUrl } from '../lib/stellar';
 
 interface UtangCardProps {
@@ -17,6 +18,8 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
     : 0;
 
   const resolvedVendorName = useVendorName(perspective === 'customer' ? utang.vendorWallet : null);
+  const { unit, format } = useFormatAmount();
+  const unitLabel = unit === 'php' ? 'PHP' : 'XLM';
 
   const overdue = utang.status === 'active' && isOverdue(utang.nextDueSecs);
 
@@ -109,8 +112,8 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
         <div className="px-5 pb-3">
           <div className="flex items-baseline justify-between mb-3">
             <p className="font-black text-slate-900" style={{ fontSize: '1.5rem', fontFamily: "'Montserrat', sans-serif" }}>
-              {utang.totalAmountXlm.toFixed(2)}
-              <span className="text-sm font-semibold text-slate-400 ml-1.5">XLM</span>
+              {format(utang.totalAmountXlm, { showSuffix: false })}
+              <span className="text-sm font-semibold text-slate-400 ml-1.5">{unitLabel}</span>
             </p>
             <span
               className="text-xs font-bold px-2 py-0.5 rounded-full"
@@ -129,7 +132,7 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
           </div>
 
           <p className="text-xs text-slate-400 mt-2">
-            {utang.installmentAmountXlm.toFixed(2)} XLM × {utang.installmentsTotal} · bawat {utang.intervalDays}d
+            {format(utang.installmentAmountXlm, { showSuffix: false })} {unitLabel} × {utang.installmentsTotal} · bawat {utang.intervalDays}d
           </p>
 
           {/* Due date badge */}

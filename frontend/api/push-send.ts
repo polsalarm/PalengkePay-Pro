@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import webpush from 'web-push';
+import { isValidSubscription, sanitizePayload, serverVapidDetails } from './_pushValidation.js';
 
 /**
  * Push-send endpoint. Stateless — caller passes the target subscription + payload.
@@ -14,37 +15,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const publicKey = process.env.VITE_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT;
-  if (!publicKey || !privateKey || !subject) {
-    return res.status(500).json({ error: 'VAPID keys not configured' });
-  }
-
-  webpush.setVapidDetails(subject, publicKey, privateKey);
-
   const { subscription, payload } = (req.body ?? {}) as {
-    subscription?: webpush.PushSubscription;
-    payload?: {
-      title?: string;
-      body?: string;
-      icon?: string;
-      tag?: string;
-      url?: string;
-    };
+    subscription?: unknown;
+    payload?: unknown;
   };
 
-  if (!subscription || !subscription.endpoint) {
+  if (!isValidSubscription(subscription)) {
     return res.status(400).json({ error: 'subscription required' });
   }
 
-  const body = JSON.stringify({
-    title: payload?.title ?? 'PalengkePay',
-    body: payload?.body ?? 'You have a new notification',
-    icon: payload?.icon ?? '/icon-192.svg',
-    tag: payload?.tag ?? 'palengkepay',
-    url: payload?.url ?? '/',
-  });
+  const vapid = serverVapidDetails();
+  if (!vapid) {
+    return res.status(500).json({ error: 'VAPID keys not configured' });
+  }
+
+  webpush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
+
+  const body = JSON.stringify(sanitizePayload(payload));
 
   try {
     const result = await webpush.sendNotification(subscription, body);

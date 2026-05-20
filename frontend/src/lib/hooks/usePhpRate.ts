@@ -10,7 +10,9 @@ export function usePhpRate() {
   useEffect(() => {
     if (state.isFresh) return;
     let cancelled = false;
-    setIsLoading(true);
+    queueMicrotask(() => {
+      if (!cancelled) setIsLoading(true);
+    });
     if (!inFlight) inFlight = fetchPhpRate().finally(() => { inFlight = null; });
     inFlight.then((s) => {
       if (cancelled) return;

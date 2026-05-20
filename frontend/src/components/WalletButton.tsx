@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Wallet, Copy, LogOut, Loader2, ChevronDown } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
+import { useFormatAmount } from '../lib/hooks/useDisplayUnit';
 import { truncateAddress } from '../lib/stellar';
 
 const WALLET_BADGES: Record<string, { label: string; bg: string; color: string }> = {
@@ -23,6 +24,7 @@ export function WalletButton() {
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const badge = walletBadge(walletName);
+  const { unit, format } = useFormatAmount();
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -111,10 +113,10 @@ export function WalletButton() {
             {balance !== null && (
               <p
                 className="font-black text-white leading-none mb-1"
-                style={{ fontSize: '1.5rem', fontFamily: "'Montserrat', sans-serif', letterSpacing: '-0.02em'" }}
+                style={{ fontSize: '1.5rem', fontFamily: "'Montserrat', sans-serif" }}
               >
-                {parseFloat(balance).toFixed(2)}
-                <span className="text-sm font-semibold ml-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>XLM</span>
+                {format(parseFloat(balance), { showSuffix: false })}
+                <span className="text-sm font-semibold ml-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{unit === 'php' ? 'PHP' : 'XLM'}</span>
               </p>
             )}
           </div>

@@ -1,22 +1,13 @@
 import webpush from 'web-push';
 import { listSubscriptions, removeSubscription } from './_pushStore.js';
-
-export interface PushPayload {
-  title?: string;
-  body?: string;
-  icon?: string;
-  tag?: string;
-  url?: string;
-}
+import { sanitizePayload, serverVapidDetails, type PushPayload } from './_pushValidation.js';
 
 let vapidConfigured = false;
 function ensureVapid(): boolean {
   if (vapidConfigured) return true;
-  const publicKey = process.env.VITE_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT;
-  if (!publicKey || !privateKey || !subject) return false;
-  webpush.setVapidDetails(subject, publicKey, privateKey);
+  const details = serverVapidDetails();
+  if (!details) return false;
+  webpush.setVapidDetails(details.subject, details.publicKey, details.privateKey);
   vapidConfigured = true;
   return true;
 }
@@ -29,13 +20,7 @@ export async function fanout(wallet: string, payload: PushPayload): Promise<Fano
   const subs = await listSubscriptions(wallet);
   if (subs.length === 0) return { sent: 0, pruned: 0, failures: 0 };
 
-  const body = JSON.stringify({
-    title: payload.title ?? 'PalengkePay',
-    body: payload.body ?? 'You have a new notification',
-    icon: payload.icon ?? '/icon-192.svg',
-    tag: payload.tag ?? 'palengkepay',
-    url: payload.url ?? '/',
-  });
+  const body = JSON.stringify(sanitizePayload(payload));
 
   let sent = 0, pruned = 0, failures = 0;
   await Promise.all(subs.map(async (sub) => {

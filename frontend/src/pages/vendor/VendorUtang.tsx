@@ -9,6 +9,7 @@ import { QRScanner } from '../../components/QRScanner';
 import { buildPaymentTx, submitTx } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 import { notifyWallet } from '../../lib/notify';
+import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
 
 const ESCROW_ID = import.meta.env.VITE_UTANG_ESCROW_CONTRACT_ID as string | undefined;
 const FEE_XLM = import.meta.env.VITE_UTANG_FEE_XLM ?? '1';
@@ -75,6 +76,8 @@ export function VendorUtang() {
   const [feeError, setFeeError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed' | 'defaulted'>('all');
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+  const { unit, format } = useFormatAmount();
+  const unitLabel = unit === 'php' ? 'PHP' : 'XLM';
 
   const active = utangs.filter((u) => u.status === 'active');
   const filtered = filter === 'all' ? utangs : utangs.filter((u) => u.status === filter);
@@ -87,7 +90,7 @@ export function VendorUtang() {
     ? (Number(form.totalAmountXlm) / form.installmentsTotal).toFixed(2)
     : null;
 
-  const owedStr = totalOwed.toFixed(2);
+  const owedStr = format(totalOwed, { showSuffix: false });
   const owedFontSize = owedStr.length >= 10 ? '1.8rem' : owedStr.length >= 8 ? '2.2rem' : owedStr.length >= 6 ? '2.8rem' : '3.4rem';
 
   function validate(): boolean {
@@ -303,7 +306,7 @@ export function VendorUtang() {
             }}
           >
             {owedStr}
-            <span className="text-base font-bold ml-2" style={{ color: 'rgba(120,53,15,0.6)' }}>XLM</span>
+            <span className="text-base font-bold ml-2" style={{ color: 'rgba(120,53,15,0.6)' }}>{unitLabel}</span>
           </p>
           <p className="text-sm font-semibold mt-2 relative" style={{ color: 'rgba(120,53,15,0.7)' }}>
             {active.length} {lang === 'tl' ? `aktibong kasunduan${active.length !== 1 ? '' : ''}` : `active agreement${active.length !== 1 ? 's' : ''}`}
@@ -634,7 +637,7 @@ export function VendorUtang() {
                       >
                         <p className="text-xs font-bold" style={{ color: '#008055' }}>{form.description}</p>
                         <p className="text-xs mt-0.5" style={{ color: 'rgba(15,118,110,0.7)' }}>
-                          {form.installmentsTotal} × {installmentXlm} XLM · {INTERVAL_OPTIONS.find((o) => o.days === form.intervalDays)?.[lang === 'tl' ? 'labelTl' : 'label'].toLowerCase()}
+                          {form.installmentsTotal} × {format(Number(installmentXlm), { showSuffix: false })} {unitLabel} · {INTERVAL_OPTIONS.find((o) => o.days === form.intervalDays)?.[lang === 'tl' ? 'labelTl' : 'label'].toLowerCase()}
                         </p>
                       </div>
                     )}
@@ -715,11 +718,11 @@ export function VendorUtang() {
                       {[
                         {
                           label: lang === 'tl' ? 'Kabuuang halaga' : 'Total amount',
-                          value: `${form.totalAmountXlm} XLM`,
+                          value: `${format(Number(form.totalAmountXlm), { showSuffix: false })} ${unitLabel}`,
                         },
                         {
                           label: lang === 'tl' ? 'Installments' : 'Installments',
-                          value: `${form.installmentsTotal} × ${(Number(form.totalAmountXlm) / form.installmentsTotal).toFixed(2)} XLM`,
+                          value: `${form.installmentsTotal} × ${format(Number(form.totalAmountXlm) / form.installmentsTotal, { showSuffix: false })} ${unitLabel}`,
                         },
                         {
                           label: lang === 'tl' ? 'Agwat' : 'Interval',
@@ -842,7 +845,7 @@ export function VendorUtang() {
                     <div className="text-center">
                       <p className="text-base font-bold text-slate-900">{qrPayload.d}</p>
                       <p className="text-sm mt-1" style={{ color: 'rgba(15,23,42,0.45)' }}>
-                        {(qrPayload.a / STROOPS).toFixed(2)} XLM · {qrPayload.n} × {(qrPayload.a / STROOPS / qrPayload.n).toFixed(2)} XLM · {INTERVAL_OPTIONS.find((o) => o.days * 86400 === qrPayload.i)?.[lang === 'tl' ? 'labelTl' : 'label'] ?? ''}
+                        {format(qrPayload.a / STROOPS, { showSuffix: false })} {unitLabel} · {qrPayload.n} × {format(qrPayload.a / STROOPS / qrPayload.n, { showSuffix: false })} {unitLabel} · {INTERVAL_OPTIONS.find((o) => o.days * 86400 === qrPayload.i)?.[lang === 'tl' ? 'labelTl' : 'label'] ?? ''}
                       </p>
                     </div>
                   </div>

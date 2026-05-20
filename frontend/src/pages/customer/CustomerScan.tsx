@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, CheckCircle, Loader2, X, ExternalLink, AlertTriangle, Store, RotateCcw, ScanLine, Home, List, HandCoins, Store as StoreIcon } from 'lucide-react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { QRScanner } from '../../components/QRScanner';
@@ -13,6 +13,7 @@ import { useCreateUtang } from '../../lib/hooks/useUtang';
 import type { UtangOfferPayload } from '../vendor/VendorUtang';
 import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
 import { notifyWallet } from '../../lib/notify';
+import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
 
 const STROOPS = 10_000_000;
 
@@ -51,10 +52,16 @@ export function CustomerScan() {
   );
   const { status, txHash, error, sendPayment, reset } = usePayment();
   const { createUtang, isCreating } = useCreateUtang();
+  const { unit, format } = useFormatAmount();
+  const unitLabel = unit === 'php' ? 'PHP' : 'XLM';
+  const completedPaymentRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (step === 'confirm' && status === 'confirmed') {
-      setStep('done');
+      const completionKey = txHash ?? `${vendorAddress}:${pendingPayment?.amount ?? ''}:${pendingPayment?.memo ?? ''}`;
+      if (completedPaymentRef.current === completionKey) return;
+      completedPaymentRef.current = completionKey;
+      queueMicrotask(() => setStep('done'));
       if (vendorAddress && pendingPayment) {
         notifyWallet(vendorAddress, {
           title: 'PalengkePay — bayad natanggap',
@@ -64,7 +71,7 @@ export function CustomerScan() {
         });
       }
     }
-  }, [step, status, vendorAddress, pendingPayment, txHash]);
+  }, [pendingPayment, status, step, txHash, vendorAddress]);
 
   const handleRawScan = (raw: string): boolean => {
     try {
@@ -77,7 +84,9 @@ export function CustomerScan() {
         setStep('utang_offer');
         return true;
       }
-    } catch {}
+    } catch {
+      // Not an utang offer payload; continue with payment QR parsing.
+    }
     return false;
   };
 
@@ -98,6 +107,7 @@ export function CustomerScan() {
   };
 
   const handlePay = (amount: string, memo: string) => {
+    completedPaymentRef.current = null;
     setPendingPayment({ amount, memo });
     reset();
     setStep('confirm');
@@ -404,14 +414,14 @@ export function CustomerScan() {
             <p
               className="font-black text-white leading-none mb-1"
               style={{
-                fontSize: pendingPayment.amount.length > 8 ? '2.2rem' : '3rem',
+                fontSize: format(parseFloat(pendingPayment.amount), { showSuffix: false }).length > 8 ? '2.2rem' : '3rem',
                 fontFamily: "'Montserrat', sans-serif",
                 letterSpacing: '-0.02em',
               }}
             >
-              {pendingPayment.amount}
+              {format(parseFloat(pendingPayment.amount), { showSuffix: false })}
             </p>
-            <p className="text-base font-bold" style={{ color: 'rgba(255,255,255,0.4)' }}>XLM</p>
+            <p className="text-base font-bold" style={{ color: 'rgba(255,255,255,0.4)' }}>{unitLabel}</p>
             {pendingPayment.memo && (
               <div
                 className="mt-4 pt-4 text-sm font-semibold"
@@ -489,8 +499,8 @@ export function CustomerScan() {
                   className="font-black text-white leading-none mt-3"
                   style={{ fontSize: '2.5rem', fontFamily: "'Montserrat', sans-serif" }}
                 >
-                  {pendingPayment.amount}
-                  <span className="text-lg font-bold ml-2" style={{ color: 'rgba(255,255,255,0.5)' }}>XLM</span>
+                  {format(parseFloat(pendingPayment.amount), { showSuffix: false })}
+                  <span className="text-lg font-bold ml-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{unitLabel}</span>
                 </p>
               )}
               {vendorDisplay && (
@@ -589,9 +599,9 @@ export function CustomerScan() {
                   className="text-xl font-black text-slate-900 leading-tight"
                   style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >
-                  {(utangOffer.a / STROOPS).toFixed(2)}
+                  {format(utangOffer.a / STROOPS, { showSuffix: false })}
                 </p>
-                <p className="text-xs text-slate-400 mt-0.5">XLM total</p>
+                <p className="text-xs text-slate-400 mt-0.5">{unitLabel} total</p>
               </div>
               <div className="p-4 text-center">
                 <p
@@ -601,7 +611,7 @@ export function CustomerScan() {
                   {utangOffer.n}×
                 </p>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {(utangOffer.a / STROOPS / utangOffer.n).toFixed(2)} XLM
+                  {format(utangOffer.a / STROOPS / utangOffer.n, { showSuffix: false })} {unitLabel}
                 </p>
               </div>
               <div className="p-4 text-center">
