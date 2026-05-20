@@ -57,6 +57,7 @@ image.png
 
 # Seed script output — contains private keys
 scripts/seed/seed-output.json
+scripts/seed/seed-pending-output.json
 
 # Internal docs and planning files
 docs/
