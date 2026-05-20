@@ -312,7 +312,7 @@ function VendorDetailDrawer({
   // would otherwise become the containing block for our `position: fixed`).
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-8"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
       style={{ backgroundColor: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
