@@ -47,6 +47,7 @@ Beta users were onboarded via a Google Form collecting name, email, wallet addre
 - **[Security](SECURITY.md)** — reporting scope, current controls, known risks, and pre-release checklist.
 - **[Roadmap](ROADMAP.md)** — build status, requirements checklist, and next architecture decisions.
 - **[Contracts Guide](contracts/README.md)** — deployed contract IDs, interfaces, and Soroban commands.
+- **[Cash-In / Cash-Out — Testnet vs Mainnet](docs/cashin-cashout-testnet-vs-mainnet.md)** — mock vs partner_api rail modes, testnet PHP↔XLM flow, state persistence, and the env / custody / regulatory blockers preventing mainnet enablement.
 
 ---
 
@@ -244,7 +245,17 @@ Contract-first payment history with Horizon/localStorage fallback.
 - **Web Share API** — native share sheet on mobile (SMS, Messenger, Viber), clipboard fallback on desktop
 - **Open Graph meta tags** — receipts preview cleanly when pasted into messaging apps
 - **Direct verification** — every receipt links straight to Stellar Expert for cryptographic proof
+- **In-page navigation** — `Back` button (returns to the previous transaction view) and `Transactions` shortcut at the top of every receipt, so vendors can audit one payment and step back into the full ledger without losing context
 - Available from payment confirmation screen + every row in transaction history
+
+### Vendor Income Proof Pack
+- **Per-transaction popup** — tapping any row on `/vendor/transactions` (Today / Yesterday / This week / older buckets) opens an Income Proof Pack modal scoped to the relevant period (`7d`, `30d`, or `all`, auto-selected by the transaction's age)
+- **Bank-ready proof certificate** — title, audience, vendor identification line, generated timestamp, total XLM + estimated PHP, transaction count, date range, unique customer count, and a per-payment readiness checklist (payment rows, live Stellar hash, repayment rows)
+- **Wallet-signed Testnet attestation** — when a live `PalengkePayment` hash is available it's surfaced as a one-tap copy button so the proof can be cross-checked on Stellar Expert
+- **Exports** — CSV, JSON, and plain-text Certificate, plus a print-ready view; every export is timestamped and stamps the chosen period
+- **Cross-currency badges** — every row inside the modal shows PHP estimate next to XLM using the same locked-quote source as the receipt
+- **Recovery workspace** below the transactions list — receipt lookup by hash, resend QR shortcut, and sponsor-fee diagnostics for failed fee-bumps; lookup field is at the very top of the page for fast vendor self-service
+- Implementation: `frontend/src/lib/vendor-proof.ts` builds the summary + certificate; `frontend/src/pages/vendor/VendorTransactions.tsx` renders the modal and exports; rows are keyboard-accessible (Enter / Space to open); modal closes via the `X` button or backdrop click
 
 ### Vendor Status (Open / Closed)
 - Vendor toggles their stall **Open / Closed** with a single tap from `/vendor/home` and `/vendor/profile`
@@ -513,7 +524,7 @@ The following improvements are planned for Phase 2, derived directly from beta u
 - **Anchor key custody to KMS** — move `ANCHOR_SIGNING_SECRET` from Vercel env plaintext to a KMS-backed signer for mainnet.
 - **✓ Shipped — Off-chain push subscription store** — Upstash Redis via Vercel Marketplace integration `palengkepay`; subscriptions keyed by Stellar wallet, durable across serverless cold starts, 410/404 endpoints pruned automatically.
 - **Firebase / Supabase off-chain metadata layer** — vendor metadata caching to reduce Soroban RPC calls and improve load time.
-- **Multi-language (Filipino / English)** — EN·TL toggle already stubbed in the UI; wire up `i18n` library with full Tagalog translations.
+- **✓ Shipped — Multi-language (Filipino / English)** — EN / TL toggle wired into the mobile + desktop header alongside `WalletButton`. Full Tagalog translations live in `frontend/src/contexts/LanguageContext.tsx`; user choice persists to `localStorage`. Customer pages (Home, History, Cashin, Cashout, Profile, Scan, Utang) and Vendor pages (Apply, Home, QR, Profile, Transactions, Utang) all refactored to use `t()` for user-facing strings.
 
 ---
 
