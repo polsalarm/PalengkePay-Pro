@@ -2,40 +2,49 @@
 
 Three Soroban contracts on Stellar Testnet.
 
-## Auth Hardening (deployed 2026-05-21)
+## Default-Handling Upgrade (deployed 2026-05-21)
 
-PR #3 added these on-chain auth checks. Live on the contract IDs below as of the
-2026-05-21 redeploy.
+Second redeploy on 2026-05-21 added utang default management — grace period,
+reserve pool, late-fee resume, and per-vendor / per-customer default counters.
+Old contract IDs are superseded; old testnet data not migrated.
+
+| Contract | New behavior |
+|----------|--------------|
+| `utang-escrow` | `mark_default` now requires `now > next_due + grace_period` (default 7d, admin-configurable via `set_grace_period`). 1% of each `pay_installment` skimmed to per-utang reserve held in contract custody — paid to vendor on default, refunded to customer on completion. New `resume_after_late(customer, utang_id)` charges 5% of `installment_amount` to vendor and flips status `Defaulted → Active`. New views: `customer_defaults(addr)`, `vendor_defaults(addr)`, `utang_reserve(id)`, `is_overdue(id)`, `grace_period()`. New events: `UtangDefaultedEvent`, `UtangResumedEvent`. |
+| `vendor-registry` | New admin-only `report_default(vendor, customer)` mirrors aggregate counts for reputation. New views: `vendor_defaults_received(addr)`, `customer_defaults_history(addr)`. New event: `DefaultReportedEvent`. |
+| `palengke-payment` | Unchanged from PR #3. Hash refreshed by rebuild only. |
+
+### Auth Hardening (PR #3, still live)
 
 | Contract | Hardening |
 |----------|-----------|
-| `vendor-registry` | `apply_vendor` requires `wallet.require_auth()`; `increment_stats` requires admin auth + positive amount |
-| `utang-escrow` | `create_utang` requires `customer.require_auth()` |
+| `vendor-registry` | `apply_vendor` requires `wallet.require_auth()`; `increment_stats` requires admin auth + positive amount; `report_default` requires admin auth |
+| `utang-escrow` | `create_utang` requires `customer.require_auth()`; `mark_default` requires admin auth + grace elapsed; `resume_after_late` requires debtor auth; `set_grace_period` requires admin auth |
 | `palengke-payment` | adds `CustomerPayments` index + `get_customer_payments(customer, limit, offset)` |
 
-### Deployed WASM (2026-05-21)
+### Deployed WASM (2026-05-21 — default-handling upgrade)
 
 | WASM | Bytes | SHA-256 |
 |------|------:|---------|
-| `palengke_payment.wasm` | 6 767 | `8412cb133a438e10b47be050fa7cba0d272f9e8304a0e366a842663cbb6fbc0b` |
-| `vendor_registry.wasm` | 15 148 | `d3ecffc9544e816d6301c29bf7438f06a23f86a310b23efb1965bbfd483a4f08` |
-| `utang_escrow.wasm` | 11 955 | `4bf43dc839cb9e4b2b5b8d882bd42631448421231949482d5458f7a71453a7b5` |
+| `palengke_payment.wasm` | 6 682 | `adde555dad17b6553c96b878d08220e813969ea82bf65a25c06c96965833a25e` |
+| `vendor_registry.wasm`  | 16 736 | `fd41f3419056fba7ece4136c6597f0ca4b7ac10991e9b9b616c5e4f797cddd6a` |
+| `utang_escrow.wasm`     | 16 164 | `3430482a8e8e6a6d74283852cf0f6b05c172b8a7798b26c972f1344d828e5f08` |
 
-Admin keypair on the new contracts: `GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH`
-(== `stellar keys address palengkepay`). Pre-PR3 admin `GBPPOLSXY...` is no longer the
-admin of any live contract.
+Admin keypair: `GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH`
+(== `stellar keys address palengkepay`). Native XLM SAC bound to utang-escrow:
+`CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`.
 
 ## Contracts
 
 | Contract | Contract ID | Description |
 |----------|-------------|-------------|
-| `vendor-registry` | `CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5` | On-chain vendor identity — register, apply, approve, deactivate, stats |
+| `vendor-registry` | `CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR` | On-chain vendor identity — register, apply, approve, deactivate, stats, ratings, default reputation |
 | `palengke-payment` | `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` | QR-based XLM payment settlement with fee support |
-| `utang-escrow` | `CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD` | BNPL installment agreements — create, pay, complete, default |
+| `utang-escrow` | `CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53` | BNPL installments — create, pay, default with grace + reserve, resume after late fee |
 
 ### VendorRegistry
 
-`CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5)
+`CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR)
 
 <img src="../UI/CONTRACT/VendorRegistry.png" alt="VendorRegistry contract on Stellar Expert" width="100%" />
 
@@ -47,7 +56,7 @@ admin of any live contract.
 
 ### UTangEscrow
 
-`CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD)
+`CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53)
 
 <img src="../UI/CONTRACT/UtangEscrow.png" alt="UTangEscrow contract on Stellar Expert" width="100%" />
 

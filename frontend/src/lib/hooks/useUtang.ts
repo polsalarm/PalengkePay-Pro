@@ -303,3 +303,139 @@ export function isOverdue(nextDueSecs: bigint | null | undefined): boolean {
   if (!nextDueSecs) return false;
   return Number(nextDueSecs) * 1000 < Date.now();
 }
+
+// Days past next_due. Negative = future. Positive = overdue.
+export function daysPastDue(nextDueSecs: bigint | null | undefined): number {
+  if (!nextDueSecs) return 0;
+  const diffMs = Date.now() - Number(nextDueSecs) * 1000;
+  return Math.floor(diffMs / 86400000);
+}
+
+// ── Default counters (view calls) ─────────────────────────────────────────────
+
+export function useCustomerDefaults(wallet: string | null) {
+  const [count, setCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!wallet || !ESCROW_ID) {
+      setCount(0);
+      return;
+    }
+    setIsLoading(true);
+    simulateViewCall(ESCROW_ID, 'customer_defaults', [addressToScVal(wallet)])
+      .then((raw) => setCount(Number(raw ?? 0)))
+      .catch(() => setCount(0))
+      .finally(() => setIsLoading(false));
+  }, [wallet, tick]);
+
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+  return { count, isLoading, refetch };
+}
+
+export function useVendorDefaults(wallet: string | null) {
+  const [count, setCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!wallet || !ESCROW_ID) {
+      setCount(0);
+      return;
+    }
+    setIsLoading(true);
+    simulateViewCall(ESCROW_ID, 'vendor_defaults', [addressToScVal(wallet)])
+      .then((raw) => setCount(Number(raw ?? 0)))
+      .catch(() => setCount(0))
+      .finally(() => setIsLoading(false));
+  }, [wallet, tick]);
+
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+  return { count, isLoading, refetch };
+}
+
+// ── Admin: mark utang as defaulted ────────────────────────────────────────────
+
+export function useMarkDefault() {
+  const [isMarking, setIsMarking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const markDefault = useCallback(async (
+    adminAddress: string,
+    utangId: bigint
+  ): Promise<string | null> => {
+    if (!ESCROW_ID) {
+      setError('UTangEscrow contract is not configured.');
+      return null;
+    }
+    setIsMarking(true);
+    setError(null);
+    try {
+      const xdrStr = await prepareContractTx(adminAddress, ESCROW_ID, 'mark_default', [
+        addressToScVal(adminAddress),
+        u64ToScVal(utangId),
+      ]);
+      const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdrStr, {
+        networkPassphrase: Networks.TESTNET,
+        address: adminAddress,
+      });
+      const hash = await submitSorobanTx(signedTxXdr);
+      return hash;
+    } catch (err: unknown) {
+      const msg = (err as { message?: string }).message ?? String(err);
+      setError(msg.slice(0, 160));
+      return null;
+    } finally {
+      setIsMarking(false);
+    }
+  }, []);
+
+  return { markDefault, isMarking, error };
+}
+
+// ── Customer: resume defaulted utang by paying late fee ───────────────────────
+
+export function useResumeAfterLate() {
+  const [isResuming, setIsResuming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
+
+  const resumeAfterLate = useCallback(async (
+    customerAddress: string,
+    utangId: bigint
+  ): Promise<string | null> => {
+    if (!ESCROW_ID) {
+      setError('UTangEscrow contract is not configured.');
+      return null;
+    }
+    setIsResuming(true);
+    setError(null);
+    setTxHash(null);
+    try {
+      const xdrStr = await prepareContractTx(customerAddress, ESCROW_ID, 'resume_after_late', [
+        addressToScVal(customerAddress),
+        u64ToScVal(utangId),
+      ]);
+      const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdrStr, {
+        networkPassphrase: Networks.TESTNET,
+        address: customerAddress,
+      });
+      const hash = await submitSorobanTx(signedTxXdr);
+      setTxHash(hash);
+      return hash;
+    } catch (err: unknown) {
+      const msg = (err as { message?: string }).message ?? String(err);
+      setError(
+        msg.includes('rejected') || msg.includes('cancel')
+          ? 'Transaction cancelled — no funds sent'
+          : msg.slice(0, 160)
+      );
+      return null;
+    } finally {
+      setIsResuming(false);
+    }
+  }, []);
+
+  return { resumeAfterLate, isResuming, error, txHash };
+}

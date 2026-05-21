@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle, XCircle, Loader2, Users, Clock, ExternalLink, UserPlus,
-  RefreshCw, ShieldCheck, PowerOff, AlertTriangle, X, BarChart2, Star,
+  RefreshCw, ShieldCheck, ShieldOff, PowerOff, AlertTriangle, X, BarChart2, Star,
   MapPin, Phone, Hash, Wallet, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
@@ -530,6 +530,13 @@ export function AdminMarket() {
               style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}
             >
               <UserPlus size={13} /> Register
+            </button>
+            <button
+              onClick={() => navigate('/admin/utang')}
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-2xl active:scale-95 transition-all"
+              style={{ backgroundColor: 'rgba(248,113,113,0.18)', color: '#FCA5A5' }}
+            >
+              <ShieldOff size={13} /> Defaults
             </button>
           </div>
 

@@ -1,18 +1,28 @@
-import { CheckCircle, Clock, AlertTriangle, ExternalLink } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, ExternalLink, RotateCcw, ShieldOff } from 'lucide-react';
 import type { UtangRecord } from '../lib/hooks/useUtang';
-import { dueLabel, isOverdue } from '../lib/hooks/useUtang';
+import { dueLabel, isOverdue, daysPastDue } from '../lib/hooks/useUtang';
 import { useVendorName } from '../lib/hooks/useVendor';
 import { useFormatAmount } from '../lib/hooks/useDisplayUnit';
 import { truncateAddress, stellarExpertUrl } from '../lib/stellar';
 
 interface UtangCardProps {
   utang: UtangRecord;
-  perspective: 'vendor' | 'customer';
+  perspective: 'vendor' | 'customer' | 'admin';
   onPayInstallment?: (utang: UtangRecord) => void;
+  onResume?: (utang: UtangRecord) => void;
+  onMarkDefault?: (utang: UtangRecord) => void;
+  busy?: boolean;
   txHash?: string | null;
+  // Grace period (seconds) past next_due before admin can mark default. Default 7 days.
+  graceSeconds?: number;
 }
 
-export function UtangCard({ utang, perspective, onPayInstallment, txHash }: UtangCardProps) {
+const GRACE_DEFAULT_SECONDS = 7 * 86400;
+
+export function UtangCard({
+  utang, perspective, onPayInstallment, onResume, onMarkDefault, busy, txHash,
+  graceSeconds = GRACE_DEFAULT_SECONDS,
+}: UtangCardProps) {
   const progress = utang.installmentsTotal > 0
     ? utang.installmentsPaid / utang.installmentsTotal
     : 0;
@@ -22,6 +32,10 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
   const unitLabel = unit === 'php' ? 'PHP' : 'XLM';
 
   const overdue = utang.status === 'active' && isOverdue(utang.nextDueSecs);
+  const daysOver = daysPastDue(utang.nextDueSecs);
+  const graceDays = Math.ceil(graceSeconds / 86400);
+  const graceElapsed = overdue && daysOver * 86400 > graceSeconds;
+  const lateFeeXlm = utang.installmentAmountXlm * 0.05;
 
   const counterpartyLabel = perspective === 'vendor' ? 'Customer' : 'Vendor';
   const counterpartyDisplay = perspective === 'customer'
@@ -64,11 +78,13 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
       {overdue && (
         <div
           className="flex items-center gap-2 px-5 py-2.5"
-          style={{ backgroundColor: '#FFFBEB', borderBottom: '1px solid #FDE68A' }}
+          style={{ backgroundColor: graceElapsed ? '#FEF2F2' : '#FFFBEB', borderBottom: `1px solid ${graceElapsed ? '#FECACA' : '#FDE68A'}` }}
         >
-          <AlertTriangle size={12} style={{ color: '#D97706' }} className="shrink-0" />
-          <p className="text-xs font-bold" style={{ color: '#D97706' }}>
-            Installment overdue — bayaran na
+          <AlertTriangle size={12} style={{ color: graceElapsed ? '#DC2626' : '#D97706' }} className="shrink-0" />
+          <p className="text-xs font-bold" style={{ color: graceElapsed ? '#DC2626' : '#D97706' }}>
+            {graceElapsed
+              ? `Past grace (${daysOver}d overdue, grace ${graceDays}d) — eligible for default`
+              : `Overdue ${daysOver}d — bayaran na (grace ${graceDays}d)`}
           </p>
         </div>
       )}
@@ -194,6 +210,30 @@ export function UtangCard({ utang, perspective, onPayInstallment, txHash }: Utan
                 }}
               >
                 Bayaran
+              </button>
+            )}
+            {perspective === 'customer' && utang.status === 'defaulted' && onResume && (
+              <button
+                onClick={() => onResume(utang)}
+                disabled={busy}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all active:scale-95 disabled:opacity-50"
+                style={{ backgroundColor: '#D97706', boxShadow: '0 2px 8px rgba(217,119,6,0.3)' }}
+                title={`Resume by paying ${lateFeeXlm.toFixed(2)} XLM late fee (5%)`}
+              >
+                <RotateCcw size={11} />
+                Resume · {lateFeeXlm.toFixed(2)} XLM fee
+              </button>
+            )}
+            {perspective === 'admin' && utang.status === 'active' && onMarkDefault && (
+              <button
+                onClick={() => onMarkDefault(utang)}
+                disabled={busy || !graceElapsed}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ backgroundColor: '#DC2626', boxShadow: '0 2px 8px rgba(220,38,38,0.3)' }}
+                title={graceElapsed ? 'Mark this utang as defaulted' : `Grace period not elapsed (${graceDays}d after due)`}
+              >
+                <ShieldOff size={11} />
+                Mark Default
               </button>
             )}
           </div>

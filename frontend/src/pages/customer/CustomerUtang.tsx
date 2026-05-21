@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { HandCoins, CheckCircle, Loader2, X, ExternalLink, AlertTriangle, ScanLine, ImageUp } from 'lucide-react';
+import { HandCoins, CheckCircle, Loader2, X, ExternalLink, AlertTriangle, ScanLine, ImageUp, RotateCcw, ShieldOff } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useWallet } from '../../lib/hooks/useWallet';
-import { useCustomerUtangs, usePayInstallment, useCreateUtang } from '../../lib/hooks/useUtang';
+import { useCustomerUtangs, usePayInstallment, useCreateUtang, useResumeAfterLate, useCustomerDefaults } from '../../lib/hooks/useUtang';
 import type { UtangRecord } from '../../lib/hooks/useUtang';
 import type { UtangOfferPayload } from '../vendor/VendorUtang';
 import { UtangCard } from '../../components/UtangCard';
@@ -21,10 +21,13 @@ export function CustomerUtang() {
   const { utangs, isLoading, error: fetchError, refetch } = useCustomerUtangs(address);
   const { status, txHash, error, payInstallment, reset } = usePayInstallment();
   const { createUtang, isCreating } = useCreateUtang();
+  const { count: defaultsCount, refetch: refetchDefaults } = useCustomerDefaults(address);
+  const { resumeAfterLate, isResuming, error: resumeError, txHash: resumeTxHash } = useResumeAfterLate();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [paying, setPaying] = useState<UtangRecord | null>(null);
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
+  const [resuming, setResuming] = useState<UtangRecord | null>(null);
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed' | 'defaulted'>('active');
   const [uploadedOffer, setUploadedOffer] = useState<UtangOfferPayload | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -124,6 +127,15 @@ export function CustomerUtang() {
     reset();
   }
 
+  async function confirmResume() {
+    if (!resuming || !address) return;
+    const hash = await resumeAfterLate(address, resuming.id);
+    if (hash) {
+      refetch();
+      refetchDefaults();
+    }
+  }
+
   if (!address) {
     return <WalletRequiredState detail="Connect your wallet to review installment plans and accept vendor credit offers." />;
   }
@@ -140,7 +152,19 @@ export function CustomerUtang() {
           >
             My Utang
           </h1>
-          <p className="text-sm text-slate-400 mt-0.5">Iyong mga installment plans</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-sm text-slate-400">Iyong mga installment plans</p>
+            {defaultsCount > 0 && (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: '#FFF1F2', color: '#BE123C', border: '1px solid #FECDD3' }}
+                title="Defaults on-chain across all vendors"
+              >
+                <ShieldOff size={9} />
+                {defaultsCount} default{defaultsCount > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
         </div>
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -264,7 +288,7 @@ export function CustomerUtang() {
           className="flex gap-1 p-1 rounded-2xl"
           style={{ backgroundColor: '#F1F5F9' }}
         >
-          {(['active', 'completed', 'all'] as const).map((f) => (
+          {(['active', 'defaulted', 'completed', 'all'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -347,6 +371,8 @@ export function CustomerUtang() {
               utang={u}
               perspective="customer"
               onPayInstallment={handlePayClick}
+              onResume={(target) => setResuming(target)}
+              busy={isResuming && resuming?.id === u.id}
               txHash={paying?.id === u.id && txHash ? txHash : null}
             />
           ))}
@@ -485,6 +511,112 @@ export function CustomerUtang() {
                     onClick={handleAcceptOffer}
                     className="w-full text-white font-bold rounded-2xl active:scale-95"
                     style={{ backgroundColor: '#008055', minHeight: '52px' }}
+                  >
+                    Subukan Ulit
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Resume after late bottom sheet ── */}
+      {resuming && createPortal(
+        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full rounded-t-3xl overflow-hidden" style={{ backgroundColor: 'white', maxWidth: '480px' }}>
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#E2E8F0' }} />
+            </div>
+            <div className="px-5 pt-2 pb-2 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#D97706' }}>Resume Defaulted Utang</p>
+                <p className="text-base font-black text-slate-900 mt-0.5" style={{ fontFamily: "'Montserrat', sans-serif" }}>I-restore ang plan</p>
+              </div>
+              {!isResuming && (
+                <button
+                  onClick={() => setResuming(null)}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-95"
+                  style={{ backgroundColor: '#F1F5F9' }}
+                >
+                  <X size={16} style={{ color: '#64748B' }} />
+                </button>
+              )}
+            </div>
+            <div className="px-5 pb-8 space-y-4">
+              {resuming.description && (
+                <p className="text-sm font-semibold px-4 py-3 rounded-2xl" style={{ backgroundColor: '#F8FAFC', color: '#475569' }}>
+                  {resuming.description}
+                </p>
+              )}
+              <div className="rounded-2xl p-5 text-center" style={{ background: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)' }}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  5% Late Fee
+                </p>
+                <p className="font-black text-white leading-none" style={{ fontSize: '2.6rem', fontFamily: "'Montserrat', sans-serif", letterSpacing: '-0.02em' }}>
+                  {(resuming.installmentAmountXlm * 0.05).toFixed(2)}
+                </p>
+                <p className="text-base font-bold mt-1" style={{ color: 'rgba(255,255,255,0.6)' }}>XLM</p>
+                <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  Babayaran direkta sa vendor. Status mag-aaktibo ulit.
+                </p>
+              </div>
+              <div className="rounded-2xl px-4 py-3 flex items-start gap-2" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
+                <AlertTriangle size={12} style={{ color: '#C2410C' }} className="mt-0.5 shrink-0" />
+                <p className="text-[11px]" style={{ color: '#9A3412' }}>
+                  Pagkatapos ng resume, balik aktibo ang utang at kailangang bayaran ang natitirang {resuming.installmentsTotal - resuming.installmentsPaid} installment(s).
+                </p>
+              </div>
+              {!isResuming && !resumeTxHash && !resumeError && (
+                <button
+                  onClick={confirmResume}
+                  className="w-full text-white font-black rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#D97706', minHeight: '56px', fontSize: '1rem', fontFamily: "'Montserrat', sans-serif", boxShadow: '0 6px 20px rgba(217,119,6,0.35)' }}
+                >
+                  <RotateCcw size={16} /> Bayaran ang Late Fee at I-resume
+                </button>
+              )}
+              {isResuming && (
+                <div className="text-center py-5 space-y-2 rounded-2xl" style={{ backgroundColor: '#F8FAFC' }}>
+                  <Loader2 className="animate-spin mx-auto" size={26} style={{ color: '#D97706' }} />
+                  <p className="text-sm font-bold text-slate-600">Pinoproseso…</p>
+                </div>
+              )}
+              {resumeTxHash && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}>
+                    <CheckCircle size={20} style={{ color: '#16A34A' }} />
+                    <p className="text-sm font-bold text-green-800">Utang resumed!</p>
+                  </div>
+                  <a
+                    href={stellarExpertUrl(resumeTxHash)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full"
+                    style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
+                  >
+                    <ExternalLink size={12} /> Tingnan sa Stellar Expert
+                  </a>
+                  <button
+                    onClick={() => setResuming(null)}
+                    className="w-full font-bold rounded-2xl active:scale-95 text-sm"
+                    style={{ minHeight: '52px', border: '2px solid #E2E8F0', color: '#475569' }}
+                  >
+                    Isara
+                  </button>
+                </div>
+              )}
+              {resumeError && !resumeTxHash && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}>
+                    <AlertTriangle size={18} style={{ color: '#F43F5E' }} />
+                    <p className="text-sm font-semibold text-rose-700 flex-1">{resumeError}</p>
+                  </div>
+                  <button
+                    onClick={confirmResume}
+                    className="w-full text-white font-bold rounded-2xl active:scale-95"
+                    style={{ backgroundColor: '#D97706', minHeight: '52px' }}
                   >
                     Subukan Ulit
                   </button>

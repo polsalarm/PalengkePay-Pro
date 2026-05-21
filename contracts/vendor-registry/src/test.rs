@@ -385,3 +385,42 @@ fn test_distinct_tx_hashes_allow_multiple_ratings() {
     assert_eq!(sum, 8);
     assert_eq!(count, 2);
 }
+
+// ── Default tracking ─────────────────────────────────────────────────────────
+
+#[test]
+fn test_report_default_increments_counters() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+
+    assert_eq!(client.vendor_defaults_received(&vendor), 0);
+    assert_eq!(client.customer_defaults_history(&customer), 0);
+
+    client.report_default(&admin, &vendor, &customer);
+    assert_eq!(client.vendor_defaults_received(&vendor), 1);
+    assert_eq!(client.customer_defaults_history(&customer), 1);
+
+    client.report_default(&admin, &vendor, &customer);
+    assert_eq!(client.vendor_defaults_received(&vendor), 2);
+    assert_eq!(client.customer_defaults_history(&customer), 2);
+}
+
+#[test]
+#[should_panic(expected = "not admin")]
+fn test_non_admin_cannot_report_default() {
+    let (env, _admin, client) = setup();
+    let not_admin = Address::generate(&env);
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    client.report_default(&not_admin, &vendor, &customer);
+}
+
+#[test]
+#[should_panic]
+fn test_report_default_requires_admin_auth() {
+    let (env, admin, client) = setup_without_global_auth();
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    client.report_default(&admin, &vendor, &customer);
+}

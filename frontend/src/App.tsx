@@ -31,6 +31,7 @@ const AdminMetrics = lazy(() => import('./pages/admin/AdminMetrics').then((modul
 const AdminHealth = lazy(() => import('./pages/admin/AdminHealth').then((module) => ({ default: module.AdminHealth })));
 const AdminProofs = lazy(() => import('./pages/admin/AdminProofs').then((module) => ({ default: module.AdminProofs })));
 const AdminRamps = lazy(() => import('./pages/admin/AdminRamps').then((module) => ({ default: module.AdminRamps })));
+const AdminUtang = lazy(() => import('./pages/admin/AdminUtang').then((module) => ({ default: module.AdminUtang })));
 
 function RouteLoading() {
   return (
@@ -89,6 +90,7 @@ export default function App() {
                 <Route path="/admin/health" element={<AdminHealth />} />
                 <Route path="/admin/proofs" element={<AdminProofs />} />
                 <Route path="/admin/ramps" element={<AdminRamps />} />
+                <Route path="/admin/utang" element={<AdminUtang />} />
 
                 {/* Vendor apply (public) */}
                 <Route path="/vendor/apply" element={<VendorApply />} />

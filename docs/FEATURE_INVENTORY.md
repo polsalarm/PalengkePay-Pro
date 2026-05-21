@@ -6,6 +6,13 @@
 - PHP-first checkout with quote lock and dual-currency receipt formatting
 - Vendor application + approval workflow on-chain
 - Utang (BNPL) create, view, and repayment flows
+- Utang default handling (deployed 2026-05-21):
+  - 7-day admin-configurable grace period past `next_due` before default eligible
+  - 1% reserve skimmed from each `pay_installment` into per-utang contract custody; paid to vendor on default, refunded to customer on completion
+  - 5% late fee `resume_after_late` flow — customer pays vendor direct, status `Defaulted → Active`, `next_due` reset
+  - On-chain default reputation: `customer_defaults` + `vendor_defaults` counters in utang-escrow; `customer_defaults_history` + `vendor_defaults_received` mirrors in vendor-registry via admin `report_default`
+  - Admin Utang dashboard (`/admin/utang`) with Default-ready / Overdue / Defaulted / All filters and grace-aware `Mark Default` button
+  - Customer Utang page surfaces on-chain defaults count chip + Resume bottom sheet for defaulted plans
 - Vendor proof, history, and export/recovery surfaces
 - Admin dashboard for pending vendors, metrics, health, and proofs
 - Gasless fee sponsorship API path with policy checks

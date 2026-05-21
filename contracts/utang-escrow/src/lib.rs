@@ -3,6 +3,10 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Vec,
 };
 
+const RESERVE_BPS: i128 = 100; // 1% of each installment skimmed to per-utang reserve
+const LATE_FEE_BPS: i128 = 500; // 5% of installment_amount charged on resume_after_late
+const DEFAULT_GRACE_SECONDS: u64 = 604_800; // 7 days past next_due before mark_default allowed
+
 #[contracttype]
 #[derive(Clone, PartialEq, Debug)]
 pub enum UtangStatus {
@@ -35,6 +39,10 @@ pub enum DataKey {
     UtangCount,
     Admin,
     Token,
+    GracePeriod,
+    CustomerDefaults(Address),
+    VendorDefaults(Address),
+    UtangReserve(u64),
 }
 
 #[contracttype]
@@ -61,6 +69,22 @@ pub struct UtangCompletedEvent {
     pub vendor: Address,
 }
 
+#[contracttype]
+pub struct UtangDefaultedEvent {
+    pub utang_id: u64,
+    pub customer: Address,
+    pub vendor: Address,
+    pub reserve_paid_out: i128,
+}
+
+#[contracttype]
+pub struct UtangResumedEvent {
+    pub utang_id: u64,
+    pub customer: Address,
+    pub vendor: Address,
+    pub late_fee: i128,
+}
+
 #[contract]
 pub struct UTangEscrow;
 
@@ -74,6 +98,30 @@ impl UTangEscrow {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Token, &native_token);
         env.storage().instance().set(&DataKey::UtangCount, &0u64);
+        env.storage()
+            .instance()
+            .set(&DataKey::GracePeriod, &DEFAULT_GRACE_SECONDS);
+    }
+
+    /// Admin can adjust grace period (seconds past next_due before default allowed).
+    pub fn set_grace_period(env: Env, admin: Address, seconds: u64) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
+        if admin != stored_admin {
+            panic!("not admin");
+        }
+        env.storage().instance().set(&DataKey::GracePeriod, &seconds);
+    }
+
+    pub fn grace_period(env: Env) -> u64 {
+        env.storage()
+            .instance()
+            .get(&DataKey::GracePeriod)
+            .unwrap_or(DEFAULT_GRACE_SECONDS)
     }
 
     /// Vendor creates utang agreement. First installment NOT collected here —
@@ -128,8 +176,10 @@ impl UTangEscrow {
         env.storage()
             .persistent()
             .set(&DataKey::Utang(count), &utang);
+        env.storage()
+            .persistent()
+            .set(&DataKey::UtangReserve(count), &0i128);
 
-        // Index by customer
         let mut customer_list: Vec<u64> = env
             .storage()
             .persistent()
@@ -140,7 +190,6 @@ impl UTangEscrow {
             .persistent()
             .set(&DataKey::CustomerUtangs(customer.clone()), &customer_list);
 
-        // Index by vendor
         let mut vendor_list: Vec<u64> = env
             .storage()
             .persistent()
@@ -190,7 +239,6 @@ impl UTangEscrow {
             .get(&DataKey::Token)
             .expect("not initialized");
 
-        // Last installment may be smaller if total doesn't divide evenly
         let remaining_installments = utang.installments_total - utang.installments_paid;
         let remaining_amount =
             utang.total_amount - (utang.installment_amount * utang.installments_paid as i128);
@@ -200,7 +248,23 @@ impl UTangEscrow {
             utang.installment_amount
         };
 
-        token::Client::new(&env, &token_address).transfer(&customer, &utang.vendor, &pay_amount);
+        let reserve_fee = (pay_amount * RESERVE_BPS) / 10_000;
+
+        let token_client = token::Client::new(&env, &token_address);
+        // Vendor gets the installment.
+        token_client.transfer(&customer, &utang.vendor, &pay_amount);
+        // Reserve fee held in contract custody until completion or default.
+        if reserve_fee > 0 {
+            token_client.transfer(&customer, &env.current_contract_address(), &reserve_fee);
+            let prev: i128 = env
+                .storage()
+                .persistent()
+                .get(&DataKey::UtangReserve(utang_id))
+                .unwrap_or(0);
+            env.storage()
+                .persistent()
+                .set(&DataKey::UtangReserve(utang_id), &(prev + reserve_fee));
+        }
 
         utang.installments_paid += 1;
         let installment_number = utang.installments_paid;
@@ -217,6 +281,18 @@ impl UTangEscrow {
 
         if utang.installments_paid >= utang.installments_total {
             utang.status = UtangStatus::Completed;
+            // Completed cleanly — refund accumulated reserve back to customer.
+            let reserve: i128 = env
+                .storage()
+                .persistent()
+                .get(&DataKey::UtangReserve(utang_id))
+                .unwrap_or(0);
+            if reserve > 0 {
+                token_client.transfer(&env.current_contract_address(), &customer, &reserve);
+                env.storage()
+                    .persistent()
+                    .set(&DataKey::UtangReserve(utang_id), &0i128);
+            }
             env.events().publish(
                 (symbol_short!("utang"), symbol_short!("done")),
                 UtangCompletedEvent {
@@ -234,7 +310,25 @@ impl UTangEscrow {
             .set(&DataKey::Utang(utang_id), &utang);
     }
 
-    /// Admin can mark an overdue utang as defaulted.
+    /// View: true if utang is Active and `now > next_due + grace_period`.
+    pub fn is_overdue(env: Env, utang_id: u64) -> bool {
+        let utang: Utang = match env.storage().persistent().get(&DataKey::Utang(utang_id)) {
+            Some(u) => u,
+            None => return false,
+        };
+        if utang.status != UtangStatus::Active {
+            return false;
+        }
+        let grace: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::GracePeriod)
+            .unwrap_or(DEFAULT_GRACE_SECONDS);
+        env.ledger().timestamp() > utang.next_due + grace
+    }
+
+    /// Admin marks utang defaulted. Requires `now > next_due + grace_period`.
+    /// Pays out accumulated reserve to vendor and increments customer/vendor default counters.
     pub fn mark_default(env: Env, admin: Address, utang_id: u64) {
         admin.require_auth();
         let stored_admin: Address = env
@@ -256,10 +350,138 @@ impl UTangEscrow {
             panic!("utang not active");
         }
 
+        let grace: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::GracePeriod)
+            .unwrap_or(DEFAULT_GRACE_SECONDS);
+        if env.ledger().timestamp() <= utang.next_due + grace {
+            panic!("grace period not elapsed");
+        }
+
+        // Pay out reserve to vendor as partial compensation.
+        let reserve: i128 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::UtangReserve(utang_id))
+            .unwrap_or(0);
+        if reserve > 0 {
+            let token_address: Address = env
+                .storage()
+                .instance()
+                .get(&DataKey::Token)
+                .expect("not initialized");
+            token::Client::new(&env, &token_address).transfer(
+                &env.current_contract_address(),
+                &utang.vendor,
+                &reserve,
+            );
+            env.storage()
+                .persistent()
+                .set(&DataKey::UtangReserve(utang_id), &0i128);
+        }
+
+        // Bump default counters.
+        let cust_count: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::CustomerDefaults(utang.customer.clone()))
+            .unwrap_or(0);
+        env.storage().persistent().set(
+            &DataKey::CustomerDefaults(utang.customer.clone()),
+            &(cust_count + 1),
+        );
+        let vend_count: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::VendorDefaults(utang.vendor.clone()))
+            .unwrap_or(0);
+        env.storage().persistent().set(
+            &DataKey::VendorDefaults(utang.vendor.clone()),
+            &(vend_count + 1),
+        );
+
         utang.status = UtangStatus::Defaulted;
         env.storage()
             .persistent()
             .set(&DataKey::Utang(utang_id), &utang);
+
+        env.events().publish(
+            (symbol_short!("utang"), symbol_short!("default")),
+            UtangDefaultedEvent {
+                utang_id,
+                customer: utang.customer.clone(),
+                vendor: utang.vendor.clone(),
+                reserve_paid_out: reserve,
+            },
+        );
+    }
+
+    /// Customer pays late fee to resume a defaulted utang.
+    /// Late fee = installment_amount * LATE_FEE_BPS / 10_000, paid direct to vendor.
+    /// Status flips back to Active, next_due resets to now + interval.
+    pub fn resume_after_late(env: Env, customer: Address, utang_id: u64) {
+        customer.require_auth();
+
+        let mut utang: Utang = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Utang(utang_id))
+            .expect("utang not found");
+
+        if utang.customer != customer {
+            panic!("not the debtor");
+        }
+        if utang.status != UtangStatus::Defaulted {
+            panic!("utang not defaulted");
+        }
+
+        let late_fee = (utang.installment_amount * LATE_FEE_BPS) / 10_000;
+        let token_address: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Token)
+            .expect("not initialized");
+        if late_fee > 0 {
+            token::Client::new(&env, &token_address).transfer(&customer, &utang.vendor, &late_fee);
+        }
+
+        utang.status = UtangStatus::Active;
+        utang.next_due = env.ledger().timestamp() + utang.interval_seconds;
+        env.storage()
+            .persistent()
+            .set(&DataKey::Utang(utang_id), &utang);
+
+        env.events().publish(
+            (symbol_short!("utang"), symbol_short!("resumed")),
+            UtangResumedEvent {
+                utang_id,
+                customer: utang.customer.clone(),
+                vendor: utang.vendor.clone(),
+                late_fee,
+            },
+        );
+    }
+
+    pub fn customer_defaults(env: Env, customer: Address) -> u32 {
+        env.storage()
+            .persistent()
+            .get(&DataKey::CustomerDefaults(customer))
+            .unwrap_or(0)
+    }
+
+    pub fn vendor_defaults(env: Env, vendor: Address) -> u32 {
+        env.storage()
+            .persistent()
+            .get(&DataKey::VendorDefaults(vendor))
+            .unwrap_or(0)
+    }
+
+    pub fn utang_reserve(env: Env, utang_id: u64) -> i128 {
+        env.storage()
+            .persistent()
+            .get(&DataKey::UtangReserve(utang_id))
+            .unwrap_or(0)
     }
 
     pub fn get_utang(env: Env, utang_id: u64) -> Utang {

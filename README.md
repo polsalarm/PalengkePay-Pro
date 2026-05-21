@@ -214,6 +214,14 @@ Contract-first payment history with Horizon/localStorage fallback.
 - **QR image upload** — customer can upload a saved utang QR image from their gallery instead of scanning live
 - **Download QR** — vendor can download the generated utang QR as a PNG for sharing
 
+### Utang Default Handling (deployed 2026-05-21)
+- **Grace period** — admin-configurable, default 7 days past `next_due` before an active utang becomes default-eligible. Enforced on-chain by `mark_default`; the admin transaction reverts with `"grace period not elapsed"` if called too early.
+- **Reserve pool** — 1% of every `pay_installment` is skimmed into per-utang contract custody (`UtangReserve(id)`). On default it pays out to the vendor as partial compensation; on full completion it refunds back to the customer.
+- **Late-fee resume** — defaulted customers can call `resume_after_late` to pay a 5% fee (of `installment_amount`) direct to the vendor; the utang flips `Defaulted → Active` and `next_due` resets to `now + interval_seconds`.
+- **On-chain default reputation** — `customer_defaults(addr)` and `vendor_defaults(addr)` counters in `utang-escrow` increment automatically on `mark_default`. `vendor-registry` exposes mirrored aggregates via admin-only `report_default` plus the `vendor_defaults_received` / `customer_defaults_history` views, so customer/vendor reputation can be read cross-vendor.
+- **Admin Utang dashboard** (`/admin/utang`) — filters across all vendors' utangs by **Default-ready / Overdue / Defaulted / All**; `Mark Default` button is disabled until the grace period has elapsed and surfaces the grace days remaining inline.
+- **Customer-side surfaces** — defaults count chip in the `My Utang` header (pulled directly from `customer_defaults`), `defaulted` filter tab, and a Resume bottom sheet that previews the exact late fee in XLM before signing.
+
 ### Vendor Management
 - **Self-service apply flow** — vendor submits stall info on-chain, no admin needed upfront
 - **Admin approve/reject** — admin wallet reviews pending applications on-chain
@@ -328,9 +336,9 @@ PalengkePay runs on **both Stellar Testnet (live now) and Stellar Mainnet (Phase
 
 | Contract | Purpose | Testnet ID | Mainnet ID |
 |----------|---------|------------|------------|
-| `VendorRegistry` | Vendor registration, apply/approve/reject/deactivate, profiles | `CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5` | _Pending — Phase 2_ |
+| `VendorRegistry` | Vendor registration, apply/approve/reject/deactivate, profiles, ratings, default reputation | `CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR` | _Pending — Phase 2_ |
 | `PalengkePayment` | QR-based payments with fee support and stat tracking | `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` | _Pending — Phase 2_ |
-| `UTangEscrow` | BNPL installment agreements — create, pay, complete, default | `CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD` | _Pending — Phase 2_ |
+| `UTangEscrow` | BNPL installments — create, pay, default (with 7-day grace + 1% reserve pool), resume after late fee | `CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53` | _Pending — Phase 2_ |
 
 See [`docs/CONTRACTS.md`](docs/CONTRACTS.md) for contract interfaces, [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for deployment guidance, and [`plan.md`](plan.md) for the dual-network rollout checklist when present.
 
@@ -338,7 +346,7 @@ See [`docs/CONTRACTS.md`](docs/CONTRACTS.md) for contract interfaces, [`docs/DEP
 
 ### VendorRegistry
 
-- **Testnet:** `CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5)
+- **Testnet:** `CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR)
 - **Mainnet:** _Pending — Phase 2 (post-audit)_
 
 <img src="UI/CONTRACT/VendorRegistry.png" alt="VendorRegistry contract on Stellar Expert" width="100%" />
@@ -352,7 +360,7 @@ See [`docs/CONTRACTS.md`](docs/CONTRACTS.md) for contract interfaces, [`docs/DEP
 
 ### UTangEscrow
 
-- **Testnet:** `CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD)
+- **Testnet:** `CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53)
 - **Mainnet:** _Pending — Phase 2 (post-audit)_
 
 <img src="UI/CONTRACT/UtangEscrow.png" alt="UTangEscrow contract on Stellar Expert" width="100%" />
@@ -561,9 +569,9 @@ Create `frontend/.env.local`:
 ```env
 VITE_STELLAR_NETWORK=testnet
 VITE_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
-VITE_VENDOR_REGISTRY_CONTRACT_ID=CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5
+VITE_VENDOR_REGISTRY_CONTRACT_ID=CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR
 VITE_PALENGKE_PAYMENT_CONTRACT_ID=CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY
-VITE_UTANG_ESCROW_CONTRACT_ID=CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD
+VITE_UTANG_ESCROW_CONTRACT_ID=CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53
 VITE_UTANG_FEE_XLM=1
 <<
 # Web Push (VAPID) — generate via `npx web-push generate-vapid-keys`

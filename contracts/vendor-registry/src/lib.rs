@@ -55,6 +55,8 @@ pub enum DataKey {
     Rating(Address, BytesN<32>), // (vendor, tx_hash) → Rating
     RatingSum(Address),          // vendor → cumulative stars sum (u32)
     RatingCount(Address),        // vendor → total ratings (u32)
+    VendorDefaultsReceived(Address),   // vendor → # of utangs from this vendor that defaulted (u32)
+    CustomerDefaultsHistory(Address),  // customer → # of defaulted utangs across all vendors (u32)
 }
 
 #[contracttype]
@@ -73,6 +75,14 @@ pub struct VendorRegisteredEvent {
     pub vendor_id: u64,
     pub wallet: Address,
     pub market_id: String,
+}
+
+#[contracttype]
+pub struct DefaultReportedEvent {
+    pub vendor: Address,
+    pub customer: Address,
+    pub vendor_total: u32,
+    pub customer_total: u32,
 }
 
 #[contracttype]
@@ -573,6 +583,69 @@ impl VendorRegistry {
         env.storage()
             .persistent()
             .has(&DataKey::Rating(vendor, tx_hash))
+    }
+
+    // ── Default tracking ──────────────────────────────────────────────────────
+
+    /// Admin reports a defaulted utang. Increments vendor's defaults-received
+    /// count and customer's defaults-history count. Idempotent only via caller —
+    /// utang-escrow's mark_default is the canonical source of truth for which
+    /// utang defaulted; this contract just mirrors aggregate counts for reputation.
+    pub fn report_default(env: Env, admin: Address, vendor: Address, customer: Address) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
+        if admin != stored_admin {
+            panic!("not admin");
+        }
+
+        let v: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::VendorDefaultsReceived(vendor.clone()))
+            .unwrap_or(0);
+        let c: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::CustomerDefaultsHistory(customer.clone()))
+            .unwrap_or(0);
+        let vendor_total = v + 1;
+        let customer_total = c + 1;
+        env.storage().persistent().set(
+            &DataKey::VendorDefaultsReceived(vendor.clone()),
+            &vendor_total,
+        );
+        env.storage().persistent().set(
+            &DataKey::CustomerDefaultsHistory(customer.clone()),
+            &customer_total,
+        );
+
+        env.events().publish(
+            (symbol_short!("default"), symbol_short!("report")),
+            DefaultReportedEvent {
+                vendor,
+                customer,
+                vendor_total,
+                customer_total,
+            },
+        );
+    }
+
+    pub fn vendor_defaults_received(env: Env, vendor: Address) -> u32 {
+        env.storage()
+            .persistent()
+            .get(&DataKey::VendorDefaultsReceived(vendor))
+            .unwrap_or(0)
+    }
+
+    pub fn customer_defaults_history(env: Env, customer: Address) -> u32 {
+        env.storage()
+            .persistent()
+            .get(&DataKey::CustomerDefaultsHistory(customer))
+            .unwrap_or(0)
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────
