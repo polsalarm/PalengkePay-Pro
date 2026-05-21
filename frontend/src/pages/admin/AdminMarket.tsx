@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle, XCircle, Loader2, Users, Clock, ExternalLink, UserPlus,
   RefreshCw, ShieldCheck, ShieldOff, PowerOff, AlertTriangle, X, BarChart2, Star,
-  MapPin, Phone, Hash, Wallet, Tag } from 'lucide-react';
+  MapPin, Phone, Hash, Wallet, Tag, CalendarClock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { usePendingVendors, useAllVendors, useAdminActions } from '../../lib/hooks/useVendor';
@@ -42,16 +42,28 @@ type Tab = 'pending' | 'vendors';
 // ── Application card ──────────────────────────────────────────────────────────
 
 function ApplicationCard({
-  app, onApprove, onReject, loading,
+  app, onApprove, onReject, onOpenDetails, loading,
 }: {
   app: VendorApplication;
   onApprove: () => void;
   onReject: () => void;
+  onOpenDetails: () => void;
   loading: boolean;
 }) {
   const meta = PRODUCT_META[app.productType] ?? PRODUCT_META.other;
+
+  // Stop clicks on inner controls from also triggering the card-wide details handler.
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+
   return (
-    <div className="rounded-3xl overflow-hidden" style={{ border: `1.5px solid ${meta.accent}28` }}>
+    <div
+      onClick={onOpenDetails}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetails(); } }}
+      className="rounded-3xl overflow-hidden cursor-pointer transition-all active:scale-[0.99]"
+      style={{ border: `1.5px solid ${meta.accent}28` }}
+    >
 
       {/* Colored header — same pattern as MarketDirectory */}
       <div
@@ -59,12 +71,20 @@ function ApplicationCard({
         style={{ backgroundColor: meta.bg }}
       >
         <span className="text-4xl leading-none select-none">{meta.emoji}</span>
-        <span
-          className="text-xs font-bold px-2.5 py-1 rounded-full capitalize"
-          style={{ backgroundColor: meta.chipBg, color: meta.chipColor }}
-        >
-          {meta.label}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1"
+            style={{ backgroundColor: '#FFFBEB', color: '#D97706' }}
+          >
+            <Clock size={11} /> Pending
+          </span>
+          <span
+            className="text-xs font-bold px-2.5 py-1 rounded-full capitalize"
+            style={{ backgroundColor: meta.chipBg, color: meta.chipColor }}
+          >
+            {meta.label}
+          </span>
+        </div>
       </div>
 
       {/* White body */}
@@ -81,7 +101,7 @@ function ApplicationCard({
 
         <div className="grid grid-cols-2 gap-3">
           <button
-            onClick={onApprove}
+            onClick={(e) => { stop(e); onApprove(); }}
             disabled={loading}
             className="flex items-center justify-center gap-2 text-white font-black rounded-2xl active:scale-95 transition-all disabled:opacity-40 text-sm"
             style={{
@@ -95,7 +115,7 @@ function ApplicationCard({
             Approve
           </button>
           <button
-            onClick={onReject}
+            onClick={(e) => { stop(e); onReject(); }}
             disabled={loading}
             className="flex items-center justify-center gap-2 font-black rounded-2xl active:scale-95 transition-all disabled:opacity-40 text-sm"
             style={{
@@ -423,6 +443,164 @@ function VendorDetailDrawer({
   );
 }
 
+// ── Pending application detail drawer ────────────────────────────────────────
+
+function PendingDetailDrawer({
+  app, onClose, onApprove, onReject, loading,
+}: {
+  app: VendorApplication;
+  onClose: () => void;
+  onApprove: () => void;
+  onReject: () => void;
+  loading: boolean;
+}) {
+  const meta = PRODUCT_META[app.productType] ?? PRODUCT_META.other;
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // appliedAt is a unix-seconds bigint from the contract ledger.
+  const appliedDate = (() => {
+    const secs = Number(app.appliedAt);
+    if (!Number.isFinite(secs) || secs <= 0) return null;
+    try { return new Date(secs * 1000); } catch { return null; }
+  })();
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+      style={{ backgroundColor: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-white rounded-3xl overflow-hidden animate-slide-up shadow-2xl"
+      >
+        {/* Header strip */}
+        <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3" style={{ backgroundColor: meta.bg }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-4xl leading-none select-none">{meta.emoji}</span>
+            <div className="min-w-0">
+              <p className="text-lg font-black text-slate-900 truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {app.name}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
+                  style={{ backgroundColor: meta.chipBg, color: meta.chipColor }}
+                >
+                  {meta.label}
+                </span>
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                  style={{ backgroundColor: '#FFFBEB', color: '#D97706' }}
+                >
+                  <Clock size={10} /> Pending review
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-2xl flex items-center justify-center active:scale-95 shrink-0"
+            style={{ backgroundColor: 'rgba(255,255,255,0.7)' }}
+          >
+            <X size={16} style={{ color: '#475569' }} />
+          </button>
+        </div>
+
+        {/* Status banner */}
+        <div className="px-5 pt-4">
+          <div
+            className="rounded-2xl p-4 flex items-start gap-3"
+            style={{ backgroundColor: '#FFFBEB', border: '1.5px solid #FDE68A' }}
+          >
+            <AlertTriangle size={16} style={{ color: '#D97706' }} className="shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm font-black" style={{ color: '#92400E', fontFamily: "'Montserrat', sans-serif" }}>
+                Awaiting admin approval
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: '#B45309' }}>
+                This vendor cannot receive payments until you approve their application on-chain.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Detail rows */}
+        <div className="px-5 py-4 space-y-3">
+          <DetailRow icon={<MapPin size={14} />} label="Stall" value={app.stallNumber} />
+          <DetailRow icon={<Tag size={14} />} label="Product type" value={meta.label} />
+          <DetailRow icon={<MapPin size={14} />} label="Market" value={app.marketId} />
+          {app.phone && <DetailRow icon={<Phone size={14} />} label="Phone" value={app.phone} />}
+          {appliedDate && (
+            <DetailRow
+              icon={<CalendarClock size={14} />}
+              label="Applied"
+              value={appliedDate.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+            />
+          )}
+          <DetailRow
+            icon={<Wallet size={14} />}
+            label="Wallet"
+            value={
+              <a
+                href={`https://stellar.expert/explorer/testnet/account/${app.wallet}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-xs underline decoration-dotted"
+                style={{ color: '#2563EB' }}
+              >
+                {truncateAddress(app.wallet)}
+                <ExternalLink size={10} className="inline ml-1" />
+              </a>
+            }
+          />
+        </div>
+
+        {/* Action buttons */}
+        <div className="px-5 pb-5">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={onApprove}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 text-white font-black rounded-2xl active:scale-95 transition-all disabled:opacity-40 text-sm"
+              style={{
+                backgroundColor: '#008055',
+                minHeight: '48px',
+                fontFamily: "'Montserrat', sans-serif",
+                boxShadow: '0 4px 16px rgba(15,118,110,0.3)',
+              }}
+            >
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+              Approve
+            </button>
+            <button
+              onClick={onReject}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 font-black rounded-2xl active:scale-95 transition-all disabled:opacity-40 text-sm"
+              style={{
+                minHeight: '48px',
+                backgroundColor: '#FFF1F2',
+                border: '1.5px solid #FECDD3',
+                color: '#F43F5E',
+                fontFamily: "'Montserrat', sans-serif",
+              }}
+            >
+              <XCircle size={16} />
+              Decline
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 py-2 border-b last:border-b-0" style={{ borderColor: '#F1F5F9' }}>
@@ -446,6 +624,7 @@ export function AdminMarket() {
   const { approve, reject, deactivate, loadingWallet, error: actionError } = useAdminActions();
   const { showToast } = useToast();
   const [selected, setSelected] = useState<VendorProfile | null>(null);
+  const [selectedApp, setSelectedApp] = useState<VendorApplication | null>(null);
 
   const activeVendors = vendors.filter((v) => v.isActive);
   const vendorAddresses = useMemo(() => vendors.map((v) => v.wallet).filter(Boolean), [vendors]);
@@ -454,15 +633,22 @@ export function AdminMarket() {
   const handleApprove = async (vendorWallet: string, name: string) => {
     if (!address) return;
     const ok = await approve(address, vendorWallet);
-    if (ok) { showToast(`${name} approved!`, 'success'); refetchPending(); refetchVendors(); }
-    else showToast(actionError?.slice(0, 100) ?? 'Approve failed', 'error');
+    if (ok) {
+      showToast(`${name} approved!`, 'success');
+      refetchPending();
+      refetchVendors();
+      setSelectedApp(null);
+    } else showToast(actionError?.slice(0, 100) ?? 'Approve failed', 'error');
   };
 
   const handleReject = async (vendorWallet: string, name: string) => {
     if (!address) return;
     const ok = await reject(address, vendorWallet);
-    if (ok) { showToast(`${name} declined.`, 'success'); refetchPending(); }
-    else showToast(actionError?.slice(0, 100) ?? 'Reject failed', 'error');
+    if (ok) {
+      showToast(`${name} declined.`, 'success');
+      refetchPending();
+      setSelectedApp(null);
+    } else showToast(actionError?.slice(0, 100) ?? 'Reject failed', 'error');
   };
 
   const handleDeactivate = async (vendorWallet: string, name: string) => {
@@ -641,6 +827,7 @@ export function AdminMarket() {
               loading={loadingWallet === app.wallet}
               onApprove={() => handleApprove(app.wallet, app.name)}
               onReject={() => handleReject(app.wallet, app.name)}
+              onOpenDetails={() => setSelectedApp(app)}
             />
           ))}
         </div>
@@ -694,6 +881,16 @@ export function AdminMarket() {
           vendor={selected}
           rating={ratings.get(selected.wallet)}
           onClose={() => setSelected(null)}
+        />
+      )}
+
+      {selectedApp && (
+        <PendingDetailDrawer
+          app={selectedApp}
+          loading={loadingWallet === selectedApp.wallet}
+          onClose={() => setSelectedApp(null)}
+          onApprove={() => handleApprove(selectedApp.wallet, selectedApp.name)}
+          onReject={() => handleReject(selectedApp.wallet, selectedApp.name)}
         />
       )}
     </div>

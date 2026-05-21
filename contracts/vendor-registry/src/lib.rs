@@ -52,11 +52,11 @@ pub enum DataKey {
     PendingList,
     VendorList,
     // Reputation (added Phase 0.3) — separate keys for backwards-compat with old VendorRecord storage
-    Rating(Address, BytesN<32>), // (vendor, tx_hash) → Rating
-    RatingSum(Address),          // vendor → cumulative stars sum (u32)
-    RatingCount(Address),        // vendor → total ratings (u32)
-    VendorDefaultsReceived(Address),   // vendor → # of utangs from this vendor that defaulted (u32)
-    CustomerDefaultsHistory(Address),  // customer → # of defaulted utangs across all vendors (u32)
+    Rating(Address, BytesN<32>),      // (vendor, tx_hash) → Rating
+    RatingSum(Address),               // vendor → cumulative stars sum (u32)
+    RatingCount(Address),             // vendor → total ratings (u32)
+    VendorDefaultsReceived(Address),  // vendor → # of utangs from this vendor that defaulted (u32)
+    CustomerDefaultsHistory(Address), // customer → # of defaulted utangs across all vendors (u32)
 }
 
 #[contracttype]

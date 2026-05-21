@@ -36,14 +36,25 @@ interface RawUtang {
   installments_paid: number;
   next_due: bigint;
   interval_seconds: bigint;
-  status: { tag: string };
+  // Soroban enum variants without associated data come through scValToNative
+  // in stellar-sdk@15 as a 1-element array (e.g. ["Defaulted"]). Older
+  // SDKs returned { tag: "..." } or a plain string. Accept any shape so the
+  // UI keeps working across SDK versions.
+  status: string | string[] | { tag: string };
   description: string;
 }
 
 const STROOPS = 10_000_000;
 
+function readStatusTag(s: RawUtang['status']): string {
+  if (typeof s === 'string') return s;
+  if (Array.isArray(s) && s.length > 0) return String(s[0]);
+  if (s && typeof s === 'object' && 'tag' in s) return String(s.tag);
+  return 'Active';
+}
+
 function mapUtang(raw: RawUtang): UtangRecord {
-  const statusTag = raw.status?.tag ?? 'Active';
+  const statusTag = readStatusTag(raw.status);
   const status: UtangStatus =
     statusTag === 'Completed' ? 'completed' :
     statusTag === 'Defaulted' ? 'defaulted' : 'active';
@@ -309,6 +320,46 @@ export function daysPastDue(nextDueSecs: bigint | null | undefined): number {
   if (!nextDueSecs) return 0;
   const diffMs = Date.now() - Number(nextDueSecs) * 1000;
   return Math.floor(diffMs / 86400000);
+}
+
+// Seconds past next_due. Negative = future. Positive = overdue.
+// Use this when comparing against the contract's grace_period (which is in seconds).
+export function secondsPastDue(nextDueSecs: bigint | null | undefined): number {
+  if (!nextDueSecs) return 0;
+  return Math.floor((Date.now() - Number(nextDueSecs) * 1000) / 1000);
+}
+
+// Format a grace_period in seconds to a short human label
+// e.g. 604800 → "7d", 180 → "3m", 45 → "45s".
+export function formatGraceSeconds(secs: number): string {
+  if (!Number.isFinite(secs) || secs <= 0) return '0s';
+  if (secs % 86400 === 0) return `${secs / 86400}d`;
+  if (secs % 3600  === 0) return `${secs / 3600}h`;
+  if (secs % 60    === 0) return `${secs / 60}m`;
+  return `${secs}s`;
+}
+
+// Read the contract's current grace_period (seconds). Falls back to 7 d.
+export function useUtangGracePeriod(): { gracePeriodSecs: number; isLoading: boolean } {
+  const [gracePeriodSecs, setGracePeriodSecs] = useState<number>(7 * 86400);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (!ESCROW_ID) { setIsLoading(false); return; }
+    let cancelled = false;
+    setIsLoading(true);
+    simulateViewCall(ESCROW_ID, 'grace_period', [])
+      .then((raw) => {
+        if (cancelled) return;
+        const n = Number(raw ?? 0);
+        if (Number.isFinite(n) && n > 0) setGracePeriodSecs(n);
+      })
+      .catch(() => { /* keep fallback */ })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return { gracePeriodSecs, isLoading };
 }
 
 // ── Default counters (view calls) ─────────────────────────────────────────────

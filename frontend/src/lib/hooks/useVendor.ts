@@ -50,7 +50,14 @@ function mapVendor(r: Record<string, unknown>): VendorProfile {
 }
 
 function mapApplication(r: Record<string, unknown>): VendorApplication {
-  const statusTag = (r.status as { tag?: string })?.tag ?? 'Pending';
+  // Soroban enum variants without associated data come through scValToNative
+  // in stellar-sdk@15 as a 1-element array (e.g. ["Approved"]). Older SDKs
+  // returned { tag: "..." } or a plain string. Accept any shape.
+  const raw = r.status as string | string[] | { tag?: string } | undefined;
+  const statusTag =
+    typeof raw === 'string' ? raw :
+    Array.isArray(raw) && raw.length > 0 ? String(raw[0]) :
+    (raw && typeof raw === 'object' && 'tag' in raw ? String(raw.tag) : 'Pending');
   const status: VendorApplication['status'] =
     statusTag === 'Approved' ? 'approved' :
     statusTag === 'Rejected' ? 'rejected' : 'pending';
