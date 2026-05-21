@@ -280,3 +280,59 @@ Residual limits:
 - `vercel dev` could not be used from the linked frontend folder because Vercel project root is configured as `frontend`, which makes local CLI execution look for `frontend/frontend`. API behavior is covered by direct handler tests instead.
 - Real wallet signing on `/customer/testnet-wallet` still requires an actual connected Testnet wallet.
 - Durable KV/Redis is still required for production persistence across serverless instances.
+
+---
+
+## Stronger Liquidity Product Features Production Beta Verification
+
+Timestamp: 2026-05-21 08:32 Asia/Manila
+
+Deployment:
+
+- Commit: `0561a24 feat(liquidity): add stronger demo product features`
+- Vercel deployment: `dpl_4FG7MA81WSCAs3cKwj3mLLHvdLLm`
+- Deployment URL: `https://palengke-jxitamb74-iron-marks-projects.vercel.app`
+- Active demo alias: `https://palengke-pay-beta.vercel.app`
+- Build log confirmed Vercel cloned `github.com/Iron-Mark/Hackathon-Stellar-PalengkePay-Pro`, branch `main`, commit `0561a24`.
+
+Live route and API smoke:
+
+| Check | Result |
+|---|---|
+| `/customer/cashin` | HTTP 200 |
+| `/customer/cashout` | HTTP 200 |
+| `/customer/testnet-wallet` | HTTP 200 |
+| `/admin/ramps` | HTTP 200 |
+| `/admin/health` | HTTP 200 |
+| `/.well-known/stellar.toml` | HTTP 200 |
+| `/api/sep24/info` | HTTP 200 |
+| `/api/ramp/cashin?action=preview` | HTTP 200, `fee=3.00`, `spread=85`, `railMode=mock` |
+| `/api/ramp/admin?action=seed_demo` | HTTP 200, 4 records created |
+| `/api/ramp/admin?scope=all&export=json` | HTTP 200 |
+| `/api/ramp/admin?scope=all&export=csv` | HTTP 200, `text/csv` |
+| `/api/health` | HTTP 503 degraded, expected because durable Redis/KV is missing |
+
+Live ramp lifecycle smoke:
+
+| Flow | Result |
+|---|---|
+| Cash-in quote | HTTP 200, mock PDAX-style quote with proof reference, fee, and spread |
+| Cash-in confirm | HTTP 200, moved to `pending_external` |
+| Admin pending queue | HTTP 200, contained the cash-in transaction |
+| Admin XLM release | HTTP 200, moved to `pending_stellar`, provider status `PENDING` because anchor custody is not configured |
+| Cash-in status lookup | HTTP 200, 4 settlement events |
+| Cash-out create | HTTP 200, mock cash-out request created |
+| Cash-out settle | HTTP 200, moved to `pending_external`, amountOut `31.40` |
+| Admin mark PHP sent | HTTP 200, moved to `completed` with `operator_confirmed_fiat_sent` |
+| Cash-out status lookup | HTTP 200, 5 settlement events |
+
+Screenshot evidence:
+
+- `docs/verification-evidence/20260521_0832-liquidity-demo/customer-cashin-quote-mobile.png`
+- `docs/verification-evidence/20260521_0832-liquidity-demo/customer-cashout-connected-mobile.png`
+- `docs/verification-evidence/20260521_0832-liquidity-demo/testnet-wallet-connected-mobile.png`
+- `docs/verification-evidence/20260521_0832-liquidity-demo/admin-ramps-unlocked-desktop.png`
+
+Packaged evidence:
+
+- `docs/verification-packages/liquidity-demo-evidence-20260521_0832.zip`
