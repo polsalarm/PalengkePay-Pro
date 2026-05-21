@@ -1,9 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle, XCircle, Loader2, Users, Clock, ExternalLink, UserPlus,
-  RefreshCw, ShieldCheck, ShieldOff, PowerOff, AlertTriangle, X, BarChart2, Star,
+import { CheckCircle, XCircle, Loader2, Users, Clock, ExternalLink,
+  RefreshCw, ShieldCheck, PowerOff, AlertTriangle, X, Star,
   MapPin, Phone, Hash, Wallet, Tag, CalendarClock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { usePendingVendors, useAllVendors, useAdminActions } from '../../lib/hooks/useVendor';
 import type { VendorProfile, VendorApplication } from '../../lib/hooks/useVendor';
@@ -617,7 +616,6 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
 
 export function AdminMarket() {
   const { address, isConnected, connect } = useWallet();
-  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('pending');
   const { applications, isLoading: loadingPending, error: pendingError, refetch: refetchPending } = usePendingVendors();
   const { vendors, isLoading: loadingVendors, error: vendorsError, refetch: refetchVendors } = useAllVendors();
@@ -700,30 +698,6 @@ export function AdminMarket() {
               <h1 className="text-base font-black text-white truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>Admin Dashboard</h1>
               <p className="text-xs font-mono truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{truncateAddress(address ?? '')}</p>
             </div>
-          </div>
-          {/* Row 2: nav buttons */}
-          <div className="flex items-center gap-2 mb-5">
-            <button
-              onClick={() => navigate('/admin/metrics')}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-2xl active:scale-95 transition-all"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}
-            >
-              <BarChart2 size={13} /> Metrics
-            </button>
-            <button
-              onClick={() => navigate('/admin/register')}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-2xl active:scale-95 transition-all"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}
-            >
-              <UserPlus size={13} /> Register
-            </button>
-            <button
-              onClick={() => navigate('/admin/utang')}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-2xl active:scale-95 transition-all"
-              style={{ backgroundColor: 'rgba(248,113,113,0.18)', color: '#FCA5A5' }}
-            >
-              <ShieldOff size={13} /> Defaults
-            </button>
           </div>
 
           {/* Tab switcher */}

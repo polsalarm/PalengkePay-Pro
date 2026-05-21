@@ -10,6 +10,9 @@ import {
   Users,
   HandCoins,
   ArrowUp,
+  BarChart2,
+  ShieldOff,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { WalletButton } from './WalletButton';
 import logoImg from '../assets/logo.png';
@@ -33,6 +36,9 @@ const customerNav = [
 
 const adminNav = [
   { to: '/admin/market', icon: Users, label: 'Dashboard' },
+  { to: '/admin/metrics', icon: BarChart2, label: 'Metrics' },
+  { to: '/admin/ramps', icon: ArrowLeftRight, label: 'Ramps' },
+  { to: '/admin/utang', icon: ShieldOff, label: 'Defaults' },
   { to: '/admin/register', icon: UserPlus, label: 'Register' },
 ];
 
@@ -49,6 +55,9 @@ const PAGE_TITLES: Record<string, string> = {
   '/customer/profile': 'Profile',
   '/market': 'Market Directory',
   '/admin/market': 'Market Dashboard',
+  '/admin/metrics': 'Metrics',
+  '/admin/ramps': 'Ramps',
+  '/admin/utang': 'Defaults',
   '/admin/register': 'Register Vendor',
   '/dashboard': 'Dashboard',
   '/vendor/apply': 'Apply as Vendor',

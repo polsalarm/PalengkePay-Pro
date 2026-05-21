@@ -256,6 +256,7 @@ const translations = {
     'customerUtang.totalDue': 'Total Due — Next Installments',
     'customerUtang.activePlans': (params: TParams) => `${params.count} active plan${params.count !== 1 ? 's' : ''}`,
     'customerUtang.filter.active': 'Active',
+    'customerUtang.filter.defaulted': 'Defaulted',
     'customerUtang.filter.completed': 'Completed',
     'customerUtang.filter.all': 'All',
     'customerUtang.emptyActive': 'No active plans',
@@ -399,6 +400,12 @@ const translations = {
     'home.loadFailed': 'Failed to load recent payments',
     'home.retry': 'Retry',
     'home.connectWalletDetail': 'Connect your wallet to view your balance, recent payments, and installment plans.',
+    'home.receiveTitle': 'Receive Payment',
+    'home.receiveSub': 'Show this QR to share your wallet address',
+    'home.receiveBtn': 'Receive',
+    'home.copyAddress': 'Copy address',
+    'home.addressCopied': 'Address copied!',
+    'home.closeModal': 'Close',
     
     // Customer History
     'history.header': 'Payment History',
@@ -742,6 +749,7 @@ const translations = {
     'customerUtang.totalDue': 'Kabuuang Dapat Bayaran — Susunod na Installments',
     'customerUtang.activePlans': (params: TParams) => `${params.count} aktibong plan${params.count !== 1 ? '' : ''}`,
     'customerUtang.filter.active': 'Aktibo',
+    'customerUtang.filter.defaulted': 'Default',
     'customerUtang.filter.completed': 'Tapos na',
     'customerUtang.filter.all': 'Lahat',
     'customerUtang.emptyActive': 'Walang aktibong plan',
@@ -885,6 +893,12 @@ const translations = {
     'home.loadFailed': 'Hindi ma-load ang mga recent payment',
     'home.retry': 'Subukan ulit',
     'home.connectWalletDetail': 'I-connect ang iyong wallet para tingnan ang iyong balanse, mga recent payment, at installment plans.',
+    'home.receiveTitle': 'Tumanggap ng Bayad',
+    'home.receiveSub': 'Ipakita ang QR para ibahagi ang iyong wallet address',
+    'home.receiveBtn': 'Tanggap',
+    'home.copyAddress': 'Kopyahin ang address',
+    'home.addressCopied': 'Nakopya na ang address!',
+    'home.closeModal': 'Isara',
     
     // Customer History
     'history.header': 'Kasaysayan ng Bayad',

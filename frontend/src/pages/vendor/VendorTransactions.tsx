@@ -4,7 +4,7 @@
 
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CalendarDays, CheckCircle2, Copy, Database, Download, ExternalLink, FileJson, FileText, Printer, QrCode, RefreshCw, Search, ShieldCheck, TrendingUp, Zap } from 'lucide-react';
+import { AlertCircle, CalendarDays, CheckCircle2, Copy, Database, Download, ExternalLink, FileJson, FileText, Printer, QrCode, RefreshCw, Search, ShieldCheck, TrendingUp, X, Zap } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
@@ -56,14 +56,21 @@ function hashColor(s: string): [string, string] {
   return PALETTE[h % PALETTE.length];
 }
 
-function TxRow({ tx }: { tx: TxRecord }) {
+function TxRow({ tx, onOpenProof }: { tx: TxRecord; onOpenProof: (tx: TxRecord) => void }) {
   const display = truncateAddress(tx.from);
   const [bgColor, textColor] = hashColor(tx.from);
   const initial = tx.from[1]?.toUpperCase() ?? 'G';
   const receipt = getTransactionReceiptReference(tx);
 
   return (
-    <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpenProof(tx)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenProof(tx); } }}
+      className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0 cursor-pointer hover:bg-slate-50 rounded-2xl px-2 -mx-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+      aria-label="Open income proof pack for this transaction"
+    >
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div
           className="w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black shrink-0"
@@ -99,6 +106,7 @@ function TxRow({ tx }: { tx: TxRecord }) {
             href={receipt.lookupUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             aria-label={`Open receipt ${receipt.value}`}
             style={{ backgroundColor: '#F8FAFC' }}
@@ -122,6 +130,17 @@ export function VendorTransactions() {
   const [receiptLookupTerm, setReceiptLookupTerm] = useState('');
   const [exportStatus, setExportStatus] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
+  const [proofModalOpen, setProofModalOpen] = useState(false);
+
+  function openProofFor(tx: TxRecord) {
+    const now = Date.now();
+    const diffDays = (now - new Date(tx.createdAt).getTime()) / 86_400_000;
+    const targetKind: ProofPeriodKind = diffDays <= 7 ? '7d' : diffDays <= 30 ? '30d' : 'all';
+    setPeriodKind(targetKind);
+    setExportStatus('');
+    setCopyStatus('');
+    setProofModalOpen(true);
+  }
   const selectedPeriod = PROOF_PERIODS.find((period) => period.kind === periodKind) ?? PROOF_PERIODS[1];
   const searchedTransactions = useMemo(
     () => filterTransactionsBySearch(transactions, searchTerm),
@@ -276,11 +295,56 @@ export function VendorTransactions() {
         </div>
       </div>
 
-      {/* ── Proof workspace ── */}
+      {/* ── Search receipts (top) ── */}
       <section
-        className="rounded-3xl overflow-hidden bg-white"
-        style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 10px 28px rgba(15,23,42,0.05)' }}
+        className="rounded-3xl bg-white p-4"
+        style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 10px 28px rgba(15,23,42,0.04)' }}
       >
+        <label htmlFor="vendor-transaction-search" className="text-xs font-black uppercase tracking-widest text-slate-400">
+          {t('transactions.searchReceipts')}
+        </label>
+        <div className="mt-2 flex items-center gap-2 rounded-2xl px-3" style={{ minHeight: 48, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+          <Search size={16} aria-hidden="true" style={{ color: '#64748B' }} />
+          <input
+            id="vendor-transaction-search"
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder={t('transactions.searchPlaceholder')}
+            autoComplete="off"
+            enterKeyHint="search"
+            spellCheck={false}
+            className="w-full bg-transparent text-base sm:text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
+          />
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          {t('transactions.searchResultInfo', { shown: searchedTransactions.length, total: transactions.length })}
+        </p>
+      </section>
+
+      {/* ── Proof workspace (modal) ── */}
+      {proofModalOpen && (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('transactions.incomeProofPack')}
+        className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4"
+        style={{ backgroundColor: 'rgba(15,23,42,0.6)' }}
+        onClick={(e) => { if (e.target === e.currentTarget) setProofModalOpen(false); }}
+      >
+      <section
+        className="relative rounded-3xl overflow-hidden bg-white w-full max-w-2xl my-4"
+        style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 30px 80px rgba(15,23,42,0.25)' }}
+      >
+        <button
+          type="button"
+          onClick={() => setProofModalOpen(false)}
+          aria-label="Close"
+          className="absolute top-3 right-3 w-11 h-11 rounded-2xl flex items-center justify-center active:scale-95 z-10"
+          style={{ backgroundColor: '#F1F5F9', color: '#0F172A' }}
+        >
+          <X size={18} />
+        </button>
         <div className="p-5 space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -501,6 +565,114 @@ export function VendorTransactions() {
           )}
         </div>
       </section>
+      </div>
+      )}
+
+      {/* ── Transactions list ── */}
+      <div className="rounded-3xl overflow-hidden" style={{ border: '1.5px solid #F1F5F9' }}>
+
+        {isLoading && (
+          <div className="bg-white p-5 space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl skeleton shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3.5 w-28 skeleton rounded" />
+                  <div className="h-3 w-20 skeleton rounded" />
+                </div>
+                <div className="space-y-1 items-end flex flex-col">
+                  <div className="h-3.5 w-14 skeleton rounded" />
+                  <div className="h-3 w-8 skeleton rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isLoading && error && (
+          <div className="bg-white p-10 text-center">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}
+            >
+              <AlertCircle size={24} aria-hidden="true" style={{ color: '#F43F5E' }} />
+            </div>
+            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              {t('transactions.failedTitle')}
+            </p>
+            <p className="text-xs text-slate-400 mb-5">{error}</p>
+            <button
+              type="button"
+              onClick={retry}
+              className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{ backgroundColor: '#008055' }}
+            >
+              <RefreshCw size={12} aria-hidden="true" /> {t('transactions.retry')}
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !error && transactions.length === 0 && (
+          <div className="bg-white p-10 text-center">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: '#F0FDFA', border: '1.5px solid #CCFBF1' }}
+            >
+              <TrendingUp size={28} aria-hidden="true" style={{ color: '#008055' }} />
+            </div>
+            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              {t('transactions.emptyTitle')}
+            </p>
+            <p className="text-xs text-slate-400 mb-5">{t('transactions.emptyDesc')}</p>
+            <button
+              type="button"
+              onClick={() => navigate('/vendor/qr')}
+              className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{ backgroundColor: '#008055' }}
+            >
+              <QrCode size={12} aria-hidden="true" /> {t('transactions.showQr')}
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !error && transactions.length > 0 && searchedTransactions.length === 0 && (
+          <div className="bg-white p-10 text-center">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0' }}
+            >
+              <Search size={28} style={{ color: '#64748B' }} />
+            </div>
+            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              {t('transactions.noMatching')}
+            </p>
+            <p className="text-xs text-slate-400 mb-5">{t('transactions.noMatchingHint')}</p>
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{ color: '#008055', backgroundColor: '#F0FDFA', border: '1px solid #CCFBF1' }}
+            >
+              {t('transactions.clearSearch')}
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !error && groups.length > 0 && (
+          <div className="bg-white p-5 space-y-5">
+            {groups.map(({ label, txs }) => (
+              <div key={label}>
+                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: '#94A3B8' }}>
+                  {label}
+                </p>
+                <div className="divide-y divide-slate-50">
+                  {txs.map((tx) => <TxRow key={tx.id} tx={tx} onOpenProof={openProofFor} />)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* ── Recovery workspace ── */}
       <section
@@ -661,138 +833,6 @@ export function VendorTransactions() {
           </div>
         </div>
       </section>
-
-      <section
-        className="rounded-3xl bg-white p-4"
-        style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 10px 28px rgba(15,23,42,0.04)' }}
-      >
-        <label htmlFor="vendor-transaction-search" className="text-xs font-black uppercase tracking-widest text-slate-400">
-          {t('transactions.searchReceipts')}
-        </label>
-        <div className="mt-2 flex items-center gap-2 rounded-2xl px-3" style={{ minHeight: 48, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-          <Search size={16} aria-hidden="true" style={{ color: '#64748B' }} />
-          <input
-            id="vendor-transaction-search"
-            type="search"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder={t('transactions.searchPlaceholder')}
-            autoComplete="off"
-            enterKeyHint="search"
-            spellCheck={false}
-            className="w-full bg-transparent text-base sm:text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400"
-          />
-        </div>
-        <p className="mt-2 text-xs text-slate-500">
-          {t('transactions.searchResultInfo', { shown: searchedTransactions.length, total: transactions.length })}
-        </p>
-      </section>
-
-      {/* ── Transactions list ── */}
-      <div className="rounded-3xl overflow-hidden" style={{ border: '1.5px solid #F1F5F9' }}>
-
-        {isLoading && (
-          <div className="bg-white p-5 space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl skeleton shrink-0" />
-                <div className="flex-1 space-y-1.5">
-                  <div className="h-3.5 w-28 skeleton rounded" />
-                  <div className="h-3 w-20 skeleton rounded" />
-                </div>
-                <div className="space-y-1 items-end flex flex-col">
-                  <div className="h-3.5 w-14 skeleton rounded" />
-                  <div className="h-3 w-8 skeleton rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!isLoading && error && (
-          <div className="bg-white p-10 text-center">
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}
-            >
-              <AlertCircle size={24} aria-hidden="true" style={{ color: '#F43F5E' }} />
-            </div>
-            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              {t('transactions.failedTitle')}
-            </p>
-            <p className="text-xs text-slate-400 mb-5">{error}</p>
-            <button
-              type="button"
-              onClick={retry}
-              className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-              style={{ backgroundColor: '#008055' }}
-            >
-              <RefreshCw size={12} aria-hidden="true" /> {t('transactions.retry')}
-            </button>
-          </div>
-        )}
-
-        {!isLoading && !error && transactions.length === 0 && (
-          <div className="bg-white p-10 text-center">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: '#F0FDFA', border: '1.5px solid #CCFBF1' }}
-            >
-              <TrendingUp size={28} aria-hidden="true" style={{ color: '#008055' }} />
-            </div>
-            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              {t('transactions.emptyTitle')}
-            </p>
-            <p className="text-xs text-slate-400 mb-5">{t('transactions.emptyDesc')}</p>
-            <button
-              type="button"
-              onClick={() => navigate('/vendor/qr')}
-              className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-              style={{ backgroundColor: '#008055' }}
-            >
-              <QrCode size={12} aria-hidden="true" /> {t('transactions.showQr')}
-            </button>
-          </div>
-        )}
-
-        {!isLoading && !error && transactions.length > 0 && searchedTransactions.length === 0 && (
-          <div className="bg-white p-10 text-center">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0' }}
-            >
-              <Search size={28} style={{ color: '#64748B' }} />
-            </div>
-            <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              {t('transactions.noMatching')}
-            </p>
-            <p className="text-xs text-slate-400 mb-5">{t('transactions.noMatchingHint')}</p>
-            <button
-              type="button"
-              onClick={() => setSearchTerm('')}
-              className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-              style={{ color: '#008055', backgroundColor: '#F0FDFA', border: '1px solid #CCFBF1' }}
-            >
-              {t('transactions.clearSearch')}
-            </button>
-          </div>
-        )}
-
-        {!isLoading && !error && groups.length > 0 && (
-          <div className="bg-white p-5 space-y-5">
-            {groups.map(({ label, txs }) => (
-              <div key={label}>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: '#94A3B8' }}>
-                  {label}
-                </p>
-                <div className="divide-y divide-slate-50">
-                  {txs.map((tx) => <TxRow key={tx.id} tx={tx} />)}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

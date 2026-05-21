@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ScanLine, ExternalLink, AlertTriangle, HandCoins, Store, ShoppingBag, ArrowRight, TrendingDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { ScanLine, ExternalLink, AlertTriangle, HandCoins, Store, ShoppingBag, ArrowRight, TrendingDown, ChevronRight, RefreshCw, QrCode, X, Copy, Check } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useBalance } from '../../lib/hooks/useBalance';
 import { useCustomerTransactions, relativeTime } from '../../lib/hooks/useTransactions';
@@ -8,6 +9,9 @@ import { useCustomerUtangs, isOverdue } from '../../lib/hooks/useUtang';
 import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
 import { useVendorName } from '../../lib/hooks/useVendor';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { PrivacyToggle } from '../../components/PrivacyToggle';
+import { QRGenerator } from '../../components/QRGenerator';
+import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 function groupByDate(txs: TxRecord[], t: (key: string, params?: Record<string, string | number>) => string) {
@@ -78,6 +82,9 @@ export function CustomerHome() {
   const { transactions, isLoading, error: txError, retry: retryTransactions } = useCustomerTransactions(address);
   const { utangs, error: utangError, refetch: refetchUtangs } = useCustomerUtangs(address);
   const { t } = useLanguage();
+  const { unit, format, formatCompanion, hidden } = useFormatAmount();
+  const [showReceive, setShowReceive] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const activeUtangs = utangs.filter((u) => u.status === 'active');
   const totalOwed = activeUtangs.reduce((sum, u) => {
@@ -90,8 +97,20 @@ export function CustomerHome() {
   const totalSpent = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
 
   const balanceNum = balance ? parseFloat(balance) : null;
-  const balanceStr = balanceNum !== null ? balanceNum.toFixed(2) : '—';
-  const balanceFontSize = balanceStr.length >= 10 ? '1.6rem' : balanceStr.length >= 8 ? '2rem' : balanceStr.length >= 6 ? '2.6rem' : '3.2rem';
+  const balanceStr = balanceNum !== null ? format(balanceNum, { showSuffix: false }) : '—';
+  const balanceFontSize = balanceStr.length >= 12 ? '1.5rem' : balanceStr.length >= 10 ? '1.8rem' : balanceStr.length >= 8 ? '2.2rem' : balanceStr.length >= 6 ? '2.6rem' : '3.2rem';
+  const balanceUnitLabel = hidden ? '' : unit === 'php' ? '₱' : 'XLM';
+
+  async function handleCopyAddress() {
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard blocked — ignore */
+    }
+  }
 
   if (!address) {
     return <WalletRequiredState detail={t('home.connectWalletDetail')} />;
@@ -141,12 +160,25 @@ export function CustomerHome() {
         >₱</div>
 
         <div className="relative p-5 pb-6">
-          {/* Top row: label - no language toggle (now in navbar) */}
-          <div className="flex items-center justify-between mb-3">
+          {/* Top row: label + actions (QR receive, privacy toggle) */}
+          <div className="flex items-center justify-between mb-3 gap-2">
             <p
               className="text-xs font-bold uppercase tracking-[0.18em]"
               style={{ color: 'rgba(255,255,255,0.4)' }}
             >{t('home.balance')}</p>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => setShowReceive(true)}
+                className="rounded-full p-1.5 transition-all active:scale-95 flex items-center gap-1.5 px-2.5"
+                style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }}
+                aria-label={t('home.receiveBtn')}
+                title={t('home.receiveBtn')}
+              >
+                <QrCode size={14} />
+                <span className="text-xs font-bold">{t('home.receiveBtn')}</span>
+              </button>
+              <PrivacyToggle variant="dark" />
+            </div>
           </div>
 
           {/* Balance number — font scales down for long numbers */}
@@ -163,15 +195,25 @@ export function CustomerHome() {
               >
                 {balanceStr}
               </span>
-              <span
-                className="text-base font-bold shrink-0"
-                style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Montserrat', sans-serif" }}
-              >XLM</span>
+              {balanceUnitLabel && (
+                <span
+                  className="text-base font-bold shrink-0"
+                  style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Montserrat', sans-serif" }}
+                >{balanceUnitLabel}</span>
+              )}
             </div>
+            {balanceNum !== null && !hidden && (
+              <p
+                className="text-sm font-semibold mt-1"
+                style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Montserrat', sans-serif" }}
+              >
+                {formatCompanion(balanceNum)}
+              </p>
+            )}
           </div>
 
           <p
-            className="text-xs font-mono mb-5 truncate"
+            className="text-xs font-mono mb-5 mt-2 truncate"
             style={{ color: 'rgba(255,255,255,0.22)' }}
           >
             {address ? truncateAddress(address) : t('home.notConnected')}
@@ -188,7 +230,7 @@ export function CustomerHome() {
                 className="text-base font-black text-white leading-tight"
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               >
-                {totalSpent.toFixed(2)} <span className="text-xs font-semibold opacity-50">XLM</span>
+                {format(totalSpent)}
               </p>
             </div>
             <div>
@@ -467,6 +509,60 @@ export function CustomerHome() {
           )}
         </div>
       </div>
+
+      {/* ── RECEIVE QR MODAL ── */}
+      {showReceive && address && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setShowReceive(false)}
+        >
+          <div
+            className="w-full rounded-3xl overflow-hidden"
+            style={{ backgroundColor: 'white', maxWidth: '380px', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 pt-5 pb-2">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#94A3B8' }}>
+                  PalengkePay
+                </p>
+                <h2 className="text-lg font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  {t('home.receiveTitle')}
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowReceive(false)}
+                className="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 shrink-0"
+                style={{ backgroundColor: '#F1F5F9', color: '#475569' }}
+                aria-label={t('home.closeModal')}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="px-5 text-sm text-slate-500 mb-4">{t('home.receiveSub')}</p>
+
+            <div className="px-5 pb-5 flex flex-col items-center gap-4">
+              <QRGenerator value={address} size={240} showCaption={false} />
+              <div
+                className="w-full rounded-2xl p-3 flex items-center gap-2"
+                style={{ backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0' }}
+              >
+                <p className="text-xs font-mono flex-1 truncate text-slate-700">{address}</p>
+                <button
+                  onClick={handleCopyAddress}
+                  className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl active:scale-95 shrink-0"
+                  style={{ color: copied ? '#008055' : '#0F172A', backgroundColor: copied ? '#F0FDFA' : 'white', border: `1px solid ${copied ? '#A7F3D0' : '#E2E8F0'}` }}
+                  aria-label={t('home.copyAddress')}
+                >
+                  {copied ? <Check size={13} /> : <Copy size={13} />}
+                  {copied ? t('home.addressCopied') : t('home.copyAddress')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

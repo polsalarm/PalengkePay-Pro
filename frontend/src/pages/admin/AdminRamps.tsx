@@ -1,10 +1,32 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ArrowDownToLine, ArrowUpFromLine, RefreshCw, Send, X, KeyRound, ExternalLink, Download, DatabaseZap } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowDownToLine, ArrowUpFromLine, RefreshCw, Send, X, KeyRound, ExternalLink, Download, DatabaseZap, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useToast } from '../../lib/hooks/useToast';
 import { exportRamps, listAllRamps, seedDemoRamps, type RampTxn } from '../../lib/ramp';
 import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
 
 const KEY_STORAGE = 'pp_ramp_admin_key';
+
+type DialogRequest =
+  | {
+      kind: 'prompt';
+      title: string;
+      body?: string;
+      placeholder?: string;
+      defaultValue?: string;
+      confirmLabel?: string;
+      tone?: 'success' | 'danger';
+      icon?: React.ReactNode;
+      onSubmit: (value: string) => void;
+    }
+  | {
+      kind: 'confirm';
+      title: string;
+      body?: string;
+      confirmLabel?: string;
+      tone?: 'success' | 'danger';
+      icon?: React.ReactNode;
+      onSubmit: () => void;
+    };
 
 async function adminFetch(adminKey: string, init: RequestInit & { path?: string } = {}): Promise<Response> {
   return fetch(init.path ?? '/api/ramp/admin', {
@@ -26,6 +48,16 @@ export function AdminRamps() {
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [utilityBusy, setUtilityBusy] = useState(false);
+  const [dialog, setDialog] = useState<DialogRequest | null>(null);
+  const [dialogInput, setDialogInput] = useState('');
+  const dialogInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (dialog?.kind === 'prompt') {
+      setDialogInput(dialog.defaultValue ?? '');
+      setTimeout(() => dialogInputRef.current?.focus(), 50);
+    }
+  }, [dialog]);
 
   const refresh = useCallback(async () => {
     if (!adminKey) return;
@@ -103,8 +135,7 @@ export function AdminRamps() {
     }
   };
 
-  const seedDemo = async () => {
-    if (!confirm('Seed demo ramp records? Existing records will stay untouched.')) return;
+  const runSeedDemo = async () => {
     setUtilityBusy(true);
     try {
       const created = await seedDemoRamps(adminKey);
@@ -115,6 +146,76 @@ export function AdminRamps() {
     } finally {
       setUtilityBusy(false);
     }
+  };
+
+  const seedDemo = () => {
+    setDialog({
+      kind: 'confirm',
+      title: 'Seed demo ramp records?',
+      body: 'Adds four sample transactions for review. Existing records stay untouched.',
+      confirmLabel: 'Seed records',
+      tone: 'success',
+      icon: <DatabaseZap size={18} style={{ color: '#008055' }} />,
+      onSubmit: () => { void runSeedDemo(); },
+    });
+  };
+
+  const openMarkPaid = (id: string) => {
+    setDialog({
+      kind: 'prompt',
+      title: 'Mark PHP sent',
+      body: 'Add an operator note or provider reference for audit trail.',
+      placeholder: 'e.g. GCash ref 7G2H… / InstaPay batch 8821',
+      confirmLabel: 'Mark sent',
+      tone: 'success',
+      icon: <Send size={18} style={{ color: '#008055' }} />,
+      onSubmit: (value) => { void act(id, 'mark_php_sent', value || undefined); },
+    });
+  };
+
+  const openFail = (id: string) => {
+    setDialog({
+      kind: 'prompt',
+      title: 'Fail this transaction',
+      body: 'Customer will be push-notified with this reason.',
+      placeholder: 'e.g. Beneficiary account closed',
+      defaultValue: 'operator declined',
+      confirmLabel: 'Mark failed',
+      tone: 'danger',
+      icon: <AlertTriangle size={18} style={{ color: '#B91C1C' }} />,
+      onSubmit: (value) => { void act(id, 'fail', value || 'operator declined'); },
+    });
+  };
+
+  const openChangeKey = () => {
+    setDialog({
+      kind: 'confirm',
+      title: 'Clear cached operator key?',
+      body: 'You will need to re-enter the RAMP_ADMIN_KEY for this device.',
+      confirmLabel: 'Clear key',
+      tone: 'danger',
+      icon: <KeyRound size={18} style={{ color: '#B91C1C' }} />,
+      onSubmit: () => {
+        localStorage.removeItem(KEY_STORAGE);
+        setAdminKey('');
+        setKeyDraft('');
+        setTxns([]);
+        setAllCount(0);
+      },
+    });
+  };
+
+  const submitDialog = () => {
+    if (!dialog) return;
+    if (dialog.kind === 'prompt') dialog.onSubmit(dialogInput.trim());
+    else dialog.onSubmit();
+    setDialog(null);
+    setDialogInput('');
+  };
+
+  const closeDialog = () => {
+    setDialog(null);
+    setDialogInput('');
   };
 
   if (!adminKey) {
@@ -149,11 +250,22 @@ export function AdminRamps() {
 
   return (
     <div className="max-w-2xl space-y-4 animate-page-in">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>Ramp Admin</h1>
-        <button onClick={refresh} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl" style={{ backgroundColor: '#F0FDFA', color: '#008055' }}>
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={openChangeKey}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl"
+            style={{ backgroundColor: '#FFF1F2', color: '#BE123C' }}
+            aria-label="Change admin key"
+            title="Change admin key"
+          >
+            <KeyRound size={12} /> Change key
+          </button>
+          <button onClick={refresh} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl" style={{ backgroundColor: '#F0FDFA', color: '#008055' }}>
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="rounded-2xl bg-white border p-4 space-y-3" style={{ borderColor: '#F1F5F9' }}>
@@ -184,14 +296,14 @@ export function AdminRamps() {
         {cashouts.map((t) => (
           <RampCard key={t.id} txn={t} busy={busyId === t.id}>
             <button
-              onClick={() => act(t.id, 'mark_php_sent', prompt('Operator note or provider reference?') ?? undefined)}
+              onClick={() => openMarkPaid(t.id)}
               className="px-3 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1"
               style={{ backgroundColor: '#008055' }}
             >
               <Send size={12} /> Mark PHP sent
             </button>
             <button
-              onClick={() => act(t.id, 'fail', prompt('Reason?') ?? 'operator declined')}
+              onClick={() => openFail(t.id)}
               className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1"
               style={{ backgroundColor: '#FEE2E2', color: '#B91C1C' }}
             >
@@ -213,7 +325,7 @@ export function AdminRamps() {
               <Send size={12} /> Release XLM
             </button>
             <button
-              onClick={() => act(t.id, 'fail', prompt('Reason?') ?? 'operator declined')}
+              onClick={() => openFail(t.id)}
               className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1"
               style={{ backgroundColor: '#FEE2E2', color: '#B91C1C' }}
             >
@@ -222,6 +334,80 @@ export function AdminRamps() {
           </RampCard>
         ))}
       </Section>
+
+      {/* ── Dialog modal ── */}
+      {dialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+          onClick={closeDialog}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="w-full rounded-3xl overflow-hidden bg-white"
+            style={{ maxWidth: '420px', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 pt-5 pb-3 flex items-start gap-3">
+              <div
+                className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                style={{ backgroundColor: dialog.tone === 'danger' ? '#FEF2F2' : '#F0FDFA', border: `1.5px solid ${dialog.tone === 'danger' ? '#FECACA' : '#A7F3D0'}` }}
+              >
+                {dialog.icon ?? <MessageSquare size={18} style={{ color: dialog.tone === 'danger' ? '#B91C1C' : '#008055' }} />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  {dialog.title}
+                </h3>
+                {dialog.body && <p className="text-sm text-slate-500 mt-1">{dialog.body}</p>}
+              </div>
+              <button
+                onClick={closeDialog}
+                className="w-8 h-8 rounded-full flex items-center justify-center active:scale-95 shrink-0"
+                style={{ backgroundColor: '#F1F5F9', color: '#475569' }}
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {dialog.kind === 'prompt' && (
+              <div className="px-5 pb-2">
+                <input
+                  ref={dialogInputRef}
+                  value={dialogInput}
+                  onChange={(e) => setDialogInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); submitDialog(); }
+                    if (e.key === 'Escape') closeDialog();
+                  }}
+                  placeholder={dialog.placeholder}
+                  className="w-full px-4 py-3 rounded-2xl text-sm border outline-none focus:ring-2"
+                  style={{ borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' }}
+                />
+              </div>
+            )}
+
+            <div className="px-5 py-4 flex items-center justify-end gap-2 bg-slate-50" style={{ borderTop: '1px solid #F1F5F9' }}>
+              <button
+                onClick={closeDialog}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold active:scale-95"
+                style={{ backgroundColor: 'white', color: '#475569', border: '1px solid #E2E8F0' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitDialog}
+                className="px-4 py-2.5 rounded-xl text-sm font-black text-white active:scale-95"
+                style={{ backgroundColor: dialog.tone === 'danger' ? '#DC2626' : '#008055', fontFamily: "'Montserrat', sans-serif" }}
+              >
+                {dialog.confirmLabel ?? 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

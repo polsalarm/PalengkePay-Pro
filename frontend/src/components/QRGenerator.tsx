@@ -28,14 +28,19 @@ export function QRGenerator({ value, size = 240, vendorName, stallInfo, download
   }
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div ref={wrapperRef} className="bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm">
+    <div className="flex flex-col items-center gap-4 w-full">
+      <div
+        ref={wrapperRef}
+        className="bg-white p-3 sm:p-4 rounded-2xl border-2 border-slate-200 shadow-sm w-full"
+        style={{ maxWidth: size + 32 }}
+      >
         <QRCodeCanvas
           value={qrValue}
           size={size}
           level="M"
           bgColor="#ffffff"
           fgColor="#0f172a"
+          style={{ width: '100%', height: 'auto', maxWidth: '100%', display: 'block' }}
         />
       </div>
       {vendorName && showCaption && (

@@ -1,5 +1,5 @@
-import { ExternalLink, Printer, ReceiptText, ShieldCheck } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, ExternalLink, Printer, ReceiptText, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { formatPhp, formatXlm } from '../lib/checkout-quote';
 import { getPaymentProofByHash } from '../lib/payment-proof';
 import { stellarExpertUrl, truncateAddress } from '../lib/stellar';
@@ -15,12 +15,31 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 export function Receipt() {
   const { txHash = '' } = useParams();
+  const navigate = useNavigate();
   const proof = getPaymentProofByHash(txHash);
   const explorerUrl = txHash ? stellarExpertUrl(txHash) : null;
 
   return (
     <div className="min-h-screen px-4 py-5" style={{ backgroundColor: '#F8FAFC' }}>
       <section className="max-w-3xl mx-auto space-y-4">
+        <div className="flex items-center justify-between gap-2 print:hidden">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 min-h-11 rounded-2xl px-3 text-sm font-black active:scale-95"
+            style={{ backgroundColor: '#FFFFFF', color: '#0F172A', border: '1.5px solid #E2E8F0' }}
+            aria-label="Back to previous transaction"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+          <Link
+            to="/vendor/transactions"
+            className="inline-flex items-center gap-2 min-h-11 rounded-2xl px-3 text-sm font-black active:scale-95"
+            style={{ backgroundColor: '#ECFDF5', color: '#008055', border: '1.5px solid #A7F3D0' }}
+          >
+            <ReceiptText size={16} /> Transactions
+          </Link>
+        </div>
         <div className="rounded-3xl overflow-hidden bg-white" style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 18px 48px rgba(15,23,42,0.08)' }}>
           <div className="p-5 space-y-5">
             <div className="flex items-start justify-between gap-4">

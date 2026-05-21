@@ -94,7 +94,7 @@ export function VendorQR() {
         ) : vendor ? (
           <div className="w-full max-w-5xl space-y-4">
             <div
-              className="w-full rounded-3xl p-6 mx-auto screen-only"
+              className="w-full rounded-3xl p-4 sm:p-6 mx-auto screen-only"
               style={{
                 backgroundColor: 'white',
                 maxWidth: '320px',
@@ -103,7 +103,7 @@ export function VendorQR() {
             >
               <QRGenerator
                 value={address!}
-                size={260}
+                size={240}
                 vendorName={vendor?.name ?? t('qr.myQRCode')}
                 stallInfo={stallInfo}
                 downloadable
@@ -201,31 +201,31 @@ function QrPrintKit({ vendorName, stallInfo, wallet }: { vendorName: string; sta
         </button>
       </div>
 
-      <div className="print-grid grid gap-4 lg:grid-cols-[1.45fr_0.85fr]">
-        <div className="rounded-3xl p-6 text-center" style={{ border: '2px solid #0F172A', backgroundColor: '#FFFDF7' }}>
-          <p className="text-sm font-black uppercase tracking-[0.18em]" style={{ color: '#008055' }}>PalengkePay</p>
-          <h3 className="text-3xl font-black text-slate-950 mt-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+      <div className="print-grid grid gap-3 sm:gap-4 lg:grid-cols-[1.45fr_0.85fr]">
+        <div className="rounded-3xl p-4 sm:p-6 text-center min-w-0" style={{ border: '2px solid #0F172A', backgroundColor: '#FFFDF7' }}>
+          <p className="text-xs sm:text-sm font-black uppercase tracking-[0.18em]" style={{ color: '#008055' }}>PalengkePay</p>
+          <h3 className="text-2xl sm:text-3xl font-black text-slate-950 mt-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
             {t('qr.scanToPay')}
           </h3>
-          <p className="text-lg font-bold text-slate-700 mt-1">{vendorName}</p>
-          {stallInfo && <p className="text-sm font-semibold text-slate-500 mt-1">{stallInfo}</p>}
-          <div className="flex justify-center my-5">
+          <p className="text-base sm:text-lg font-bold text-slate-700 mt-1 break-words">{vendorName}</p>
+          {stallInfo && <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-1 break-words">{stallInfo}</p>}
+          <div className="flex justify-center my-4 sm:my-5">
             <QRGenerator value={wallet} size={300} vendorName={vendorName} stallInfo={stallInfo} showCaption={false} />
           </div>
-          <div className="grid grid-cols-3 gap-2 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-left">
             {[t('qr.step1'), t('qr.step2'), t('qr.step3')].map((step, index) => (
-              <div key={step} className="rounded-2xl p-3" style={{ backgroundColor: '#F0FDFA', border: '1px solid #A7F3D0' }}>
-                <p className="text-xs font-black" style={{ color: '#008055' }}>0{index + 1}</p>
-                <p className="text-xs font-bold text-slate-800 mt-1">{step}</p>
+              <div key={step} className="rounded-2xl p-3 flex sm:block items-center gap-2" style={{ backgroundColor: '#F0FDFA', border: '1px solid #A7F3D0' }}>
+                <p className="text-xs font-black shrink-0" style={{ color: '#008055' }}>0{index + 1}</p>
+                <p className="text-xs font-bold text-slate-800 sm:mt-1">{step}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-3xl p-5 text-center" style={{ border: '2px dashed #0F172A', backgroundColor: '#F8FAFC' }}>
+        <div className="rounded-3xl p-4 sm:p-5 text-center min-w-0" style={{ border: '2px dashed #0F172A', backgroundColor: '#F8FAFC' }}>
           <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('qr.sticker')}</p>
-          <h3 className="text-xl font-black text-slate-950 mt-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>{vendorName}</h3>
-          <p className="text-xs text-slate-500 mt-1">{stallInfo ?? t('qr.vendorQR')}</p>
+          <h3 className="text-lg sm:text-xl font-black text-slate-950 mt-1 break-words" style={{ fontFamily: "'Montserrat', sans-serif" }}>{vendorName}</h3>
+          <p className="text-xs text-slate-500 mt-1 break-words">{stallInfo ?? t('qr.vendorQR')}</p>
           <div className="flex justify-center my-4">
             <QRGenerator value={wallet} size={180} vendorName={vendorName} stallInfo={stallInfo} showCaption={false} />
           </div>
