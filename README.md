@@ -336,6 +336,8 @@ See [`docs/CONTRACTS.md`](docs/CONTRACTS.md) for contract interfaces, [`docs/DEP
 
 > **Note:** Stellar Testnet resets periodically (~quarterly). Testnet IDs above are from the April 2026 deployment. After a reset, follow `docs/DEPLOYMENT.md`, redeploy contracts, and update `.env.local` and this table. Mainnet does not reset.
 
+> **Pending redeploy (2026-05-21):** PR #3 added on-chain auth checks (`apply_vendor` wallet auth, `increment_stats` admin gate, `create_utang` customer auth) plus a `CustomerPayments` index on `PalengkePayment`. The source has been rebuilt locally — see [`contracts/README.md`](contracts/README.md) for the new WASM SHA-256 hashes — but the live testnet contracts above still run the pre-PR WASM. Once redeployed, the table above will get new contract IDs.
+
 ### VendorRegistry
 
 - **Testnet:** `CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU)

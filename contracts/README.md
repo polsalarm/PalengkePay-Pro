@@ -2,6 +2,30 @@
 
 Three Soroban contracts on Stellar Testnet.
 
+## Auth Hardening (2026-05-21, source-only — redeploy pending)
+
+PR #3 added on-chain auth checks that are present in source but **not yet live** on the
+deployed contracts. Live testnet contracts still run the pre-PR WASM until redeployed.
+
+| Contract | Hardening |
+|----------|-----------|
+| `vendor-registry` | `apply_vendor` requires `wallet.require_auth()`; `increment_stats` requires admin auth + positive amount |
+| `utang-escrow` | `create_utang` requires `customer.require_auth()` |
+| `palengke-payment` | adds `CustomerPayments` index + `get_customer_payments(customer, limit, offset)` |
+
+### Latest local build (`stellar contract build` on 2026-05-21)
+
+| WASM | Bytes | SHA-256 |
+|------|------:|---------|
+| `palengke_payment.wasm` | 6 767 | `8412cb133a438e10b47be050fa7cba0d272f9e8304a0e366a842663cbb6fbc0b` |
+| `vendor_registry.wasm` | 15 148 | `d3ecffc9544e816d6301c29bf7438f06a23f86a310b23efb1965bbfd483a4f08` |
+| `utang_escrow.wasm` | 11 955 | `4bf43dc839cb9e4b2b5b8d882bd42631448421231949482d5458f7a71453a7b5` |
+
+To activate the hardening, redeploy each contract with the new WASM, capture the new
+contract IDs, then update `frontend/.env.local`, the Vercel project env, this README,
+the root `README.md`, and `docs/CONTRACTS.md`. Redeploy is non-idempotent — new WASM
+gets a new contract ID.
+
 ## Contracts
 
 | Contract | Contract ID | Description |
