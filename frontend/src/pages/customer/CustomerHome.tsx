@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ScanLine, ExternalLink, AlertTriangle, HandCoins, Store, ShoppingBag, ArrowRight, TrendingDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
@@ -78,7 +77,7 @@ export function CustomerHome() {
   const { balance } = useBalance(address);
   const { transactions, isLoading, error: txError, retry: retryTransactions } = useCustomerTransactions(address);
   const { utangs, error: utangError, refetch: refetchUtangs } = useCustomerUtangs(address);
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
 
   const activeUtangs = utangs.filter((u) => u.status === 'active');
   const totalOwed = activeUtangs.reduce((sum, u) => {

@@ -11,7 +11,6 @@ import {
   HandCoins,
   ArrowUp,
 } from 'lucide-react';
-import { WalletButton } from './WalletButton';
 import logoImg from '../assets/logo.png';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -109,7 +108,7 @@ export function Layout() {
   const navItems = useNavItems();
   const { pathname } = useLocation();
 
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = false;
 
   const scrollRef = useRef<HTMLElement>(null);
 

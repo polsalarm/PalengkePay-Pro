@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, ArrowRight, Printer, Store } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Printer, Store } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
@@ -11,7 +11,7 @@ export function VendorQR() {
   const { address } = useWallet();
   const { vendor, isLoading } = useVendor(address);
   const navigate = useNavigate();
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
 
   if (!address) {
     return (
@@ -171,7 +171,7 @@ export function VendorQR() {
 }
 
 function QrPrintKit({ vendorName, stallInfo, wallet }: { vendorName: string; stallInfo?: string; wallet: string }) {
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   
   return (
     <section className="qr-print-kit rounded-3xl bg-white p-5 space-y-4" style={{ border: '1.5px solid #E2E8F0' }}>

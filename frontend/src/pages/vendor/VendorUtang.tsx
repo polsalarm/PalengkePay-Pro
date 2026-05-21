@@ -66,7 +66,7 @@ export function VendorUtang() {
   const { utangs, isLoading, error, refetch } = useVendorUtangs(address);
   const { t } = useLanguage();
 
-  const [lang, setLang] = useState<'en' | 'tl'>('tl');
+  const lang: 'en' | 'tl' = 'tl';
   const [showPanel, setShowPanel] = useState(false);
   const [mode, setMode] = useState<Mode>('qr');
   const [step, setStep] = useState<Step>('form');

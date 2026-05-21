@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, ExternalLink, RefreshCw, ShoppingBag, ScanLine } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
@@ -92,7 +91,7 @@ export function CustomerHistory() {
   const navigate = useNavigate();
   const { address } = useWallet();
   const { transactions, isLoading, error, retry } = useCustomerTransactions(address);
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
 
   const totalSpent = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
   const groups = groupByDate(transactions, t);
