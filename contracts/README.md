@@ -2,10 +2,10 @@
 
 Three Soroban contracts on Stellar Testnet.
 
-## Auth Hardening (2026-05-21, source-only — redeploy pending)
+## Auth Hardening (deployed 2026-05-21)
 
-PR #3 added on-chain auth checks that are present in source but **not yet live** on the
-deployed contracts. Live testnet contracts still run the pre-PR WASM until redeployed.
+PR #3 added these on-chain auth checks. Live on the contract IDs below as of the
+2026-05-21 redeploy.
 
 | Contract | Hardening |
 |----------|-----------|
@@ -13,7 +13,7 @@ deployed contracts. Live testnet contracts still run the pre-PR WASM until redep
 | `utang-escrow` | `create_utang` requires `customer.require_auth()` |
 | `palengke-payment` | adds `CustomerPayments` index + `get_customer_payments(customer, limit, offset)` |
 
-### Latest local build (`stellar contract build` on 2026-05-21)
+### Deployed WASM (2026-05-21)
 
 | WASM | Bytes | SHA-256 |
 |------|------:|---------|
@@ -21,34 +21,33 @@ deployed contracts. Live testnet contracts still run the pre-PR WASM until redep
 | `vendor_registry.wasm` | 15 148 | `d3ecffc9544e816d6301c29bf7438f06a23f86a310b23efb1965bbfd483a4f08` |
 | `utang_escrow.wasm` | 11 955 | `4bf43dc839cb9e4b2b5b8d882bd42631448421231949482d5458f7a71453a7b5` |
 
-To activate the hardening, redeploy each contract with the new WASM, capture the new
-contract IDs, then update `frontend/.env.local`, the Vercel project env, this README,
-the root `README.md`, and `docs/CONTRACTS.md`. Redeploy is non-idempotent — new WASM
-gets a new contract ID.
+Admin keypair on the new contracts: `GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH`
+(== `stellar keys address palengkepay`). Pre-PR3 admin `GBPPOLSXY...` is no longer the
+admin of any live contract.
 
 ## Contracts
 
 | Contract | Contract ID | Description |
 |----------|-------------|-------------|
-| `vendor-registry` | `CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU` | On-chain vendor identity — register, apply, approve, deactivate, stats |
-| `palengke-payment` | `CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF` | QR-based XLM payment settlement with fee support |
-| `utang-escrow` | `CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG` | BNPL installment agreements — create, pay, complete, default |
+| `vendor-registry` | `CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5` | On-chain vendor identity — register, apply, approve, deactivate, stats |
+| `palengke-payment` | `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` | QR-based XLM payment settlement with fee support |
+| `utang-escrow` | `CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD` | BNPL installment agreements — create, pay, complete, default |
 
 ### VendorRegistry
 
-`CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU)
+`CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5)
 
 <img src="../UI/CONTRACT/VendorRegistry.png" alt="VendorRegistry contract on Stellar Expert" width="100%" />
 
 ### PalengkePayment
 
-`CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF)
+`CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY)
 
 <img src="../UI/CONTRACT/PalengkeyPayment.png" alt="PalengkePayment contract on Stellar Expert" width="100%" />
 
 ### UTangEscrow
 
-`CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG)
+`CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD)
 
 <img src="../UI/CONTRACT/UtangEscrow.png" alt="UTangEscrow contract on Stellar Expert" width="100%" />
 

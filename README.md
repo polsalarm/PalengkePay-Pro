@@ -328,33 +328,31 @@ PalengkePay runs on **both Stellar Testnet (live now) and Stellar Mainnet (Phase
 
 | Contract | Purpose | Testnet ID | Mainnet ID |
 |----------|---------|------------|------------|
-| `VendorRegistry` | Vendor registration, apply/approve/reject/deactivate, profiles | `CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU` | _Pending — Phase 2_ |
-| `PalengkePayment` | QR-based payments with fee support and stat tracking | `CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF` | _Pending — Phase 2_ |
-| `UTangEscrow` | BNPL installment agreements — create, pay, complete, default | `CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG` | _Pending — Phase 2_ |
+| `VendorRegistry` | Vendor registration, apply/approve/reject/deactivate, profiles | `CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5` | _Pending — Phase 2_ |
+| `PalengkePayment` | QR-based payments with fee support and stat tracking | `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` | _Pending — Phase 2_ |
+| `UTangEscrow` | BNPL installment agreements — create, pay, complete, default | `CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD` | _Pending — Phase 2_ |
 
 See [`docs/CONTRACTS.md`](docs/CONTRACTS.md) for contract interfaces, [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for deployment guidance, and [`plan.md`](plan.md) for the dual-network rollout checklist when present.
 
 > **Note:** Stellar Testnet resets periodically (~quarterly). Testnet IDs above are from the April 2026 deployment. After a reset, follow `docs/DEPLOYMENT.md`, redeploy contracts, and update `.env.local` and this table. Mainnet does not reset.
 
-> **Pending redeploy (2026-05-21):** PR #3 added on-chain auth checks (`apply_vendor` wallet auth, `increment_stats` admin gate, `create_utang` customer auth) plus a `CustomerPayments` index on `PalengkePayment`. The source has been rebuilt locally — see [`contracts/README.md`](contracts/README.md) for the new WASM SHA-256 hashes — but the live testnet contracts above still run the pre-PR WASM. Once redeployed, the table above will get new contract IDs.
-
 ### VendorRegistry
 
-- **Testnet:** `CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU)
+- **Testnet:** `CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5)
 - **Mainnet:** _Pending — Phase 2 (post-audit)_
 
 <img src="UI/CONTRACT/VendorRegistry.png" alt="VendorRegistry contract on Stellar Expert" width="100%" />
 
 ### PalengkePayment
 
-- **Testnet:** `CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF)
+- **Testnet:** `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY)
 - **Mainnet:** _Pending — Phase 2 (post-audit)_
 
 <img src="UI/CONTRACT/PalengkeyPayment.png" alt="PalengkePayment contract on Stellar Expert" width="100%" />
 
 ### UTangEscrow
 
-- **Testnet:** `CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG)
+- **Testnet:** `CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD)
 - **Mainnet:** _Pending — Phase 2 (post-audit)_
 
 <img src="UI/CONTRACT/UtangEscrow.png" alt="UTangEscrow contract on Stellar Expert" width="100%" />
@@ -563,9 +561,9 @@ Create `frontend/.env.local`:
 ```env
 VITE_STELLAR_NETWORK=testnet
 VITE_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
-VITE_VENDOR_REGISTRY_CONTRACT_ID=CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGNDVLD2UXUU
-VITE_PALENGKE_PAYMENT_CONTRACT_ID=CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF
-VITE_UTANG_ESCROW_CONTRACT_ID=CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG
+VITE_VENDOR_REGISTRY_CONTRACT_ID=CBVSUNNJWYSEUGVWACLQXV5UQHSW6ANB4Y2VBPULUNUW3LAOFZRZJHS5
+VITE_PALENGKE_PAYMENT_CONTRACT_ID=CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY
+VITE_UTANG_ESCROW_CONTRACT_ID=CBBK6NEHMLZX5GYWPEJAOXC2O4RYY745XMINQSR7R4LHLJH6NC5V2EZD
 VITE_UTANG_FEE_XLM=1
 <<
 # Web Push (VAPID) — generate via `npx web-push generate-vapid-keys`
