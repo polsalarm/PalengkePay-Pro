@@ -6,12 +6,10 @@ import { useBalance } from '../../lib/hooks/useBalance';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorTransactions, relativeTime } from '../../lib/hooks/useTransactions';
 import { useVendorStatus, useToggleVendorStatus } from '../../lib/hooks/useVendorStatus';
-import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
 import type { TxRecord } from '../../lib/hooks/useTransactions';
-import { useToast } from '../../components/Toast';
-import { UnitToggle } from '../../components/UnitToggle';
-import { PrivacyToggle } from '../../components/PrivacyToggle';
+import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, stellarExpertUrl, getServer } from '../../lib/stellar';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
 
 const STRINGS = {
   en: {
@@ -105,7 +103,6 @@ export function VendorHome() {
   const { transactions, isLoading, error, retry, todayEarnings, todayCount } = useVendorTransactions(address);
   const { status: openStatus, refetch: refetchStatus } = useVendorStatus(address);
   const { toggle: toggleStatus, isPending: statusPending } = useToggleVendorStatus(address);
-  const { unit, format, formatCompanion } = useFormatAmount();
   const { showToast } = useToast();
   const prevCountRef = useRef<number | null>(null);
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
@@ -183,11 +180,13 @@ export function VendorHome() {
   const groups = groupByDate(recent, lang);
   const allTimeTotal = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
 
-  const earningsStr = format(earnings, { showSuffix: false });
+  const earningsStr = earnings.toFixed(2);
   const earningsFontSize = earningsStr.length >= 10 ? '1.6rem' : earningsStr.length >= 8 ? '2rem' : earningsStr.length >= 6 ? '2.6rem' : '3.2rem';
-  const earningsUnitLabel = unit === 'php' ? 'PHP' : 'XLM';
-  const earningsCompanion = formatCompanion(earnings);
-  const balanceStr = balance ? format(parseFloat(balance), { showSuffix: false }) : '—';
+  const balanceStr = balance ? parseFloat(balance).toFixed(2) : '—';
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your vendor wallet to view earnings, show your QR, and manage installment credit." />;
+  }
 
   return (
     <div className="animate-page-in" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
@@ -240,28 +239,24 @@ export function VendorHome() {
               {t.greeting(firstName, timeGreeting)}
             </div>
 
-            {/* Privacy + Unit + Language toggles */}
-            <div className="flex items-center gap-2 shrink-0">
-              <PrivacyToggle variant="dark" />
-              <UnitToggle variant="dark" />
-              <div
-                className="flex items-center rounded-full p-0.5"
-                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-              >
-                {(['en', 'tl'] as const).map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => setLang(l)}
-                    className="text-xs font-bold px-3 py-1 rounded-full transition-all"
-                    style={lang === l
-                      ? { backgroundColor: '#008055', color: 'white' }
-                      : { color: 'rgba(255,255,255,0.45)' }
-                    }
-                  >
-                    {l.toUpperCase()}
-                  </button>
-                ))}
-              </div>
+            {/* Language toggle */}
+            <div
+              className="flex items-center rounded-full p-0.5"
+              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+            >
+              {(['en', 'tl'] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className="text-xs font-bold px-3 py-1 rounded-full transition-all"
+                  style={lang === l
+                    ? { backgroundColor: '#008055', color: 'white' }
+                    : { color: 'rgba(255,255,255,0.45)' }
+                  }
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -324,7 +319,7 @@ export function VendorHome() {
                   <span
                     className="text-base font-bold shrink-0"
                     style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Montserrat', sans-serif" }}
-                  >{earningsUnitLabel}</span>
+                  >XLM</span>
                 </div>
               )
             }
@@ -333,9 +328,6 @@ export function VendorHome() {
               <Zap size={11} style={{ color: '#FDE68A' }} />
               <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
                 {t.paymentsToday(count)}
-              </span>
-              <span className="text-xs font-medium ml-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                · {earningsCompanion}
               </span>
             </div>
           </div>

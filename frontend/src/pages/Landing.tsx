@@ -42,7 +42,7 @@ export function Landing() {
 {/* ══ NAVBAR - Sticky White Header with Mobile Menu ═══════════════════════ */}
 <header
   className="sticky top-0 z-50 w-full"
-  style={{ 
+  style={{
     position: 'sticky',
     top: 0,
     backgroundColor: '#FFFFFF',
@@ -52,15 +52,15 @@ export function Landing() {
 >
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div className="flex items-center justify-between h-16">
-      
+
       {/* Logo Section */}
       <div className="flex items-center gap-2.5 shrink-0">
-        <img 
-          src={logoImg} 
-          alt="PalengkePay" 
+        <img
+          src={logoImg}
+          alt="PalengkePay"
           className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover"
         />
-        <span 
+        <span
           className="font-black text-base sm:text-lg tracking-tight whitespace-nowrap"
           style={{ fontFamily: "'Montserrat', sans-serif" }}
         >
@@ -113,7 +113,7 @@ export function Landing() {
       </div>
 
       {/* Mobile Menu Button */}
-      <button 
+      <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         className="md:hidden p-2 rounded-lg transition-colors duration-200 hover:bg-slate-100"
         style={{ color: '#475569' }}
@@ -131,7 +131,7 @@ export function Landing() {
 
   {/* Mobile Menu Dropdown */}
   {isMobileMenuOpen && (
-    <div 
+    <div
       className="md:hidden absolute top-16 left-0 right-0 z-40 shadow-lg"
       style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E2E8F0' }}
     >
@@ -190,28 +190,6 @@ export function Landing() {
 </header>
 
       {/* ══ HERO ════════════════════════════════════════════════════════════ */}
-      <style>{`
-        .phone-mockup-frame { width: 200px; }
-        @media (min-width: 640px) { .phone-mockup-frame { width: 280px; } }
-        @media (min-width: 1024px) { .phone-mockup-frame { width: 320px; } }
-        .cta-bg-section { background-position: center; }
-        @media (max-width: 768px) {
-          .cta-bg-section { background-position: 75% center; }
-        }
-        .float-card-store { width: 150px !important; padding: 8px !important; top: 3% !important; left: 3% !important; transform: scale(0.85); transform-origin: top left; }
-        .float-card-paid { padding: 6px 10px !important; top: 28% !important; right: 3% !important; transform: scale(0.85); transform-origin: top right; }
-        .float-card-feed { width: 150px !important; bottom: 5% !important; left: 3% !important; transform: scale(0.85); transform-origin: bottom left; }
-        @media (min-width: 640px) {
-          .float-card-store { width: 170px !important; top: 5% !important; transform: scale(0.9); }
-          .float-card-feed { width: 170px !important; bottom: 8% !important; transform: scale(0.9); }
-          .float-card-paid { transform: scale(0.9); }
-        }
-        @media (min-width: 1024px) {
-          .float-card-store { width: 200px !important; padding: 12px !important; top: 8% !important; left: 2% !important; transform: none; }
-          .float-card-paid { padding: 10px 14px !important; top: 35% !important; right: 3% !important; transform: none; }
-          .float-card-feed { width: 185px !important; bottom: 12% !important; left: 2% !important; transform: none; }
-        }
-      `}</style>
       <section
   className="lg:grid lg:grid-cols-[75fr_75fr]"  // 75% left, 25% right
   style={{ minHeight: 'calc(100vh - 64px)' }}
@@ -235,10 +213,10 @@ export function Landing() {
             {/* Live badge */}
             <div
   className="inline-flex items-center gap-2 border text-xs font-bold px-3.5 py-1.5 rounded-full mb-8"
-  style={{ 
+  style={{
     backgroundColor: '#E6F7F5',  // Light version of #008055 (10% opacity)
-    borderColor: '#008055', 
-    color: '#008055' 
+    borderColor: '#008055',
+    color: '#008055'
   }}
 >
   <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#008055' }} />
@@ -247,7 +225,7 @@ export function Landing() {
 
             <h1
               className="font-black text-slate-900 leading-[1.05] tracking-tight mb-6"
-              style={{ fontSize: 'clamp(2rem, 5vw, 4.4rem)', fontFamily: "'Montserrat', sans-serif" }}
+              style={{ fontSize: 'clamp(2.8rem, 3.4vw, 4.4rem)', fontFamily: "'Montserrat', sans-serif" }}
             >
               Digital<br />payments<br />
               <span style={{ color: '#008055' }}>para sa</span>{' '}
@@ -303,8 +281,8 @@ export function Landing() {
 
         {/* ── Right panel — dark teal (improved floating elements) ── */}
         <div
-          className="relative flex items-center justify-center overflow-hidden py-12 lg:py-0"
-          style={{ backgroundColor: '#00284B', borderBottomLeftRadius: 64, minHeight: '50vh' }}
+          className="relative flex items-center justify-center overflow-hidden"
+          style={{ backgroundColor: '#00284B', borderBottomLeftRadius: 64, minHeight: '70vh' }}
         >
           {/* Ambient glow */}
           <div
@@ -321,12 +299,15 @@ export function Landing() {
 
           {/* ── Aling Nena store card — enhanced ── */}
           <div
-            className="absolute z-20 animate-float float-card-store"
+            className="absolute z-20 hidden lg:block animate-float"
             style={{
+              top: '8%', left: '2%',
+              width: 240,
               backgroundColor: 'rgba(10,30,28,0.88)',
               border: '1px solid rgba(255,255,255,0.15)',
               backdropFilter: 'blur(20px)',
               borderRadius: 20,
+              padding: '16px',
               boxShadow: '0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
             }}
           >
@@ -381,11 +362,12 @@ export function Landing() {
 
           {/* ── Phone — centered ── */}
           {/* ── Phone — centered with better padding ── */}
-<div className="relative z-10 phone-mockup-wrap" style={{ transform: 'rotate(12deg)' }}>
+<div className="relative z-10" style={{ transform: 'rotate(12deg)' }}>
   <div className="animate-float" style={{ animationDelay: '0.2s' }}>
     <div
-      className="relative shadow-2xl phone-mockup-frame"
+      className="relative shadow-2xl"
       style={{
+        width: '320px',
         backgroundColor: '#1C2B3A',
         borderRadius: '3.2rem',
         padding: '8px',
@@ -397,26 +379,26 @@ export function Landing() {
       <div className="absolute rounded-l-sm" style={{ width: 4, height: 50, backgroundColor: '#2D3F50', top: 138, left: -4 }} />
       <div className="absolute rounded-l-sm" style={{ width: 4, height: 50, backgroundColor: '#2D3F50', top: 200, left: -4 }} />
       <div className="absolute rounded-r-sm" style={{ width: 4, height: 64, backgroundColor: '#2D3F50', top: 130, right: -4 }} />
-      
+
       {/* Top notch / dynamic island */}
       <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-24 h-5 bg-black/60 rounded-full z-20" />
-      
+
       {/* Screen gradient overlay */}
       <div
         className="absolute inset-0 pointer-events-none z-10 rounded-[2.8rem]"
         style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.1) 100%)' }}
       />
-      
+
       {/* Screen content with padding */}
       <div className="overflow-hidden rounded-[2.6rem] bg-white">
-        <img 
-          src={phoneImg} 
-          alt="PalengkePay app" 
+        <img
+          src={phoneImg}
+          alt="PalengkePay app"
           className="w-full h-auto block"
           style={{ objectFit: 'cover' }}
         />
       </div>
-      
+
       {/* Bottom home indicator */}
       <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-white/30 rounded-full" />
     </div>
@@ -425,10 +407,12 @@ export function Landing() {
 
           {/* ── Payment received card — enhanced ── */}
           <div
-            className="absolute z-20 animate-float-slow flex items-center gap-2 float-card-paid"
+            className="absolute z-20 animate-float-slow hidden lg:flex items-center gap-3"
             style={{
+              top: '35%', right: '3%',
               backgroundColor: 'rgba(255,255,255,0.98)',
               borderRadius: 18,
+              padding: '12px 18px',
               boxShadow: '0 20px 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.1)',
               backdropFilter: 'blur(4px)',
             }}
@@ -447,8 +431,8 @@ export function Landing() {
 
           {/* ── Recent payments feed — improved styling ── */}
           <div
-            className="absolute z-20 animate-float-slow float-card-feed"
-            style={{ animationDelay: '0.6s' }}
+            className="absolute z-20 hidden lg:block animate-float-slow"
+            style={{ bottom: '12%', left: '2%', width: 220, animationDelay: '0.6s' }}
           >
             <div
               className="rounded-2xl p-3"
@@ -503,8 +487,8 @@ export function Landing() {
   <div className="relative max-w-7xl mx-auto px-6 lg:px-14">
     {/* Section Header - Centered with gradient text */}
     <div className="text-center mb-16">
-     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4" 
-     style={{ 
+     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
+     style={{
        backgroundColor: '#E6F7F5',
        borderColor: '#008055',
        border: '1px solid #008055',
@@ -530,33 +514,33 @@ export function Landing() {
     <div className="relative">
       {/* Desktop connecting line */}
       <div className="hidden lg:block absolute left-0 right-0 top-32 h-0.5" style={{ background: 'linear-gradient(90deg, #008055 0%, #008055 30%, #E2E8F0 30%, #E2E8F0 70%, #008055 70%, #008055 100%)' }} />
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
         {[
-          { 
-            step: '01', 
-            icon: QrCode,   
-            color: '#008055', 
-            bg: '#E8F5F3', 
-            title: 'Get Your QR',   
+          {
+            step: '01',
+            icon: QrCode,
+            color: '#008055',
+            bg: '#E8F5F3',
+            title: 'Get Your QR',
             desc: 'Register your stall and receive a unique QR code linked to your Stellar wallet. Display it prominently at your stall.',
             highlight: 'Free to register'
           },
-          { 
-            step: '02', 
-            icon: ScanLine, 
-            color: '#042E80', 
-            bg: '#F5F3FF', 
-            title: 'Customer Scans',     
+          {
+            step: '02',
+            icon: ScanLine,
+            color: '#042E80',
+            bg: '#F5F3FF',
+            title: 'Customer Scans',
             desc: 'Customer opens PalengkePay, scans your QR code, enters the amount, and confirms. Takes less than 5 seconds.',
             highlight: 'No card needed'
           },
-          { 
-            step: '03', 
-            icon: Zap,      
-            color: '#D97706', 
-            bg: '#FFFBEB', 
-            title: 'Instant Payment', 
+          {
+            step: '03',
+            icon: Zap,
+            color: '#D97706',
+            bg: '#FFFBEB',
+            title: 'Instant Payment',
             desc: 'Payment settles instantly on Stellar blockchain. Money appears in your wallet in ~3 seconds. No waiting, no chargebacks.',
             highlight: '~3s settlement'
           },
@@ -566,7 +550,7 @@ export function Landing() {
             <div className="absolute -top-4 left-6 lg:left-8 z-10">
               <div
                 className="w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg"
-                style={{ 
+                style={{
                   backgroundColor: color,
                   color: 'white',
                   fontSize: '1.1rem',
@@ -578,30 +562,30 @@ export function Landing() {
             </div>
 
             {/* Card */}
-            <div 
+            <div
               className="relative bg-white rounded-3xl p-8 pt-12 shadow-sm border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
               style={{ borderColor: index === 0 ? '#00805520' : '#E2E8F0' }}
             >
               {/* Icon */}
-              <div 
+              <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-all group-hover:scale-110"
                 style={{ backgroundColor: bg }}
               >
                 <Icon size={28} style={{ color }} />
               </div>
-              
+
               {/* Title */}
               <h3 className="text-xl font-black text-slate-900 mb-3" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {title}
               </h3>
-              
+
               {/* Description */}
               <p className="text-sm text-slate-500 leading-relaxed mb-4">
                 {desc}
               </p>
-              
+
               {/* Highlight badge */}
-              <div 
+              <div
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
                 style={{ backgroundColor: `${color}10`, color: color }}
               >
@@ -637,15 +621,15 @@ export function Landing() {
 <section id="features" className="py-24 relative overflow-hidden" style={{ backgroundColor: '#FAFAF7' }}>
   {/* Background decoration */}
   <div className="absolute inset-0 pointer-events-none">
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full" 
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full"
          style={{ backgroundColor: '#E8F5F3', filter: 'blur(120px)', opacity: 0.4 }} />
   </div>
 
   <div className="relative max-w-7xl mx-auto px-6 lg:px-14">
     {/* Section Header */}
     <div className="text-center mb-16">
-     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4" 
-     style={{ 
+     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
+     style={{
        backgroundColor: '#E6F7F5',
        borderColor: '#008055',
        border: '1px solid #008055',
@@ -669,7 +653,7 @@ export function Landing() {
 
     {/* Feature Grid - Main Layout */}
     <div className="grid lg:grid-cols-12 gap-6">
-      
+
       {/* Main Hero Feature - Spans 5 columns */}
       <div className="lg:col-span-5">
         <div
@@ -681,7 +665,7 @@ export function Landing() {
             <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-white blur-3xl" />
             <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-white blur-3xl" />
           </div>
-          
+
           {/* Content */}
           <div className="relative z-10 flex flex-col h-full">
             <div className="mb-6">
@@ -696,7 +680,7 @@ export function Landing() {
                 Display your unique QR code at your stall. Customers scan, enter the amount, and confirm — money lands in your Stellar wallet in seconds.
               </p>
             </div>
-            
+
             {/* Feature highlights */}
             <div className="space-y-3 mt-auto">
               <div className="flex items-center gap-3 text-white/80">
@@ -712,7 +696,7 @@ export function Landing() {
                 <span className="text-sm">Works on any smartphone</span>
               </div>
             </div>
-            
+
             {/* Zero fees badge */}
             <div className="mt-8 pt-6 border-t border-white/20">
               <div className="flex items-baseline gap-2">
@@ -728,10 +712,10 @@ export function Landing() {
       {/* Right Column - 7 columns with sub-grid */}
       <div className="lg:col-span-7">
         <div className="grid md:grid-cols-2 gap-6 h-full">
-          
+
           {/* Utang Credit Card */}
           <div className="group bg-white rounded-3xl p-6 border border-slate-200 hover:border-[#008055]/30 hover:shadow-xl transition-all duration-300 cursor-pointer">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-all group-hover:scale-110" 
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-all group-hover:scale-110"
                  style={{ backgroundColor: '#042E8010' }}>
               <HandCoins size={26} style={{ color: '#042E80' }} />
             </div>
@@ -739,12 +723,12 @@ export function Landing() {
             <p className="text-slate-500 text-sm leading-relaxed mb-4">
               Formalize installment plans on-chain. Track payments, due dates, and balances with full transparency.
             </p>
-            
+
           </div>
 
           {/* Immutable Records Card */}
           <div className="group bg-white rounded-3xl p-6 border border-slate-200 hover:border-[#059669]/30 hover:shadow-xl transition-all duration-300 cursor-pointer">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-all group-hover:scale-110" 
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-all group-hover:scale-110"
                  style={{ backgroundColor: '#05966910' }}>
               <ShieldCheck size={26} style={{ color: '#059669' }} />
             </div>
@@ -752,13 +736,13 @@ export function Landing() {
             <p className="text-slate-500 text-sm leading-relaxed mb-4">
               Every transaction permanently on Stellar blockchain. Dispute-proof. Your ledger never lies.
             </p>
-            
+
           </div>
 
           {/* Mobile-first PWA - Full width */}
           <div className="md:col-span-2 group bg-gradient-to-r from-white to-slate-50 rounded-3xl p-6 border border-slate-200 hover:border-[#D97706]/30 hover:shadow-xl transition-all duration-300 cursor-pointer">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 shrink-0" 
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 shrink-0"
                    style={{ backgroundColor: '#D9770610' }}>
                 <Smartphone size={30} style={{ color: '#D97706' }} />
               </div>
@@ -777,24 +761,25 @@ export function Landing() {
       </div>
     </div>
 
-    
+
   </div>
 </section>
 
     {/* ══ BOTTOM CTA - Pure Background Image, No Overlay ═══════════════════════ */}
 <section
-  className="relative w-full cta-bg-section"
+  className="relative w-full"
   style={{
     backgroundImage: `url(${ctaBgImg})`,
     backgroundSize: 'cover',
+    backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
   }}
 >
   {/* NO OVERLAY DIV - REMOVED COMPLETELY */}
-  
+
   <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-14 py-16 sm:py-20 lg:py-28">
     <div className="max-w-2xl text-left">
-      
+
       {/* Badge - with darker background for readability */}
       <div
         className="inline-flex items-center gap-2 border text-xs font-bold px-3 py-1.5 rounded-full mb-6"
@@ -807,19 +792,19 @@ export function Landing() {
       {/* Heading - white text with optional text shadow for readability */}
       <h2
         className="font-black text-white tracking-tight mb-4"
-        style={{ 
-          fontSize: 'clamp(2rem, 4vw, 3.5rem)', 
+        style={{
+          fontSize: 'clamp(2rem, 4vw, 3.5rem)',
           fontFamily: "'Montserrat', sans-serif",
           textShadow: '0 2px 4px rgba(0,0,0,0.3)'
         }}
       >
         Ready to go digital?
       </h2>
-      
+
       {/* Description */}
       <p
         className="mb-8 max-w-lg leading-relaxed text-white"
-        style={{ 
+        style={{
           fontSize: '1.1rem',
           textShadow: '0 1px 2px rgba(0,0,0,0.3)'
         }}
@@ -857,12 +842,12 @@ export function Landing() {
 <footer className="py-10 border-t" style={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }}>
   <div className="max-w-7xl mx-auto px-6 lg:px-14">
     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-      
+
       {/* Logo */}
       <div className="flex items-center gap-2.5">
-        <img 
-          src={logoImg} 
-          alt="PalengkePay" 
+        <img
+          src={logoImg}
+          alt="PalengkePay"
           className="w-8 h-8 rounded-lg object-cover"
         />
         <span className="font-black text-base tracking-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
@@ -895,7 +880,7 @@ export function Landing() {
       <p className="text-xs text-slate-400">
         © 2026 sTHREEllar. All rights reserved.
       </p>
-      
+
     </div>
   </div>
 </footer>

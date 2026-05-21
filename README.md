@@ -32,6 +32,22 @@ Beta users were onboarded via a Google Form collecting name, email, wallet addre
 
 **[View Feedback Responses (Google Sheets) →](https://docs.google.com/spreadsheets/d/1g0AYRCwqc1-zcxy2q5UnIGHtllJHsXSaUvTCD7POI-g/edit?usp=sharing)**
 
+## Project Docs
+
+- **[Feature Inventory](docs/FEATURE_INVENTORY.md)** — complete previous work, present features, current caveats, and future work.
+- **[User Flows](docs/USER_FLOWS.md)** — customer, vendor, admin, onboarding, utility, and demo flows.
+- **[Architecture](docs/ARCHITECTURE.md)** — runtime layers, source-of-truth map, payment architecture, and target architecture.
+- **[Contracts](docs/CONTRACTS.md)** — Soroban contract interfaces, auth boundaries, frontend usage, and contract roadmap.
+- **[Deployment](docs/DEPLOYMENT.md)** — local setup, env vars, Vercel deployment, smoke checks, and reset recovery.
+- **[Verification Gates](docs/VERIFICATION.md)** — commands and evidence required before claiming built, passing, deployed, or production-ready.
+- **[Manual E2E Runbook](docs/MANUAL_E2E_RUNBOOK.md)** — wallet-backed payment, history, metrics, and utang proof steps.
+- **[Dependency Audit Notes](docs/DEPENDENCY_AUDIT.md)** — npm audit remediation, overrides, and remaining transitive risk.
+- **[Operations Readiness](docs/OPERATIONS_READINESS.md)** — sponsor limiter, monitoring, Vercel env proof, and release-readiness checks.
+- **[Contributing](CONTRIBUTING.md)** — setup, quality gates, good first issue ideas, and PR checklist.
+- **[Security](SECURITY.md)** — reporting scope, current controls, known risks, and pre-release checklist.
+- **[Roadmap](ROADMAP.md)** — build status, requirements checklist, and next architecture decisions.
+- **[Contracts Guide](contracts/README.md)** — deployed contract IDs, interfaces, and Soroban commands.
+
 ---
 
 ## Live Walkthrough
@@ -131,31 +147,48 @@ PalengkePay is a Stellar-powered Progressive Web App that brings cashless paymen
 
 ## Advanced Features
 
+### 💸 Stable Checkout with Price Lock
+Customer checkout is now PHP-first. The app locks the current PHP/XLM quote for one minute, converts the payment into XLM for Stellar settlement, saves the signed proof locally, and shows a dual-currency receipt after confirmation.
+
+- `frontend/src/lib/checkout-quote.ts` — builds the locked quote, expiry window, and receipt formatting
+- `frontend/src/lib/payment-proof.ts` — persists the wallet-signed hash and quote for receipt/history recovery
+- `frontend/api/quote.ts` — serves the PHP/XLM quote for production; the frontend keeps a direct CoinGecko fallback for local/dev
+- `frontend/src/components/PaymentForm.tsx` — collects PHP amount, shows locked XLM, rate, and countdown
+- `frontend/src/pages/customer/CustomerScan.tsx` — carries the quote through confirmation and receipt screens
+- `frontend/src/pages/Receipt.tsx` — standalone `/receipt/:txHash` route for saved dual-currency proof
+
 ### ⚡ Gasless Transactions (Fee Sponsorship)
-Customers and vendors pay **zero network fees**. A server-side sponsor wallet wraps every payment in a Stellar FeeBumpTransaction, covering the base fee transparently. Users sign the inner transaction; the sponsor covers the fee. Removes the #1 adoption blocker for first-time crypto users.
+Fee sponsorship remains available as the fallback path for classic Stellar transfers when the payment contract is not configured. A server-side sponsor wallet wraps approved payment/createAccount inner transactions in a Stellar FeeBumpTransaction. Users sign the inner transaction; the sponsor covers the classic Stellar fee.
 
 - `frontend/api/fee-bump.ts` — Vercel serverless function wraps inner XDR with FeeBumpTransaction
 - `SPONSOR_SECRET` stays server-only; never shipped to the client
-- Badge shown in payment form: "Gasless — fees sponsored, zero cost to you"
+- Sponsorship is restricted to signed Stellar Testnet inner transactions with `PP:` PalengkePay memos, native XLM `payment` / `createAccount` operations only, approved destinations when `FEE_BUMP_ALLOWED_DESTINATIONS` is configured, bounded fees, bounded amounts, and matching source signatures
+- The endpoint uses Upstash Redis / Vercel KV-compatible REST counters when configured. Production fee sponsorship fails closed unless durable limiter env is present; local development keeps an in-memory fallback.
+- Current deployed QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured, giving an on-chain contract receipt and shared payment source of truth.
 
 ### 📊 Metrics Dashboard
-Live admin metrics aggregated from on-chain Soroban data — accessible at `/admin/metrics`.
+Admin metrics prefer `PalengkePayment` records — accessible at `/admin/metrics`.
 
 - Total vendors, active vs. pending counts
 - Total XLM volume, transaction count, average transaction size
 - Product category breakdown (horizontal bars)
 - Top 5 vendors by volume (progress bars)
+- Compatibility fallback: if the payment contract ID is missing or contract reads fail, the dashboard can fall back to legacy `VendorRegistry` counters and shows that fallback state in the UI.
 
 ### 🗂 Data Indexing
-Cursor-based Horizon payment indexer with localStorage caching.
+Contract-first payment history with Horizon/localStorage fallback.
 
+- `frontend/src/lib/payment-source.ts` — normalizes `PalengkePayment` records for history and metrics
 - `frontend/src/lib/indexer.ts` — fetches since last cursor, merges into cache, returns newest-first
-- Vendor and customer transaction views load instantly from cache, sync in background
+- Vendor and customer transaction views load cached Horizon rows immediately, then merge contract records when available
 - Zero extra infrastructure — pure Horizon + browser storage
 
 ### 🔍 Monitoring
 - Sentry error tracking initialized in `main.tsx` — disabled automatically if `VITE_SENTRY_DSN` is unset
 - `frontend/api/health.ts` — `/api/health` endpoint checks Horizon + Soroban RPC liveness, returns `{status: 'ok'|'degraded'}`
+- `/api/health` also reports sponsor rate-limit readiness without exposing Redis tokens or sponsor secrets
+- `/admin/health` shows the health payload and public client env readiness without exposing secrets
+- `/admin/proofs` shows wallet-backed smoke status, saved receipt proof, source mix, and sponsor limiter readiness for release checks
 
 ![Sentry Dashboard](assets/sentry-dashboard.png)
 
@@ -165,13 +198,16 @@ Cursor-based Horizon payment indexer with localStorage caching.
 
 ### Payments
 - **QR-based payments** — vendor displays QR, customer scans and pays XLM in seconds
+- **Stable checkout** — customer enters PHP, app locks a short-lived PHP/XLM quote, and receipt shows both PHP paid and XLM settled
 - **Vendor identity in QR** — name and stall info embedded so customers see who they're paying before signing
+- **Print-ready QR kit** — vendor QR route includes a poster and sticker print layout with versioned QR payload metadata
 - **Memo field** — customer logs what they bought (e.g. "2kg tilapia") visible in transaction history
 - **Real-time notifications** — vendor gets a browser push notification on payment received
+- **Current source of truth** — live QR payments use `PalengkePayment.pay` when the contract ID is configured; direct fee-bumped Stellar transfers remain as the missing-contract fallback.
 
 ### BNPL / Utang (Credit)
 - **QR offer flow** — vendor fills in items, amount, installments, interval → pays service fee → QR generated → customer scans to accept
-- **Manual entry** — vendor types or scans customer wallet address directly
+- **Manual entry** — vendor types or scans a customer wallet to generate a customer-specific offer QR; the customer still signs acceptance from their own wallet
 - **On-chain items description** — what the customer is buying on credit is stored in the smart contract
 - **Customer acceptance** — customer scans vendor's utang QR, reviews all terms, signs and submits from their own wallet
 - **Installment tracking** — progress bar per agreement, due dates, overdue flagging
@@ -224,7 +260,7 @@ Cursor-based Horizon payment indexer with localStorage caching.
 - **Open-only** toggle in the hero search box
 - Sort cycle: A–Z → Most Active → Top Rated
 
-### Display Unit Toggle (PHP / XLM)
+<<### Display Unit Toggle (PHP / XLM)
 - **XLM ⇄ ₱ switcher** mirrors the EN/TL language toggle styling, available on vendor and customer dashboards
 - XLM stays the on-chain settlement asset — toggle only changes UI presentation
 - Companion line below every amount (`≈ ₱22.50` when primary is XLM, and vice versa)
@@ -264,22 +300,24 @@ Cursor-based Horizon payment indexer with localStorage caching.
 - Anchor signing key configured via `ANCHOR_SIGNING_SECRET` env var; pubkey is the same custody account that holds inbound XLM and signs outbound payments
 
 ### Cash-In / Cash-Out (PHP ↔ XLM via PDAX, hackathon-grade)
-- **`/customer/cashin`** — customer enters PHP amount, gets live quote (`1 XLM ≈ ₱7.85` via PDAX-mocked client or `RAMP_RATE_FALLBACK` env), generates payment reference, claims payment, status timeline driven by real polling
-- **`/customer/cashout`** — customer enters XLM amount + payout method (InstaPay / PesoNet / GCash / Maya / Direct bank), backend returns anchor deposit address + memo, customer signs Stellar payment from wallet, backend Horizon-verifies the deposit (memo + amount + destination match) before crediting
+- **Network profile guard** — `ANCHOR_NETWORK_PROFILE=testnet` is the safe default. `mainnet-ready` exposes production-readiness gaps without enabling live fiat claims. `mainnet` is only safe after custody, provider credentials, webhooks, durable storage, limits, and final go/no-go are complete.
+- **Realistic quote metadata** — cash-in quotes now include a PDAX-style provider label, `RAMP_FEE_PERCENT`, `RAMP_SPREAD_BPS`, expiry, and a user-facing proof reference.
+- **`/customer/cashin`** — customer enters PHP amount, gets quote (`1 XLM ≈ ₱7.85` via PDAX-mocked client or `RAMP_RATE_FALLBACK` env), pays through a GCash / QR Ph settlement rail, submits sender/reference proof, and waits for operator or partner settlement.
+- **`/customer/cashout`** — customer enters XLM amount + payout method (InstaPay / PesoNet / GCash / Maya / Direct bank), backend returns anchor deposit address + memo, customer signs Stellar payment from wallet, backend Horizon-verifies the deposit (memo + amount + destination match) before crediting.
 - **Vendor "Withdraw earnings"** shortcut on `/vendor/profile` deep-links to the cashout flow so vendors can off-ramp XLM income to PHP
 - **PDAX client** (`api/_pdax.ts`) — HMAC SHA-384 signed REST client with mock mode (`PDAX_MOCK=true`) that delegates Stellar legs to the real anchor and stubs fiat legs for operator manual settlement
 - **Anchor wallet helper** (`api/_anchor.ts`) — `sendPayment()` signs + submits real Stellar payments from the anchor account; `verifyIncomingPayment()` confirms inbound cashout txs via Horizon before triggering payout
 - **Push notifications** fire on every ramp state transition (`pending_external → completed`, `pending_external → error`) so customers can close the page and wait
-- **Ramp state store** (`api/_rampStore.ts`) — Upstash Redis-backed with in-memory fallback; tracks every txn through `incomplete → pending_user_transfer_start → pending_anchor → pending_external → completed` lifecycle, indexed by wallet + global pending set for operator queue
+- **Ramp state store** (`api/_rampStore.ts`) — Upstash Redis-backed with in-memory fallback; tracks every txn through `incomplete → pending_user_transfer_start → pending_anchor → pending_external → completed`, records Testnet/Mainnet network, rail mode, proof reference, fees/spread, and settlement audit events.
 
 ### Ramp Admin (Hidden)
 - **`/admin/ramps`** — operator settlement console for hackathon-grade ramps. **No nav link anywhere** — URL-only access.
 - Gated by `RAMP_ADMIN_KEY` env var; operator pastes the key once and it's cached in `localStorage` for the device
-- Lists all pending ramps (`listPending()` from `_rampStore`) split into "Cashouts awaiting PHP payout" and "Cashins awaiting XLM release"
+- Lists pending ramps for the current network profile only, split into "Cashouts awaiting PHP payout" and "Cashins awaiting XLM release"
 - **Mark PHP sent** closes off-ramps after operator manually pays via GCash/InstaPay
 - **Release XLM** triggers real Stellar payment from anchor to customer wallet (calls `anchor.sendPayment` under the hood) for on-ramps
 - **Fail** with reason marks any ramp as terminal `error` and push-notifies the customer
-- All actions polled every 15 s; admin push-notifies customer on settlement
+- All actions polled every 15 s; admin push-notifies customer on settlement and shows the latest settlement audit timeline
 - **Why operator gate exists:** PDAX integration is mocked → no PDAX webhook to confirm "PHP credited" / "PHP sent". Operator = human PDAX until partnership signed. Once PDAX is live, both gates become automated webhook callbacks.
 
 ---
@@ -294,9 +332,9 @@ PalengkePay runs on **both Stellar Testnet (live now) and Stellar Mainnet (Phase
 | `PalengkePayment` | QR-based payments with fee support and stat tracking | `CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF` | _Pending — Phase 2_ |
 | `UTangEscrow` | BNPL installment agreements — create, pay, complete, default | `CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG` | _Pending — Phase 2_ |
 
-See [`docs/contract-deployment.md`](docs/contract-deployment.md) for the deployment guide and [`plan.md`](plan.md) for the dual-network rollout checklist.
+See [`docs/CONTRACTS.md`](docs/CONTRACTS.md) for contract interfaces, [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for deployment guidance, and [`plan.md`](plan.md) for the dual-network rollout checklist when present.
 
-> **Note:** Stellar Testnet resets periodically (~quarterly). Testnet IDs above are from the April 2026 deployment. After a reset, redeploy via `docs/contract-deployment.md` and update `.env.local` and this table. Mainnet does not reset.
+> **Note:** Stellar Testnet resets periodically (~quarterly). Testnet IDs above are from the April 2026 deployment. After a reset, follow `docs/DEPLOYMENT.md`, redeploy contracts, and update `.env.local` and this table. Mainnet does not reset.
 
 ### VendorRegistry
 
@@ -337,6 +375,7 @@ cargo test --workspace
 | `test_register_vendor` | Admin registers vendor; ID starts at 1; count increments |
 | `test_get_vendor` | Registered vendor returns correct name, stall, product type, active=true |
 | `test_apply_and_approve` | Vendor applies → pending count = 1 → admin approves → vendor count = 1 |
+| `test_apply_vendor_requires_wallet_auth` | Vendor application requires the applicant wallet signature |
 | `test_apply_and_reject` | Vendor applies → admin rejects → status = Rejected |
 | `test_get_pending_vendors` | Two applicants → pagination returns both; approval removes one |
 | `test_get_all_vendors` | Mix of direct-register + approved-application both appear in list |
@@ -345,6 +384,8 @@ cargo test --workspace
 | `test_duplicate_registration_panics` | Re-registering same wallet panics `"vendor already registered"` |
 | `test_deactivate_vendor` | Admin deactivates vendor; `is_active` = false |
 | `test_increment_stats` | Two payments accumulate correct `total_transactions` and `total_volume` |
+| `test_increment_stats_requires_admin_auth` | Stats mutation rejects calls without admin auth |
+| `test_non_admin_cannot_increment_stats` | Non-admin caller cannot mutate vendor stats |
 | `test_non_admin_cannot_register` | Non-admin caller panics `"not admin"` |
 
 ### PalengkePayment — `contracts/palengke-payment/src/test.rs`
@@ -363,6 +404,7 @@ cargo test --workspace
 |------|-----------------|
 | `test_utang_count_starts_zero` | Fresh contract has `utang_count() == 0` |
 | `test_create_utang` | Creates agreement; verifies all fields (amount, installments, status=Active, description) |
+| `test_create_utang_requires_customer_auth` | Third parties cannot create customer debt without customer signature |
 | `test_pay_installment_transfers_and_tracks` | 3 installments → paid count tracks correctly → final status = Completed |
 | `test_get_customer_utangs` | Customer with 2 agreements → list returns both |
 | `test_get_vendor_utangs` | Vendor with 1 agreement → list returns it |
@@ -390,6 +432,8 @@ cargo test --workspace
 ### Admin
 - `/admin/market` — review pending applications, approve/reject, deactivate vendors
 - `/admin/register` — direct vendor registration
+- `/admin/metrics` — payment-record metrics with registry fallback labels
+- `/admin/health` — Horizon/RPC health and public env readiness
 
 ---
 
@@ -440,24 +484,22 @@ The following wallets connected to the app and tested core functionality on Stel
 
 ## Next Phase — Improvements Based on User Feedback
 
-The following improvements are planned for Phase 2, derived directly from beta user feedback collected via the Google Form above. Items marked **✓ Shipped** are live in production today.
+The following improvements are planned for Phase 2, derived directly from beta user feedback collected via the Google Form above.
 
 ### UI / UX
-- **✓ Shipped — Peso (PHP) display alongside XLM** — live PHP conversion via CoinGecko with 5-min cache + ₱22 fallback. PHP / XLM toggle mirrors EN/TL switcher. See [Display Unit Toggle](#display-unit-toggle-php--xlm) above.
-- **✓ Shipped — Push notifications on mobile** — VAPID Web Push via service worker. Vendor + customer notifications wired into payments, utang creation, installment payments, and a daily due-date reminder cron. See [Web Push Notifications](#web-push-notifications) above.
-- **✓ Shipped — Hide-balance privacy mode** — one-tap eye icon masks every figure in the app; persists across reloads via `localStorage`. See [Hide-Balance Privacy Mode](#hide-balance-privacy-mode) above.
-- **✓ Shipped — Customer Profile page** — consolidated wallet info, display preferences, and notification controls under `/customer/profile`. See [Customer Profile Page](#customer-profile-page) above.
+- **Peso (PHP) display alongside XLM** — users unfamiliar with XLM amounts requested a live PHP conversion using a public exchange rate API. Commit: [`1039c68`](https://github.com/polsalarm/PalengkePay/commit/1039c68) _(Phase 1 redesign laid the groundwork for the balance hero)_
+- **Push notifications on mobile** — vendors reported missing payment alerts when the app is backgrounded. Will implement Web Push via service worker.
 - **Vendor search / filter in market directory** — customers want to find vendors by product type or stall number faster.
 
 ### Features
-- **✓ Shipped — Recurring utang reminders** — daily cron at `0 0 * * *` scans every subscribed wallet for installments due within 24h or already overdue and pushes a notification to the customer.
+<<- **✓ Shipped — Recurring utang reminders** — daily cron at `0 0 * * *` scans every subscribed wallet for installments due within 24h or already overdue and pushes a notification to the customer.
 - **✓ Shipped — SEP-24 fiat anchor** — full SEP-1 + SEP-10 + SEP-24 implementation lets any Stellar wallet discover the PalengkePay on/off ramp. See [SEP-24 Fiat Anchor](#sep-24-fiat-anchor-xlm--php) above.
 - **✓ Shipped — Cash-In / Cash-Out (PHP ↔ XLM)** — customer-facing ramp UI backed by PDAX-mocked client + operator manual settlement. See [Cash-In / Cash-Out](#cash-in--cash-out-php--xlm-via-pdax-hackathon-grade) above.
 - **QR print-ready layout** — vendors want a printer-friendly QR page (A5 sticker format) they can paste on their stall. Builds on the download QR feature in commit [`dfcb790`](https://github.com/polsalarm/PalengkePay/commit/dfcb790).
 - **Partial payment support** — some customers requested paying more than one installment at a time to close their utang early.
 
 ### Technical
-- **Mainnet deployment** — migrate from Stellar Testnet to Mainnet once contracts are audited. Contract architecture is already production-ready (commit [`8c305b4`](https://github.com/polsalarm/PalengkePay/commit/8c305b4) fixed prod white-screen for WalletConnect). **Phase 3 ramp is gated on PDAX CAAS partnership + KYC + KMS-backed anchor custody — see `plan.md` for full mainnet checklist.**
+<<- **Mainnet deployment** — migrate from Stellar Testnet to Mainnet once contracts are audited. Contract architecture is already production-ready (commit [`8c305b4`](https://github.com/polsalarm/PalengkePay/commit/8c305b4) fixed prod white-screen for WalletConnect). **Phase 3 ramp is gated on PDAX CAAS partnership + KYC + KMS-backed anchor custody — see `plan.md` for full mainnet checklist.**
 - **PDAX CAAS partnership** — unlock live PHP rails (InstaPay / PesoNet / GCash / Maya) and replace the operator manual settlement console with automated PDAX webhooks for both cashin (PHP-credited webhook → auto release XLM) and cashout (PDAX cashout API → auto mark complete).
 - **KYC gating** — per-wallet verification status (`unverified | pending | verified`) wired to PDAX KYC sub-account API; block ramps above legal threshold until verified.
 - **Anchor key custody to KMS** — move `ANCHOR_SIGNING_SECRET` from Vercel env plaintext to a KMS-backed signer for mainnet.
@@ -481,12 +523,26 @@ The following improvements are planned for Phase 2, derived directly from beta u
 
 ```bash
 cd frontend
-npm install
+npm ci --legacy-peer-deps
 cp .env.example .env.local   # fill in contract IDs
 npm run dev
 ```
 
+On Windows PowerShell, if a transitive wallet package postinstall script fails with `yarn setup || true`, install with `npm ci --legacy-peer-deps --ignore-scripts`.
+
 Open `http://localhost:5173`
+
+Run frontend checks with:
+
+```bash
+npx tsc --noEmit
+npm test
+npm run lint
+npm run build
+npm run qa:visual
+```
+
+`npm run qa:visual` runs Playwright against desktop and mobile routes and writes screenshots to `frontend/qa-artifacts/`.
 
 ### Contracts
 
@@ -509,7 +565,7 @@ VITE_VENDOR_REGISTRY_CONTRACT_ID=CDSXO746SZFKUNT74GN4YEUUIH32IO6ALFLXVIORQESBQGN
 VITE_PALENGKE_PAYMENT_CONTRACT_ID=CCVHL724CBAKIBEM2BMWUV35FXXV2TESWC3ZK3UQVLUEGCQ7LNN6ZUNF
 VITE_UTANG_ESCROW_CONTRACT_ID=CD2VU3FLA473TCD67TBYXTQROWLJUUWVNPK56CMWBS6GW3N3ZO4JM5BG
 VITE_UTANG_FEE_XLM=1
-
+<<
 # Web Push (VAPID) — generate via `npx web-push generate-vapid-keys`
 VITE_VAPID_PUBLIC_KEY=<base64-url public key, exposed to client>
 VAPID_PRIVATE_KEY=<base64-url private key, server only>
@@ -540,7 +596,52 @@ RAMP_ADMIN_KEY=
 
 `VITE_UTANG_FEE_XLM` — XLM fee charged to vendors per utang QR creation (default: `1`).
 
-`VITE_VAPID_PUBLIC_KEY` is read by both the client (push subscribe) and the server (web-push send). `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` must stay server-only. `KV_REST_API_URL` / `KV_REST_API_TOKEN` are provisioned automatically when the Upstash for Redis Marketplace integration is linked to the Vercel project — `frontend/api/_pushStore.ts` falls back to an in-memory map when these are unset (lossy across cold starts, fine for local dev).
+Server-only fee sponsorship variables:
+
+```env
+SPONSOR_SECRET=SA...
+FEE_BUMP_ALLOWED_DESTINATIONS=G...,G...
+FEE_BUMP_RATE_LIMIT_WINDOW_MS=60000
+FEE_BUMP_RATE_LIMIT_MAX=20
+FEE_BUMP_REQUIRE_DURABLE_RATE_LIMIT=true
+UPSTASH_REDIS_REST_URL=https://...
+UPSTASH_REDIS_REST_TOKEN=...
+FEE_BUMP_MAX_INNER_XDR_BYTES=20000
+FEE_BUMP_MAX_INNER_FEE_STROOPS=1000
+FEE_BUMP_MAX_SPONSORED_OPS=1
+FEE_BUMP_MAX_SPONSORED_XLM=100
+```
+
+`SPONSOR_SECRET` must be configured only in the deployment environment. Production sponsorship requires durable Redis REST rate limiting through `UPSTASH_REDIS_REST_*` or Vercel KV's `KV_REST_API_*` aliases. Set `FEE_BUMP_ALLOWED_DESTINATIONS` to a comma-separated allow list when sponsorship should be locked to known PalengkePay treasury/vendor accounts.
+
+---
+
+## Payment and Metrics Source of Truth
+
+Current implementation:
+
+- Customer QR payments prefer `PalengkePayment.pay` when `VITE_PALENGKE_PAYMENT_CONTRACT_ID` is configured.
+- Checkout uses a PHP-first locked quote and dual-currency receipt before sending the XLM amount.
+- Saved wallet proofs can be reopened at `/receipt/:txHash` for local receipt review, but final claims still require the hash to exist on Stellar Testnet.
+- Vendor/customer history prefers `PalengkePayment` records and keeps Horizon/localStorage as fallback cache.
+- Admin metrics prefer `PalengkePayment` records and use `VendorRegistry` counters only as a compatibility fallback.
+- Direct fee-bumped Stellar transfer remains available as a local-dev or missing-contract fallback.
+
+Remaining hardening:
+
+1. Deferred for now: redeploy `PalengkePayment` with `get_customer_payments` so customer history can read the same contract source as vendor history.
+2. Retire or further restrict manual `VendorRegistry.increment_stats` once no dashboard depends on registry counters.
+3. Decide whether fee sponsorship should expand to tightly validated Soroban payment invocations.
+
+---
+
+## CI and Production Caveats
+
+- GitHub Actions runs contract tests, contract fmt/clippy, frontend typecheck, lint, high-severity dependency audit, unit tests, build, Playwright route QA, secret-pattern scanning, and CodeQL semantic analysis.
+- Last upstream CI verified before this hardening: manual `workflow_dispatch` run `25807769027` passed on commit `7f24867` with `Contract Tests` and `Frontend Build` green.
+- Local frontend verification for the previous hardening passed: `npx tsc --noEmit`, `npm test -- api/fee-bump.test.ts`, `npm run lint`, and `npm run build`.
+- Current local shell does not put `cargo` on PATH, but `C:\Users\Admin\.cargo\bin\cargo.exe test --workspace` passed 33 contract tests, including the new `get_customer_payments` path.
+- The app still runs on Stellar Testnet. Contract IDs, sponsor balances, and sponsor abuse controls must be rechecked before any mainnet deployment.
 
 `ANCHOR_SIGNING_SECRET` is the Stellar keypair that signs SEP-10 challenges *and* custodies inbound XLM for cashouts *and* signs outbound payments for cashins. Generate + fund via `node scripts/setup-anchor.mjs` (creates a testnet keypair and funds it via friendbot). The pubkey appears as `SIGNING_KEY` in the toml.
 
@@ -558,19 +659,20 @@ RAMP_ADMIN_KEY=
 | Wallet | `@creit.tech/stellar-wallets-kit` — WalletConnect (mobile via LOBSTR), Freighter / xBull / Albedo (desktop) |
 | Blockchain | Stellar Testnet + Soroban smart contracts (Rust, `soroban-sdk` 22.x) |
 | QR | `qrcode.react` (generate + download) · `html5-qrcode` (camera scan + image upload) |
-| PWA | `vite-plugin-pwa` + Workbox · `registerSW()` boot in `main.tsx` |
-| Fee Sponsorship | Vercel serverless function (`api/fee-bump.ts`) + Stellar FeeBumpTransaction |
+<<| PWA | `vite-plugin-pwa` + Workbox · `registerSW()` boot in `main.tsx` |
+| Fee Sponsorship | Vercel serverless function (`api/fee-bump.ts`) + Stellar FeeBumpTransaction + durable Redis REST limiter |
 | Push Notifications | `web-push` + VAPID · service worker push/notificationclick handlers in `src/sw.ts` · Upstash Redis subscription store via Vercel Marketplace · daily `vercel.json` cron for utang reminders |
 | SEP-24 Anchor | SEP-1 toml + SEP-10 web-auth (HS256 JWT) + SEP-24 deposit/withdraw consolidated dispatcher · custom HMAC SHA-384 PDAX client with mock mode · `_anchor.ts` Stellar wallet helper for inbound verification + outbound payments |
 | Ramp Settlement | Hidden `/admin/ramps` operator console gated by `RAMP_ADMIN_KEY` · Upstash Redis ramp state store (`_rampStore.ts`) with wallet + global pending indexes · automatic push notifications on every state transition |
 | Pricing / Rates | CoinGecko `stellar/php` simple-price endpoint · 5-min `localStorage` cache · ₱22 fallback |
-| Monitoring | `@sentry/react` + `/api/health` Horizon + RPC liveness check |
-| Security | CSP + X-Frame-Options headers in `vercel.json` · input sanitization in `src/lib/sanitize.ts` |
+| Monitoring | `@sentry/react` + `/api/health` Horizon/RPC/sponsor-limiter readiness check |
+| Security | CSP + X-Frame-Options headers in `vercel.json` · input sanitization in `src/lib/sanitize.ts` · fee-bump XDR policy checks · Soroban signer auth on protected mutations |
 
 ---
 
 ## Deployment
 
-See [`docs/contract-deployment.md`](docs/contract-deployment.md) for step-by-step Stellar Testnet deployment.
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for step-by-step local setup, Vercel deployment, smoke checks, and Stellar Testnet reset recovery.
 
 **Note:** Stellar Testnet resets periodically (~3 months). Redeploy contracts and update `.env.local` when that happens.
+

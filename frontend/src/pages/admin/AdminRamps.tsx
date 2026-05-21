@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowDownToLine, ArrowUpFromLine, RefreshCw, Send, X, KeyRound, ExternalLink } from 'lucide-react';
-import { useToast } from '../../components/Toast';
-import type { RampTxn } from '../../lib/ramp';
+import { ArrowDownToLine, ArrowUpFromLine, RefreshCw, Send, X, KeyRound, ExternalLink, Download, DatabaseZap } from 'lucide-react';
+import { useToast } from '../../lib/hooks/useToast';
+import { exportRamps, listAllRamps, seedDemoRamps, type RampTxn } from '../../lib/ramp';
 import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
 
 const KEY_STORAGE = 'pp_ramp_admin_key';
@@ -22,8 +22,10 @@ export function AdminRamps() {
   const [adminKey, setAdminKey] = useState<string>(() => localStorage.getItem(KEY_STORAGE) ?? '');
   const [keyDraft, setKeyDraft] = useState('');
   const [txns, setTxns] = useState<RampTxn[]>([]);
+  const [allCount, setAllCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [utilityBusy, setUtilityBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!adminKey) return;
@@ -39,6 +41,9 @@ export function AdminRamps() {
       const data = (await res.json()) as { transactions?: RampTxn[]; error?: string };
       if (!res.ok) throw new Error(data.error ?? `status ${res.status}`);
       setTxns(data.transactions ?? []);
+      listAllRamps(adminKey)
+        .then((all) => setAllCount(all.length))
+        .catch(() => setAllCount(0));
     } catch (err: unknown) {
       showToast((err as Error).message, 'error');
     } finally {
@@ -75,6 +80,40 @@ export function AdminRamps() {
       showToast((err as Error).message, 'error');
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const downloadAudit = async (format: 'csv' | 'json') => {
+    setUtilityBusy(true);
+    try {
+      const blob = await exportRamps(adminKey, format);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `palengkepay-ramp-audit.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast(`${format.toUpperCase()} audit export ready`, 'success');
+    } catch (err: unknown) {
+      showToast((err as Error).message, 'error');
+    } finally {
+      setUtilityBusy(false);
+    }
+  };
+
+  const seedDemo = async () => {
+    if (!confirm('Seed demo ramp records? Existing records will stay untouched.')) return;
+    setUtilityBusy(true);
+    try {
+      const created = await seedDemoRamps(adminKey);
+      showToast(`Seeded ${created.length} demo records`, 'success');
+      await refresh();
+    } catch (err: unknown) {
+      showToast((err as Error).message, 'error');
+    } finally {
+      setUtilityBusy(false);
     }
   };
 
@@ -117,12 +156,35 @@ export function AdminRamps() {
         </button>
       </div>
 
+      <div className="rounded-2xl bg-white border p-4 space-y-3" style={{ borderColor: '#F1F5F9' }}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Operator audit tools</p>
+            <p className="text-[11px] text-slate-400 mt-1">{allCount} active-network records available for export</p>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full" style={{ backgroundColor: '#F0FDFA', color: '#008055' }}>
+            Seed only
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-2" style={{ opacity: utilityBusy ? 0.6 : 1, pointerEvents: utilityBusy ? 'none' : 'auto' }}>
+          <button onClick={() => downloadAudit('csv')} className="min-h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-1" style={{ backgroundColor: '#F8FAFC', color: '#334155' }}>
+            <Download size={13} /> CSV
+          </button>
+          <button onClick={() => downloadAudit('json')} className="min-h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-1" style={{ backgroundColor: '#F8FAFC', color: '#334155' }}>
+            <Download size={13} /> JSON
+          </button>
+          <button onClick={seedDemo} className="min-h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-1 text-white" style={{ backgroundColor: '#008055' }}>
+            <DatabaseZap size={13} /> Seed demo data
+          </button>
+        </div>
+      </div>
+
       <Section title="Cashouts awaiting PHP payout" icon={<ArrowDownToLine size={16} style={{ color: '#008055' }} />}>
         {cashouts.length === 0 && <p className="text-xs text-slate-400 px-4 py-3">No pending cashouts.</p>}
         {cashouts.map((t) => (
           <RampCard key={t.id} txn={t} busy={busyId === t.id}>
             <button
-              onClick={() => act(t.id, 'mark_php_sent')}
+              onClick={() => act(t.id, 'mark_php_sent', prompt('Operator note or provider reference?') ?? undefined)}
               className="px-3 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1"
               style={{ backgroundColor: '#008055' }}
             >
@@ -196,6 +258,12 @@ function RampCard({ txn, busy, children }: { txn: RampTxn; busy: boolean; childr
             </a>
           )}
           {txn.message && <p className="text-[11px] text-slate-400 mt-1">{txn.message}</p>}
+          <p className="text-[11px] text-slate-400 mt-1">
+            {(txn.network ?? 'testnet').toUpperCase()} · {txn.railProvider ?? 'PDAX_STYLE'} · {txn.railMode ?? 'mock'}
+            {txn.feePhp && ` · fee PHP ${txn.feePhp}`}
+            {txn.spreadBps !== undefined && ` · spread ${txn.spreadBps} bps`}
+          </p>
+          {txn.proofReference && <p className="text-[11px] font-mono text-slate-400 mt-1">Proof: {txn.proofReference}</p>}
         </div>
         <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full shrink-0" style={{ backgroundColor: '#F0FDFA', color: '#008055' }}>
           {txn.status}
@@ -204,6 +272,21 @@ function RampCard({ txn, busy, children }: { txn: RampTxn; busy: boolean; childr
       <div className="flex gap-2" style={{ opacity: busy ? 0.5 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
         {children}
       </div>
+      {txn.settlementEvents && txn.settlementEvents.length > 0 && (
+        <div className="mt-2 rounded-xl px-3 py-2" style={{ backgroundColor: '#F8FAFC' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Audit timeline</p>
+          <div className="mt-1 space-y-1">
+            {txn.settlementEvents.slice(-4).map((event) => (
+              <p key={`${event.at}-${event.status}`} className="text-[11px] text-slate-500">
+                <span className="font-bold text-slate-700">{event.label}</span>
+                {event.message ? ` · ${event.message}` : ''}
+                {event.externalTxId ? ` · ${event.externalTxId}` : ''}
+                {event.operatorNote ? ` · ${event.operatorNote}` : ''}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

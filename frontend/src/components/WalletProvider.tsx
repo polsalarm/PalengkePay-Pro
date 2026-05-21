@@ -1,10 +1,5 @@
-import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
-import { FreighterModule } from '@creit.tech/stellar-wallets-kit/modules/freighter';
-import { LobstrModule } from '@creit.tech/stellar-wallets-kit/modules/lobstr';
-import { xBullModule } from '@creit.tech/stellar-wallets-kit/modules/xbull';
-import { AlbedoModule } from '@creit.tech/stellar-wallets-kit/modules/albedo';
-import { fetchBalance } from '../lib/stellar';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { WalletContext } from '../lib/wallet-context';
 
 // Inline SVG data URIs — no external image fetch, never broken
 const ICONS: Record<string, string> = {
@@ -20,35 +15,52 @@ function patchIcon(mod: { productIcon?: string; productId?: string }) {
   if (ICONS[id]) mod.productIcon = ICONS[id];
 }
 
-export interface WalletContextValue {
-  address: string | null;
-  balance: string | null;
-  walletName: string | null;
-  isConnected: boolean;
-  isConnecting: boolean;
-  connect: () => Promise<string | null>;
-  disconnect: () => Promise<void>;
-  signTransaction: (xdr: string) => Promise<string>;
-  error: string | null;
-}
-
-export const WalletContext = createContext<WalletContextValue | null>(null);
-
 // WalletConnect loaded via dynamic import — avoids @reown/appkit circular dep
 // crash during bundle evaluation in production builds
 let kitInitPromise: Promise<void> | null = null;
+let walletKitPromise: Promise<typeof import('@creit.tech/stellar-wallets-kit')> | null = null;
+
+function loadWalletKit() {
+  walletKitPromise ??= import('@creit.tech/stellar-wallets-kit');
+  return walletKitPromise;
+}
+
+function getStoredValue(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(key);
+}
+
+function getWalletConnectOrigin(): string {
+  if (typeof window === 'undefined') return 'https://palengke-pay.vercel.app';
+  return window.location.origin;
+}
 
 function initKit(): Promise<void> {
   if (!kitInitPromise) {
-    kitInitPromise = import('@creit.tech/stellar-wallets-kit/modules/wallet-connect').then(
-      ({ WalletConnectModule, WalletConnectTargetChain }) => {
+    kitInitPromise = Promise.all([
+      loadWalletKit(),
+      import('@creit.tech/stellar-wallets-kit/modules/freighter'),
+      import('@creit.tech/stellar-wallets-kit/modules/lobstr'),
+      import('@creit.tech/stellar-wallets-kit/modules/xbull'),
+      import('@creit.tech/stellar-wallets-kit/modules/albedo'),
+      import('@creit.tech/stellar-wallets-kit/modules/wallet-connect'),
+    ]).then(
+      ([
+        { StellarWalletsKit, Networks },
+        { FreighterModule },
+        { LobstrModule },
+        { xBullModule },
+        { AlbedoModule },
+        { WalletConnectModule, WalletConnectTargetChain },
+      ]) => {
+        const origin = getWalletConnectOrigin();
         const wcMod = new WalletConnectModule({
           projectId: 'c7916523a37cc092c33241c5bf3efcbd',
           metadata: {
             name: 'PalengkePay',
             description: 'Stellar micropayments for Philippine wet market vendors',
-            url: 'https://palengke-pay.vercel.app',
-            icons: ['https://palengke-pay.vercel.app/icon-192.svg'],
+            url: origin,
+            icons: [`${origin}/icon-192.svg`],
           },
           allowedChains: [WalletConnectTargetChain.TESTNET],
         });
@@ -70,14 +82,15 @@ function initKit(): Promise<void> {
 }
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [address, setAddress] = useState<string | null>(null);
+  const [address, setAddress] = useState<string | null>(() => getStoredValue('palengkepay_address'));
   const [balance, setBalance] = useState<string | null>(null);
-  const [walletName, setWalletName] = useState<string | null>(null);
+  const [walletName, setWalletName] = useState<string | null>(() => getStoredValue('palengkepay_wallet_name'));
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refreshBalance = useCallback(async (addr: string) => {
     try {
+      const { fetchBalance } = await import('../lib/stellar');
       const bal = await fetchBalance(addr);
       setBalance(bal);
     } catch {
@@ -86,21 +99,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const stored = localStorage.getItem('palengkepay_address');
-    const storedWallet = localStorage.getItem('palengkepay_wallet_name');
-    if (stored) {
-      setAddress(stored);
-      if (storedWallet) setWalletName(storedWallet);
-      refreshBalance(stored);
-    }
-    initKit(); // pre-warm in background
-  }, [refreshBalance]);
+    if (address) refreshBalance(address);
+  }, [address, refreshBalance]);
 
   const connect = useCallback(async (): Promise<string | null> => {
     setIsConnecting(true);
     setError(null);
     try {
       await initKit();
+      const { StellarWalletsKit } = await loadWalletKit();
       const result = await StellarWalletsKit.authModal() as { address: string; name?: string };
       const addr = result.address;
       const name = result.name ?? null;
@@ -124,7 +131,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const disconnect = useCallback(async () => {
     try {
-      await StellarWalletsKit.disconnect();
+      if (walletKitPromise) {
+        const { StellarWalletsKit } = await loadWalletKit();
+        await StellarWalletsKit.disconnect();
+      }
     } catch {
       // ignore
     }
@@ -138,6 +148,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const signTransaction = useCallback(async (xdr: string): Promise<string> => {
     if (!address) throw new Error('Wallet not connected');
     await initKit();
+    const { StellarWalletsKit, Networks } = await loadWalletKit();
     const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
       networkPassphrase: Networks.TESTNET,
       address,

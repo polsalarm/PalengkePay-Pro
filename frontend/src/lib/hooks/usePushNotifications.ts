@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
 const SUBSCRIBE_URL = import.meta.env.VITE_PUSH_SUBSCRIBE_URL ?? '/api/push-subscribe';
-const STORAGE_KEY = 'pp_push_subscription';
+const STORAGE_PREFIX = 'pp_push_subscription';
 
 export type PermissionState = 'default' | 'granted' | 'denied' | 'unsupported';
 
@@ -29,10 +29,23 @@ function detectPermission(): PermissionState {
   return p === 'granted' || p === 'denied' ? p : 'default';
 }
 
+function storageKey(wallet?: string | null): string {
+  return wallet ? `${STORAGE_PREFIX}:${wallet}` : STORAGE_PREFIX;
+}
+
+async function registerSubscription(wallet: string, subscription: PushSubscription): Promise<boolean> {
+  const res = await fetch(SUBSCRIBE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ wallet, subscription: subscription.toJSON() }),
+  });
+  return res.ok;
+}
+
 export function usePushNotifications(wallet?: string | null) {
   const [state, setState] = useState<State>(() => ({
     permission: detectPermission(),
-    subscribed: Boolean(localStorage.getItem(STORAGE_KEY)),
+    subscribed: typeof window !== 'undefined' && Boolean(localStorage.getItem(storageKey(wallet))),
     isSupported: typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
     isPending: false,
     error: null,
@@ -43,12 +56,18 @@ export function usePushNotifications(wallet?: string | null) {
     if (!state.isSupported) return;
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
-      .then((sub) => {
-        setState((s) => ({ ...s, subscribed: Boolean(sub) }));
+      .then(async (sub) => {
+        if (sub && wallet) {
+          const registered = await registerSubscription(wallet, sub).catch(() => false);
+          if (registered) localStorage.setItem(storageKey(wallet), JSON.stringify(sub.toJSON()));
+          setState((s) => ({ ...s, subscribed: registered }));
+          return;
+        }
+        setState((s) => ({ ...s, subscribed: Boolean(sub && localStorage.getItem(storageKey(wallet))) }));
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [wallet]);
 
   const enable = useCallback(async (): Promise<boolean> => {
     if (!state.isSupported) {
@@ -65,10 +84,24 @@ export function usePushNotifications(wallet?: string | null) {
       }
 
       if (!VAPID_PUBLIC_KEY) {
-        // No VAPID key configured — keep foreground Notification API only.
-        // Mark as subscribed so the UI reflects the granted permission state.
-        setState((s) => ({ ...s, permission: 'granted', subscribed: true, isPending: false }));
-        return true;
+        setState((s) => ({
+          ...s,
+          permission: 'granted',
+          subscribed: false,
+          isPending: false,
+          error: 'Push server key is not configured',
+        }));
+        return false;
+      }
+      if (!wallet) {
+        setState((s) => ({
+          ...s,
+          permission: 'granted',
+          subscribed: false,
+          isPending: false,
+          error: 'Connect a wallet before enabling notifications',
+        }));
+        return false;
       }
 
       const reg = await navigator.serviceWorker.ready;
@@ -77,19 +110,20 @@ export function usePushNotifications(wallet?: string | null) {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
       });
 
-      // POST subscription to backend so it can send pushes later.
-      // Wallet-keyed registration enables server-side fan-out via /api/push-notify.
-      if (wallet) {
-        try {
-          await fetch(SUBSCRIBE_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet, subscription: sub.toJSON() }),
-          });
-        } catch { /* backend may not be deployed yet — keep local subscription */ }
+      const registered = await registerSubscription(wallet, sub).catch(() => false);
+      if (!registered) {
+        await sub.unsubscribe().catch(() => {});
+        setState((s) => ({
+          ...s,
+          permission: 'granted',
+          subscribed: false,
+          isPending: false,
+          error: 'Could not register this device for push notifications',
+        }));
+        return false;
       }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sub.toJSON()));
+      localStorage.setItem(storageKey(wallet), JSON.stringify(sub.toJSON()));
       setState((s) => ({ ...s, permission: 'granted', subscribed: true, isPending: false }));
       return true;
     } catch (err: unknown) {
@@ -109,7 +143,7 @@ export function usePushNotifications(wallet?: string | null) {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) await sub.unsubscribe();
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(storageKey(wallet));
       setState((s) => ({ ...s, subscribed: false, isPending: false }));
       return true;
     } catch (err: unknown) {
@@ -120,7 +154,7 @@ export function usePushNotifications(wallet?: string | null) {
       }));
       return false;
     }
-  }, [state.isSupported]);
+  }, [state.isSupported, wallet]);
 
   /** Send a test push to this device through the server. Confirms VAPID + SW push flow end-to-end. */
   const sendTest = useCallback(async (payload?: { title?: string; body?: string; url?: string }): Promise<boolean> => {

@@ -1,14 +1,15 @@
-import { useState, useRef } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, X, HandCoins, AlertTriangle, ScanLine, Keyboard, QrCode, ChevronLeft, Loader2, CheckCircle, ShieldCheck, Download } from 'lucide-react';
+import { Plus, X, HandCoins, AlertTriangle, ScanLine, Keyboard, QrCode, ChevronLeft, Loader2, CheckCircle, ShieldCheck, Download, BarChart3, Database } from 'lucide-react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { useWallet } from '../../lib/hooks/useWallet';
-import { useVendorUtangs, useCreateUtang } from '../../lib/hooks/useUtang';
+import { useVendorUtangs } from '../../lib/hooks/useUtang';
 import { UtangCard } from '../../components/UtangCard';
 import { QRScanner } from '../../components/QRScanner';
 import { buildPaymentTx, submitTx } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
-import { notifyWallet } from '../../lib/notify';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { buildCollectionsSummary } from '../../lib/vendor-proof';
 
 const ESCROW_ID = import.meta.env.VITE_UTANG_ESCROW_CONTRACT_ID as string | undefined;
 const FEE_XLM = import.meta.env.VITE_UTANG_FEE_XLM ?? '1';
@@ -25,6 +26,7 @@ const STROOPS = 10_000_000;
 export interface UtangOfferPayload {
   t: 'u';
   v: string;
+  c?: string;
   a: number;
   n: number;
   i: number;
@@ -60,8 +62,7 @@ const FILTER_LABELS: Record<string, { en: string; tl: string }> = {
 
 export function VendorUtang() {
   const { address } = useWallet();
-  const { utangs, isLoading, refetch } = useVendorUtangs(address);
-  const { createUtang, isCreating, error: createError } = useCreateUtang();
+  const { utangs, isLoading, error, refetch } = useVendorUtangs(address);
 
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
   const [showPanel, setShowPanel] = useState(false);
@@ -77,6 +78,7 @@ export function VendorUtang() {
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const active = utangs.filter((u) => u.status === 'active');
+  const collectionsSummary = useMemo(() => buildCollectionsSummary(utangs), [utangs]);
   const filtered = filter === 'all' ? utangs : utangs.filter((u) => u.status === filter);
   const totalOwed = active.reduce(
     (sum, u) => sum + (u.totalAmountXlm - u.installmentAmountXlm * u.installmentsPaid),
@@ -89,6 +91,10 @@ export function VendorUtang() {
 
   const owedStr = totalOwed.toFixed(2);
   const owedFontSize = owedStr.length >= 10 ? '1.8rem' : owedStr.length >= 8 ? '2.2rem' : owedStr.length >= 6 ? '2.8rem' : '3.4rem';
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your vendor wallet to create and manage installment agreements." />;
+  }
 
   function validate(): boolean {
     setFormError(null);
@@ -127,6 +133,7 @@ export function VendorUtang() {
       setQrPayload({
         t: 'u',
         v: address,
+        c: mode === 'manual' ? form.customerWallet.trim() : undefined,
         a: Math.round(parseFloat(form.totalAmountXlm) * STROOPS),
         n: form.installmentsTotal,
         i: form.intervalDays * 86400,
@@ -142,32 +149,6 @@ export function VendorUtang() {
       );
       setFeeStatus('failed');
     }
-  }
-
-  async function handleManualCreate() {
-    if (!validate() || !address) return;
-    const hash = await createUtang(
-      {
-        vendorWallet: address,
-        customerWallet: form.customerWallet.trim(),
-        totalAmountXlm: parseFloat(form.totalAmountXlm),
-        installmentsTotal: form.installmentsTotal,
-        intervalDays: form.intervalDays,
-        description: form.description.trim(),
-      },
-      address
-    );
-    if (hash) {
-      notifyWallet(form.customerWallet.trim(), {
-        title: 'PalengkePay — bagong utang',
-        body: `${form.description.trim()} · ${form.installmentsTotal} × ${(Number(form.totalAmountXlm) / form.installmentsTotal).toFixed(2)} XLM`,
-        tag: `utang-new-${hash}`,
-        url: '/customer/utang',
-      });
-      handleClose();
-      refetch();
-    }
-    else if (createError) setFormError(createError);
   }
 
   function downloadQR() {
@@ -258,6 +239,29 @@ export function VendorUtang() {
         </div>
       )}
 
+      {/* ── Load error ── */}
+      {!isLoading && error && ESCROW_ID && (
+        <div
+          className="rounded-2xl p-4 flex gap-3"
+          style={{ backgroundColor: '#FFF1F2', border: '1.5px solid #FECDD3' }}
+        >
+          <AlertTriangle size={18} style={{ color: '#F43F5E' }} className="shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-slate-800">
+              {lang === 'tl' ? 'Hindi ma-load ang mga kasunduan' : 'Could not load agreements'}
+            </p>
+            <p className="text-xs font-medium text-rose-600 mt-0.5">{error}</p>
+          </div>
+          <button
+            onClick={refetch}
+            className="text-xs font-bold px-3 py-2 rounded-xl active:scale-95 self-start"
+            style={{ backgroundColor: 'white', color: '#BE123C', border: '1px solid #FECDD3' }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* ── Outstanding hero ── */}
       {active.length > 0 && (
         <div
@@ -311,6 +315,72 @@ export function VendorUtang() {
         </div>
       )}
 
+      {/* ── Collections reporting ── */}
+      <section
+        className="rounded-3xl p-5 space-y-4"
+        style={{ backgroundColor: 'white', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <BarChart3 size={18} style={{ color: '#D97706' }} />
+              <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {lang === 'tl' ? 'Collections Report' : 'Collections Report'}
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500">
+              {lang === 'tl'
+                ? 'Buod ng aktibo, tapos, overdue, at defaulted na kasunduan.'
+                : 'Summary of active, completed, overdue, and defaulted agreements.'}
+            </p>
+          </div>
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black shrink-0"
+            style={{ backgroundColor: '#FFFBEB', color: '#B45309', border: '1px solid #FDE68A' }}
+          >
+            <Database size={12} />
+            {collectionsSummary.sourceLabel}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: 'Active', value: collectionsSummary.activeAgreements },
+            { label: 'Completed', value: collectionsSummary.completedAgreements },
+            { label: 'Overdue', value: collectionsSummary.overdueAgreements },
+            { label: 'Defaulted', value: collectionsSummary.defaultedAgreements },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-2xl p-3" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <p className="text-xs font-bold text-slate-400 mb-1">{label}</p>
+              <p className="text-lg font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-2xl p-4" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
+            <p className="text-xs font-bold mb-1" style={{ color: '#C2410C' }}>Outstanding</p>
+            <p className="text-xl font-black" style={{ color: '#9A3412', fontFamily: "'Montserrat', sans-serif" }}>
+              {collectionsSummary.totalOutstandingXlm.toFixed(2)}
+              <span className="text-xs font-bold ml-1">XLM</span>
+            </p>
+          </div>
+          <div className="rounded-2xl p-4" style={{ backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}>
+            <p className="text-xs font-bold mb-1" style={{ color: '#047857' }}>Collected</p>
+            <p className="text-xl font-black" style={{ color: '#065F46', fontFamily: "'Montserrat', sans-serif" }}>
+              {collectionsSummary.totalCollectedXlm.toFixed(2)}
+              <span className="text-xs font-bold ml-1">XLM</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-3" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+          {collectionsSummary.caveats.map((caveat) => (
+            <p key={caveat} className="text-xs text-slate-500">- {caveat}</p>
+          ))}
+        </div>
+      </section>
+
       {/* ── Filter tabs ── */}
       {utangs.length > 0 && (
         <div
@@ -349,7 +419,7 @@ export function VendorUtang() {
       )}
 
       {/* ── Empty state ── */}
-      {!isLoading && filtered.length === 0 && ESCROW_ID && (
+      {!isLoading && !error && filtered.length === 0 && ESCROW_ID && (
         <div
           className="rounded-3xl p-8 text-center"
           style={{ backgroundColor: 'white', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}
@@ -390,7 +460,7 @@ export function VendorUtang() {
       )}
 
       {/* ── Utang cards ── */}
-      {!isLoading && filtered.length > 0 && (
+      {!isLoading && !error && filtered.length > 0 && (
         <div className="space-y-3">
           {filtered.map((u) => <UtangCard key={String(u.id)} utang={u} perspective="vendor" />)}
         </div>
@@ -639,12 +709,12 @@ export function VendorUtang() {
                       </div>
                     )}
 
-                    {(formError || createError) && (
+                    {formError && (
                       <div
                         className="rounded-xl px-4 py-3 text-xs font-semibold"
                         style={{ backgroundColor: 'rgba(244,63,94,0.08)', color: '#be123c', border: '1px solid rgba(244,63,94,0.2)' }}
                       >
-                        {formError ?? createError}
+                        {formError}
                       </div>
                     )}
                   </div>
@@ -666,8 +736,7 @@ export function VendorUtang() {
                     </button>
                   ) : (
                     <button
-                      onClick={handleManualCreate}
-                      disabled={isCreating}
+                      onClick={handleGenerateQR}
                       className="w-full flex items-center justify-center gap-2 text-white font-bold rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50"
                       style={{
                         background: 'linear-gradient(135deg, #008055, #0D9488)',
@@ -676,11 +745,8 @@ export function VendorUtang() {
                         boxShadow: '0 4px 18px rgba(15,118,110,0.4)',
                       }}
                     >
-                      {isCreating && <Loader2 size={16} className="animate-spin" />}
-                      {isCreating
-                        ? (lang === 'tl' ? 'Inilalagay sa chain…' : 'Submitting on-chain…')
-                        : (lang === 'tl' ? 'Lumikha ng Kasunduan' : 'Create Agreement')
-                      }
+                      <QrCode size={17} />
+                      {lang === 'tl' ? 'Gumawa ng Customer QR' : 'Create Customer QR'}
                     </button>
                   )}
                 </>

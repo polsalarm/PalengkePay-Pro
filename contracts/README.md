@@ -121,6 +121,49 @@ stellar contract invoke \
   --token $(stellar contract id asset --asset native --network testnet)
 ```
 
+## Redeploy Only PalengkePayment
+
+Use this when the payment contract source changes but the registry and utang contracts can stay as-is.
+
+```powershell
+cd "C:\Codes Local\Hackathons (Workspace)\05-13-26 - PalengkePay\Stellar-PalengkePay-Pro\contracts"
+
+# Verify and build
+& "$env:USERPROFILE\.cargo\bin\cargo.exe" test --workspace
+& "$env:USERPROFILE\.cargo\bin\cargo.exe" build --release --target wasm32v1-none -p palengke-payment
+
+# Deploy the new payment contract
+$NEW_PAYMENT_ID = stellar contract deploy `
+  --wasm .\target\wasm32v1-none\release\palengke_payment.wasm `
+  --source admin `
+  --network testnet
+
+# Initialize with native XLM
+$ADMIN_ADDRESS = stellar keys address admin
+$NATIVE_TOKEN = stellar contract id asset --asset native --network testnet
+
+stellar contract invoke `
+  --id $NEW_PAYMENT_ID `
+  --source admin `
+  --network testnet `
+  -- initialize `
+  --admin $ADMIN_ADDRESS `
+  --fee_bps 0 `
+  --native_token $NATIVE_TOKEN
+
+# Smoke the new customer-history view method
+stellar contract invoke `
+  --id $NEW_PAYMENT_ID `
+  --source admin `
+  --network testnet `
+  -- get_customer_payments `
+  --customer $ADMIN_ADDRESS `
+  --limit 1 `
+  --offset 0
+```
+
+After redeploy, update `VITE_PALENGKE_PAYMENT_CONTRACT_ID` in `frontend/.env.local`, Vercel env vars, `README.md`, `contracts/README.md`, and `docs/CONTRACTS.md`.
+
 ## After Deploy
 
 Add contract IDs to `frontend/.env.local`:

@@ -1,7 +1,7 @@
 #![no_std]
+#![allow(clippy::too_many_arguments)]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short,
-    Address, BytesN, Env, String, Vec,
+    contract, contractimpl, contracttype, symbol_short, Address, BytesN, Env, String, Vec,
 };
 
 // ── Data types ────────────────────────────────────────────────────────────────
@@ -52,9 +52,9 @@ pub enum DataKey {
     PendingList,
     VendorList,
     // Reputation (added Phase 0.3) — separate keys for backwards-compat with old VendorRecord storage
-    Rating(Address, BytesN<32>),  // (vendor, tx_hash) → Rating
-    RatingSum(Address),           // vendor → cumulative stars sum (u32)
-    RatingCount(Address),         // vendor → total ratings (u32)
+    Rating(Address, BytesN<32>), // (vendor, tx_hash) → Rating
+    RatingSum(Address),          // vendor → cumulative stars sum (u32)
+    RatingCount(Address),        // vendor → total ratings (u32)
 }
 
 #[contracttype]
@@ -62,7 +62,7 @@ pub enum DataKey {
 pub struct Rating {
     pub customer: Address,
     pub stars: u32,
-    pub comment_hash: BytesN<32>,  // SHA256 of off-chain comment text, zero-bytes when no comment
+    pub comment_hash: BytesN<32>, // SHA256 of off-chain comment text, zero-bytes when no comment
     pub created_at: u64,
 }
 
@@ -110,10 +110,20 @@ impl VendorRegistry {
         phone: String,
         product_type: String,
     ) {
-        if env.storage().persistent().has(&DataKey::Vendor(wallet.clone())) {
+        wallet.require_auth();
+
+        if env
+            .storage()
+            .persistent()
+            .has(&DataKey::Vendor(wallet.clone()))
+        {
             panic!("already registered");
         }
-        if env.storage().persistent().has(&DataKey::Application(wallet.clone())) {
+        if env
+            .storage()
+            .persistent()
+            .has(&DataKey::Application(wallet.clone()))
+        {
             let existing: VendorApplication = env
                 .storage()
                 .persistent()
@@ -134,7 +144,9 @@ impl VendorRegistry {
             applied_at: env.ledger().timestamp(),
             status: ApplicationStatus::Pending,
         };
-        env.storage().persistent().set(&DataKey::Application(wallet.clone()), &app);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Application(wallet.clone()), &app);
 
         let mut pending: Vec<Address> = env
             .storage()
@@ -142,14 +154,20 @@ impl VendorRegistry {
             .get(&DataKey::PendingList)
             .unwrap_or(Vec::new(&env));
         pending.push_back(wallet);
-        env.storage().persistent().set(&DataKey::PendingList, &pending);
+        env.storage()
+            .persistent()
+            .set(&DataKey::PendingList, &pending);
     }
 
     // ── Admin approves pending application ───────────────────────────────────
 
     pub fn approve_vendor(env: Env, admin: Address, wallet: Address) {
         admin.require_auth();
-        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
         if admin != stored_admin {
             panic!("not admin");
         }
@@ -164,9 +182,15 @@ impl VendorRegistry {
         }
 
         app.status = ApplicationStatus::Approved;
-        env.storage().persistent().set(&DataKey::Application(wallet.clone()), &app);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Application(wallet.clone()), &app);
 
-        let mut count: u64 = env.storage().instance().get(&DataKey::VendorCount).unwrap_or(0);
+        let mut count: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::VendorCount)
+            .unwrap_or(0);
         count += 1;
         env.storage().instance().set(&DataKey::VendorCount, &count);
 
@@ -183,7 +207,9 @@ impl VendorRegistry {
             total_volume: 0,
             is_active: true,
         };
-        env.storage().persistent().set(&DataKey::Vendor(wallet.clone()), &record);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Vendor(wallet.clone()), &record);
 
         let mut vendor_list: Vec<Address> = env
             .storage()
@@ -191,13 +217,19 @@ impl VendorRegistry {
             .get(&DataKey::VendorList)
             .unwrap_or(Vec::new(&env));
         vendor_list.push_back(wallet.clone());
-        env.storage().persistent().set(&DataKey::VendorList, &vendor_list);
+        env.storage()
+            .persistent()
+            .set(&DataKey::VendorList, &vendor_list);
 
         Self::remove_from_pending(&env, &wallet);
 
         env.events().publish(
             (symbol_short!("vendor"), symbol_short!("reg")),
-            VendorRegisteredEvent { vendor_id: count, wallet, market_id: app.market_id },
+            VendorRegisteredEvent {
+                vendor_id: count,
+                wallet,
+                market_id: app.market_id,
+            },
         );
     }
 
@@ -205,7 +237,11 @@ impl VendorRegistry {
 
     pub fn reject_vendor(env: Env, admin: Address, wallet: Address) {
         admin.require_auth();
-        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
         if admin != stored_admin {
             panic!("not admin");
         }
@@ -220,7 +256,9 @@ impl VendorRegistry {
         }
 
         app.status = ApplicationStatus::Rejected;
-        env.storage().persistent().set(&DataKey::Application(wallet.clone()), &app);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Application(wallet.clone()), &app);
         Self::remove_from_pending(&env, &wallet);
     }
 
@@ -237,15 +275,27 @@ impl VendorRegistry {
         product_type: String,
     ) -> u64 {
         admin.require_auth();
-        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
         if admin != stored_admin {
             panic!("not admin");
         }
-        if env.storage().persistent().has(&DataKey::Vendor(wallet.clone())) {
+        if env
+            .storage()
+            .persistent()
+            .has(&DataKey::Vendor(wallet.clone()))
+        {
             panic!("vendor already registered");
         }
 
-        let mut count: u64 = env.storage().instance().get(&DataKey::VendorCount).unwrap_or(0);
+        let mut count: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::VendorCount)
+            .unwrap_or(0);
         count += 1;
         env.storage().instance().set(&DataKey::VendorCount, &count);
 
@@ -262,7 +312,9 @@ impl VendorRegistry {
             total_volume: 0,
             is_active: true,
         };
-        env.storage().persistent().set(&DataKey::Vendor(wallet.clone()), &record);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Vendor(wallet.clone()), &record);
 
         let mut vendor_list: Vec<Address> = env
             .storage()
@@ -270,11 +322,17 @@ impl VendorRegistry {
             .get(&DataKey::VendorList)
             .unwrap_or(Vec::new(&env));
         vendor_list.push_back(wallet.clone());
-        env.storage().persistent().set(&DataKey::VendorList, &vendor_list);
+        env.storage()
+            .persistent()
+            .set(&DataKey::VendorList, &vendor_list);
 
         env.events().publish(
             (symbol_short!("vendor"), symbol_short!("reg")),
-            VendorRegisteredEvent { vendor_id: count, wallet, market_id },
+            VendorRegisteredEvent {
+                vendor_id: count,
+                wallet,
+                market_id,
+            },
         );
 
         count
@@ -298,12 +356,18 @@ impl VendorRegistry {
         record.stall_number = stall_number;
         record.phone = phone;
         record.product_type = product_type;
-        env.storage().persistent().set(&DataKey::Vendor(vendor), &record);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Vendor(vendor), &record);
     }
 
     pub fn deactivate_vendor(env: Env, admin: Address, wallet: Address) {
         admin.require_auth();
-        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
         if admin != stored_admin {
             panic!("not admin");
         }
@@ -313,10 +377,25 @@ impl VendorRegistry {
             .get(&DataKey::Vendor(wallet.clone()))
             .expect("vendor not found");
         record.is_active = false;
-        env.storage().persistent().set(&DataKey::Vendor(wallet), &record);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Vendor(wallet), &record);
     }
 
-    pub fn increment_stats(env: Env, vendor: Address, amount: i128) {
+    pub fn increment_stats(env: Env, admin: Address, vendor: Address, amount: i128) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
+        if admin != stored_admin {
+            panic!("not admin");
+        }
+        if amount <= 0 {
+            panic!("amount must be positive");
+        }
+
         if let Some(mut record) = env
             .storage()
             .persistent()
@@ -324,7 +403,9 @@ impl VendorRegistry {
         {
             record.total_transactions += 1;
             record.total_volume += amount;
-            env.storage().persistent().set(&DataKey::Vendor(vendor), &record);
+            env.storage()
+                .persistent()
+                .set(&DataKey::Vendor(vendor), &record);
         }
     }
 
@@ -387,7 +468,10 @@ impl VendorRegistry {
     }
 
     pub fn vendor_count(env: Env) -> u64 {
-        env.storage().instance().get(&DataKey::VendorCount).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::VendorCount)
+            .unwrap_or(0)
     }
 
     pub fn pending_count(env: Env) -> u32 {
@@ -411,11 +495,15 @@ impl VendorRegistry {
     ) {
         customer.require_auth();
 
-        if stars < 1 || stars > 5 {
+        if !(1..=5).contains(&stars) {
             panic!("stars must be 1-5");
         }
 
-        if !env.storage().persistent().has(&DataKey::Vendor(vendor.clone())) {
+        if !env
+            .storage()
+            .persistent()
+            .has(&DataKey::Vendor(vendor.clone()))
+        {
             panic!("vendor not found");
         }
 
@@ -442,12 +530,21 @@ impl VendorRegistry {
             .persistent()
             .get(&DataKey::RatingCount(vendor.clone()))
             .unwrap_or(0);
-        env.storage().persistent().set(&DataKey::RatingSum(vendor.clone()), &(sum + stars));
-        env.storage().persistent().set(&DataKey::RatingCount(vendor.clone()), &(count + 1));
+        env.storage()
+            .persistent()
+            .set(&DataKey::RatingSum(vendor.clone()), &(sum + stars));
+        env.storage()
+            .persistent()
+            .set(&DataKey::RatingCount(vendor.clone()), &(count + 1));
 
         env.events().publish(
             (symbol_short!("rating"), symbol_short!("sub")),
-            RatingSubmittedEvent { vendor, customer, stars, tx_hash },
+            RatingSubmittedEvent {
+                vendor,
+                customer,
+                stars,
+                tx_hash,
+            },
         );
     }
 
@@ -495,7 +592,9 @@ impl VendorRegistry {
                 }
             }
         }
-        env.storage().persistent().set(&DataKey::PendingList, &new_pending);
+        env.storage()
+            .persistent()
+            .set(&DataKey::PendingList, &new_pending);
     }
 }
 

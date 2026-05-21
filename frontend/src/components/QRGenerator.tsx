@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Download } from 'lucide-react';
+import { buildVendorQrPayload } from '../lib/vendor-qr';
 
 interface Props {
   value: string;
@@ -8,14 +9,13 @@ interface Props {
   vendorName?: string;
   stallInfo?: string;
   downloadable?: boolean;
+  showCaption?: boolean;
 }
 
-export function QRGenerator({ value, size = 240, vendorName, stallInfo, downloadable = false }: Props) {
+export function QRGenerator({ value, size = 240, vendorName, stallInfo, downloadable = false, showCaption = true }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const qrValue = vendorName
-    ? JSON.stringify({ a: value, n: vendorName, s: stallInfo ?? '' })
-    : value;
+  const qrValue = buildVendorQrPayload(value, vendorName, stallInfo);
 
   function handleDownload() {
     const canvas = wrapperRef.current?.querySelector('canvas');
@@ -38,7 +38,7 @@ export function QRGenerator({ value, size = 240, vendorName, stallInfo, download
           fgColor="#0f172a"
         />
       </div>
-      {vendorName && (
+      {vendorName && showCaption && (
         <div className="text-center">
           <p className="text-2xl font-bold text-slate-900">{vendorName}</p>
           {stallInfo && <p className="text-sm text-slate-500 mt-0.5">{stallInfo}</p>}

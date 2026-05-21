@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Edit2, Check, X, Loader2, MapPin, Tag, Phone, BarChart2, Coins, Power, Star } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Edit2, Check, X, Loader2, MapPin, Tag, Phone, BarChart2, Coins, Store, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
-import { useVendorStatus, useToggleVendorStatus } from '../../lib/hooks/useVendorStatus';
 import { useVendorRating } from '../../lib/hooks/useRating';
-import { useToast } from '../../components/Toast';
-import { PushPrompt } from '../../components/PushPrompt';
+import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, prepareContractTx, submitSorobanTx, addressToScVal, stringToScVal } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { PushPrompt } from '../../components/PushPrompt';
 
 const REGISTRY_ID = import.meta.env.VITE_VENDOR_REGISTRY_CONTRACT_ID as string | undefined;
 const PRODUCT_TYPES = ['fish', 'meat', 'vegetables', 'fruits', 'rice & grains', 'spices', 'other'];
@@ -18,23 +19,11 @@ const PRODUCT_EMOJIS: Record<string, string> = {
 };
 
 export function VendorProfile() {
+  const navigate = useNavigate();
   const { address } = useWallet();
   const { vendor, isLoading } = useVendor(address);
-  const { status: openStatus, refetch: refetchStatus } = useVendorStatus(address);
-  const { toggle: toggleStatus, isPending: statusPending } = useToggleVendorStatus(address);
   const { summary: ratingSummary } = useVendorRating(address);
   const { showToast } = useToast();
-  const isOpen = openStatus?.isOpen ?? true;
-
-  const handleToggleStatus = async () => {
-    const ok = await toggleStatus(!isOpen);
-    if (ok) {
-      showToast(!isOpen ? 'Stall set to OPEN.' : 'Stall set to CLOSED.', 'success');
-      refetchStatus();
-    } else {
-      showToast('Could not update status', 'error');
-    }
-  };
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', stallNumber: '', phone: '', productType: 'fish' });
@@ -70,6 +59,10 @@ export function VendorProfile() {
   };
 
   const emoji = vendor ? (PRODUCT_EMOJIS[vendor.productType] ?? '🛒') : '🛒';
+
+  if (!address) {
+    return <WalletRequiredState detail="Connect your vendor wallet to view or update your stall profile." />;
+  }
 
   return (
     <div className="space-y-4 animate-page-in max-w-md">
@@ -128,9 +121,9 @@ export function VendorProfile() {
             </div>
           )}
 
-          {/* Status badges + Open/Closed toggle */}
+          {/* Status badge */}
           {vendor && (
-            <div className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
               <span
                 className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full"
                 style={vendor.isActive
@@ -144,40 +137,6 @@ export function VendorProfile() {
                 />
                 {vendor.isActive ? 'Active' : 'Inactive'}
               </span>
-
-              {vendor.isActive && (
-                <button
-                  onClick={handleToggleStatus}
-                  disabled={statusPending}
-                  className="w-full rounded-2xl px-4 py-3 flex items-center justify-between active:scale-[0.98] transition-all disabled:opacity-60"
-                  style={{
-                    backgroundColor: isOpen ? 'rgba(34,197,94,0.12)' : 'rgba(244,63,94,0.12)',
-                    border: `1.5px solid ${isOpen ? 'rgba(34,197,94,0.35)' : 'rgba(244,63,94,0.35)'}`,
-                  }}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{
-                        backgroundColor: isOpen ? '#22C55E' : '#F43F5E',
-                        boxShadow: `0 0 8px ${isOpen ? '#22C55E' : '#F43F5E'}`,
-                      }}
-                    />
-                    <div className="text-left min-w-0">
-                      <p className="text-sm font-black text-white truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                        {isOpen ? 'Stall is open' : 'Stall is closed'}
-                      </p>
-                      <p className="text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                        {isOpen ? 'Tap to close — hide from live directory' : 'Tap to open — show in live directory'}
-                      </p>
-                    </div>
-                  </div>
-                  {statusPending
-                    ? <Loader2 size={16} className="animate-spin shrink-0" style={{ color: 'rgba(255,255,255,0.6)' }} />
-                    : <Power size={16} className="shrink-0" style={{ color: isOpen ? '#22C55E' : '#F43F5E' }} />
-                  }
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -306,9 +265,37 @@ export function VendorProfile() {
           )}
 
           {!isLoading && !vendor && (
-            <p className="text-sm text-slate-400 py-2">
-              {REGISTRY_ID ? 'Not registered as vendor.' : 'VendorRegistry contract not deployed.'}
-            </p>
+            <div className="text-center py-6 px-2">
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                style={{
+                  backgroundColor: REGISTRY_ID ? '#F0FDFA' : '#FFFBEB',
+                  border: `1.5px solid ${REGISTRY_ID ? '#CCFBF1' : '#FDE68A'}`,
+                }}
+              >
+                {REGISTRY_ID
+                  ? <Store size={28} style={{ color: '#008055' }} />
+                  : <AlertTriangle size={28} style={{ color: '#D97706' }} />
+                }
+              </div>
+              <p className="text-sm font-black text-slate-800 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                {REGISTRY_ID ? 'No vendor profile yet' : 'Vendor registry unavailable'}
+              </p>
+              <p className="text-xs text-slate-500 mb-5">
+                {REGISTRY_ID
+                  ? 'Create your stall profile before showing QR codes or appearing in the market.'
+                  : 'Set the VendorRegistry contract ID before vendor profiles can load.'}
+              </p>
+              {REGISTRY_ID && (
+                <button
+                  onClick={() => navigate('/vendor/apply')}
+                  className="inline-flex items-center justify-center gap-2 text-sm font-bold px-5 py-3 rounded-2xl active:scale-95 text-white"
+                  style={{ backgroundColor: '#008055' }}
+                >
+                  Apply as Vendor <ArrowRight size={15} />
+                </button>
+              )}
+            </div>
           )}
 
           {!isLoading && vendor && editing && (

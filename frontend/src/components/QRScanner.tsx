@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Keyboard, ImageUp } from 'lucide-react';
+import { parseVendorQrPayload } from '../lib/vendor-qr';
 
 export interface QRScanMeta {
   name?: string;
@@ -39,14 +40,10 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
         let address = raw;
         let meta: QRScanMeta | undefined;
 
-        try {
-          const parsed = JSON.parse(raw) as { a?: string; n?: string; s?: string };
-          if (typeof parsed.a === 'string' && parsed.a.startsWith('G') && parsed.a.length === 56) {
-            address = parsed.a;
-            if (parsed.n) meta = { name: parsed.n, stallInfo: parsed.s ?? undefined };
-          }
-        } catch {
-          // Not JSON — treat as plain Stellar address
+        const parsed = parseVendorQrPayload(raw);
+        if (parsed) {
+          address = parsed.address;
+          if (parsed.name) meta = { name: parsed.name, stallInfo: parsed.stallInfo };
         }
 
         if (address.startsWith('G') && address.length === 56) {
@@ -56,7 +53,9 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
           setTimeout(() => setError(null), 3000);
         }
       },
-      () => {}
+      (scanError) => {
+        void scanError;
+      }
     )
       .then(() => setStarted(true))
       .catch((err) => {
@@ -65,10 +64,12 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
 
     return () => {
       if (scannerRef.current?.isScanning) {
-        scannerRef.current.stop().catch(() => {});
+        scannerRef.current.stop().catch(() => {
+          // Scanner may already be stopped during unmount.
+        });
       }
     };
-  }, [onScan]);
+  }, [onRawScan, onScan]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,13 +94,11 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
 
       let address = raw;
       let meta: QRScanMeta | undefined;
-      try {
-        const parsed = JSON.parse(raw) as { a?: string; n?: string; s?: string };
-        if (typeof parsed.a === 'string' && parsed.a.startsWith('G') && parsed.a.length === 56) {
-          address = parsed.a;
-          if (parsed.n) meta = { name: parsed.n, stallInfo: parsed.s ?? undefined };
-        }
-      } catch {}
+      const parsed = parseVendorQrPayload(raw);
+      if (parsed) {
+        address = parsed.address;
+        if (parsed.name) meta = { name: parsed.name, stallInfo: parsed.stallInfo };
+      }
 
       if (address.startsWith('G') && address.length === 56) {
         onScan(address, meta);
@@ -112,7 +111,10 @@ export function QRScanner({ onScan, onManualEntry, onRawScan }: Props) {
       setTimeout(() => setError(null), 4000);
     } finally {
       setUploading(false);
-      try { await tempScanner.clear(); } catch {}
+      try { await tempScanner.clear(); } catch (clearError) {
+        void clearError;
+        // File scanner cleanup is best-effort.
+      }
     }
   };
 

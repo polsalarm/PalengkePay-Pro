@@ -1,9 +1,6 @@
-import { useState } from 'react';
-import { Loader2, Lock, CheckCircle, XCircle, ExternalLink, Zap, Share2, Check } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Edit3, Loader2, Lock, CheckCircle, XCircle, ExternalLink, RotateCcw, Search, Zap } from 'lucide-react';
 import type { TxStatus } from '../lib/hooks/usePayment';
 import { stellarExpertUrl } from '../lib/stellar';
-import { shareReceipt } from '../lib/receipt';
 
 interface Props {
   status: TxStatus;
@@ -12,29 +9,31 @@ interface Props {
   amount?: string;
   recipientName?: string;
   fee?: string;
+  diagnostic?: string | null;
+  receiptLookupUrl?: string;
   onRetry?: () => void;
+  onEdit?: () => void;
+  onScanAgain?: () => void;
 }
 
 const BASE_FEE = '0.00001';
 
-export function TxStatusTracker({ status, txHash, error, amount, recipientName, fee, onRetry }: Props) {
-  const [shareState, setShareState] = useState<'idle' | 'sharing' | 'copied'>('idle');
-
+export function TxStatusTracker({
+  status,
+  txHash,
+  error,
+  amount,
+  recipientName,
+  fee,
+  diagnostic,
+  receiptLookupUrl,
+  onRetry,
+  onEdit,
+  onScanAgain,
+}: Props) {
   if (status === 'idle') return null;
 
   const displayFee = fee ?? BASE_FEE;
-
-  const handleShare = async () => {
-    if (!txHash) return;
-    setShareState('sharing');
-    try {
-      const result = await shareReceipt(txHash, recipientName, amount);
-      setShareState(result === 'copied' ? 'copied' : 'idle');
-      if (result === 'copied') setTimeout(() => setShareState('idle'), 2000);
-    } catch {
-      setShareState('idle');
-    }
-  };
 
   if (status === 'building') {
     return (
@@ -126,46 +125,25 @@ export function TxStatusTracker({ status, txHash, error, amount, recipientName, 
             )}
           </div>
         </div>
-        {txHash && (
-          <div
-            className="bg-white"
-            style={{ borderTop: '1px solid #BBF7D0' }}
-          >
-            <div className="px-5 pt-3 pb-2 flex items-center justify-between">
-              <span className="text-xs text-slate-400">
-                Fee: <span className="font-mono">{displayFee} XLM</span>
-              </span>
-              <a
-                href={stellarExpertUrl(txHash)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs font-bold active:scale-95"
-                style={{ color: '#008055' }}
-              >
-                <ExternalLink size={11} /> Stellar Expert
-              </a>
-            </div>
-            <div className="px-5 pb-4 pt-2 grid grid-cols-2 gap-2">
-              <button
-                onClick={handleShare}
-                disabled={shareState === 'sharing'}
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-xs text-white active:scale-95 transition-all disabled:opacity-60"
-                style={{ backgroundColor: '#008055' }}
-              >
-                {shareState === 'sharing' ? <Loader2 size={13} className="animate-spin" />
-                  : shareState === 'copied' ? <><Check size={13} /> Link copied</>
-                  : <><Share2 size={13} /> Share Receipt</>}
-              </button>
-              <Link
-                to={`/receipt/${txHash}`}
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-xs active:scale-95 transition-all"
-                style={{ backgroundColor: '#F0FDF4', color: '#15803D', border: '1.5px solid #BBF7D0' }}
-              >
-                <ExternalLink size={12} /> View Receipt
-              </Link>
-            </div>
-          </div>
-        )}
+        <div
+          className="px-5 py-3 flex items-center justify-between"
+          style={{ backgroundColor: 'white', borderTop: '1px solid #BBF7D0' }}
+        >
+          <span className="text-xs text-slate-400">
+            Fee: <span className="font-mono">{displayFee} XLM</span>
+          </span>
+          {txHash && (
+            <a
+              href={stellarExpertUrl(txHash)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs font-bold active:scale-95"
+              style={{ color: '#008055' }}
+            >
+              <ExternalLink size={11} /> Stellar Expert
+            </a>
+          )}
+        </div>
       </div>
     );
   }
@@ -187,20 +165,56 @@ export function TxStatusTracker({ status, txHash, error, amount, recipientName, 
             <p className="text-sm font-black" style={{ color: '#BE123C', fontFamily: "'Montserrat', sans-serif" }}>
               Transaction failed
             </p>
-            {error && (
-              <p className="text-xs mt-0.5 font-mono" style={{ color: '#F43F5E' }}>{error}</p>
+            {error && <p className="text-xs mt-0.5 font-semibold" style={{ color: '#F43F5E' }}>{error}</p>}
+            {diagnostic && (
+              <p className="text-xs mt-2 leading-relaxed" style={{ color: '#9F1239' }}>
+                {diagnostic}
+              </p>
             )}
           </div>
         </div>
-        {onRetry && (
-          <div className="px-5 py-3 bg-white" style={{ borderTop: '1px solid #FECDD3' }}>
-            <button
-              onClick={onRetry}
-              className="text-sm font-bold px-5 py-2 rounded-xl active:scale-95 transition-all text-white"
-              style={{ backgroundColor: '#F43F5E' }}
-            >
-              Try Again
-            </button>
+        {(onRetry || onEdit || onScanAgain || receiptLookupUrl) && (
+          <div className="px-5 py-3 bg-white space-y-2" style={{ borderTop: '1px solid #FECDD3' }}>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="w-full flex items-center justify-center gap-2 text-sm font-bold px-5 py-3 rounded-xl active:scale-95 transition-all text-white"
+                style={{ backgroundColor: '#F43F5E' }}
+              >
+                <RotateCcw size={14} /> Retry same payment
+              </button>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              {onEdit && (
+                <button
+                  onClick={onEdit}
+                  className="flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-xl active:scale-95 transition-all"
+                  style={{ color: '#475569', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
+                >
+                  <Edit3 size={12} /> Edit details
+                </button>
+              )}
+              {onScanAgain && (
+                <button
+                  onClick={onScanAgain}
+                  className="flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-xl active:scale-95 transition-all"
+                  style={{ color: '#475569', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
+                >
+                  <Search size={12} /> Scan again
+                </button>
+              )}
+            </div>
+            {receiptLookupUrl && (
+              <a
+                href={receiptLookupUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-xl active:scale-95"
+                style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
+              >
+                <ExternalLink size={12} /> Check recent receipts
+              </a>
+            )}
           </div>
         )}
       </div>

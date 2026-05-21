@@ -13,10 +13,19 @@ fn zero_hash(env: &Env) -> BytesN<32> {
 fn setup() -> (Env, Address, VendorRegistryClient<'static>) {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register_contract(None, VendorRegistry);
+    let contract_id = env.register(VendorRegistry, ());
     let client = VendorRegistryClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     client.initialize(&admin);
+    (env, admin, client)
+}
+
+fn setup_without_global_auth() -> (Env, Address, VendorRegistryClient<'static>) {
+    let env = Env::default();
+    let contract_id = env.register(VendorRegistry, ());
+    let client = VendorRegistryClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    client.mock_all_auths().initialize(&admin);
     (env, admin, client)
 }
 
@@ -83,6 +92,15 @@ fn test_apply_and_approve() {
     let record = client.get_vendor(&vendor);
     assert_eq!(record.name, String::from_str(&env, "Aling Rosa"));
     assert!(record.is_active);
+}
+
+#[test]
+#[should_panic]
+fn test_apply_vendor_requires_wallet_auth() {
+    let (env, _, client) = setup_without_global_auth();
+    let vendor = Address::generate(&env);
+
+    apply(&env, &client, &vendor);
 }
 
 #[test]
@@ -180,11 +198,32 @@ fn test_increment_stats() {
     let (env, admin, client) = setup();
     let vendor = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
-    client.increment_stats(&vendor, &10_000_000i128);
-    client.increment_stats(&vendor, &5_000_000i128);
+    client.increment_stats(&admin, &vendor, &10_000_000i128);
+    client.increment_stats(&admin, &vendor, &5_000_000i128);
     let record = client.get_vendor(&vendor);
     assert_eq!(record.total_transactions, 2);
     assert_eq!(record.total_volume, 15_000_000i128);
+}
+
+#[test]
+#[should_panic]
+fn test_increment_stats_requires_admin_auth() {
+    let (env, admin, client) = setup_without_global_auth();
+    let vendor = Address::generate(&env);
+    register(&env, &client.mock_all_auths(), &admin, &vendor);
+
+    client.increment_stats(&admin, &vendor, &10_000_000i128);
+}
+
+#[test]
+#[should_panic(expected = "not admin")]
+fn test_non_admin_cannot_increment_stats() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    let not_admin = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    client.increment_stats(&not_admin, &vendor, &10_000_000i128);
 }
 
 #[test]
@@ -280,7 +319,13 @@ fn test_zero_stars_panics() {
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
-    client.submit_rating(&customer, &vendor, &tx_hash(&env, 1), &0u32, &zero_hash(&env));
+    client.submit_rating(
+        &customer,
+        &vendor,
+        &tx_hash(&env, 1),
+        &0u32,
+        &zero_hash(&env),
+    );
 }
 
 #[test]
@@ -290,7 +335,13 @@ fn test_six_stars_panics() {
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
-    client.submit_rating(&customer, &vendor, &tx_hash(&env, 1), &6u32, &zero_hash(&env));
+    client.submit_rating(
+        &customer,
+        &vendor,
+        &tx_hash(&env, 1),
+        &6u32,
+        &zero_hash(&env),
+    );
 }
 
 #[test]
@@ -299,7 +350,13 @@ fn test_rating_unknown_vendor_panics() {
     let (env, _, client) = setup();
     let ghost = Address::generate(&env);
     let customer = Address::generate(&env);
-    client.submit_rating(&customer, &ghost, &tx_hash(&env, 1), &5u32, &zero_hash(&env));
+    client.submit_rating(
+        &customer,
+        &ghost,
+        &tx_hash(&env, 1),
+        &5u32,
+        &zero_hash(&env),
+    );
 }
 
 #[test]
@@ -309,8 +366,20 @@ fn test_distinct_tx_hashes_allow_multiple_ratings() {
     let customer = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
 
-    client.submit_rating(&customer, &vendor, &tx_hash(&env, 1), &5u32, &zero_hash(&env));
-    client.submit_rating(&customer, &vendor, &tx_hash(&env, 2), &3u32, &zero_hash(&env));
+    client.submit_rating(
+        &customer,
+        &vendor,
+        &tx_hash(&env, 1),
+        &5u32,
+        &zero_hash(&env),
+    );
+    client.submit_rating(
+        &customer,
+        &vendor,
+        &tx_hash(&env, 2),
+        &3u32,
+        &zero_hash(&env),
+    );
 
     let (sum, count) = client.get_vendor_rating(&vendor);
     assert_eq!(sum, 8);

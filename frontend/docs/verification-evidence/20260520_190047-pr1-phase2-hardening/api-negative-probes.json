@@ -1,0 +1,86 @@
+{
+  "generatedAt": "2026-05-20T11:07:34.956Z",
+  "results": [
+    {
+      "name": "push-subscribe GET rejects non-POST",
+      "status": 405,
+      "body": {
+        "error": "Method not allowed"
+      },
+      "ok": true,
+      "pass": true
+    },
+    {
+      "name": "push-subscribe missing VAPID rejects registration",
+      "status": 503,
+      "body": {
+        "error": "VAPID keys not configured"
+      },
+      "ok": true,
+      "pass": true
+    },
+    {
+      "name": "push-subscribe invalid wallet rejected",
+      "status": 400,
+      "body": {
+        "error": "valid Stellar wallet required (G..., 56 chars)"
+      },
+      "ok": true,
+      "pass": true
+    },
+    {
+      "name": "push-subscribe invalid subscription rejected",
+      "status": 400,
+      "body": {
+        "error": "subscription required"
+      },
+      "ok": true,
+      "pass": true
+    },
+    {
+      "name": "push-notify GET rejects non-POST",
+      "status": 405,
+      "body": {
+        "error": "Method not allowed"
+      },
+      "ok": true,
+      "pass": true
+    },
+    {
+      "name": "push-notify invalid wallet rejected",
+      "status": 400,
+      "body": {
+        "error": "valid Stellar wallet required (G..., 56 chars)"
+      },
+      "ok": true,
+      "pass": true
+    },
+    {
+      "name": "push-send GET rejects non-POST",
+      "status": 405,
+      "body": {
+        "error": "Method not allowed"
+      },
+      "ok": true,
+      "pass": true
+    },
+    {
+      "name": "push-send invalid subscription rejected",
+      "status": 400,
+      "body": {
+        "error": "subscription required"
+      },
+      "ok": true,
+      "pass": true
+    },
+    {
+      "name": "cron production requires CRON_SECRET",
+      "status": 500,
+      "body": {
+        "error": "CRON_SECRET not configured"
+      },
+      "ok": true,
+      "pass": true
+    }
+  ]
+}

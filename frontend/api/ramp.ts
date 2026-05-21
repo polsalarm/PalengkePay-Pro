@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createTxn, updateTxn, getTxn, listForWallet, listPending } from './_rampStore.js';
+import { createTxn, updateTxn, getTxn, listForWallet, listPending, listAllForNetwork, type RampTxn } from './_rampStore.js';
 import { getDepositAddress, placeOrder, requestCashout, quoteCashin, withdrawCrypto } from './_pdax.js';
 import { verifyIncomingPayment, isAnchorConfigured } from './_anchor.js';
 import { fanout } from './_pushFanout.js';
+import { getLiquidityProfile, quoteWithLiquidityMetadata } from './liquidity-profile.js';
 
 /**
  * Consolidated ramp dispatcher.
@@ -18,11 +19,118 @@ import { fanout } from './_pushFanout.js';
  */
 
 const ADMIN_KEY = process.env.RAMP_ADMIN_KEY;
+const EXPORT_COLUMNS = [
+  'id', 'network', 'kind', 'status', 'wallet', 'amountIn', 'amountOut', 'feePhp',
+  'spreadBps', 'railProvider', 'railMode', 'rail', 'destination', 'proofReference',
+  'externalTxId', 'stellarTxHash', 'providerStatus', 'operatorNote',
+  'startedAt', 'updatedAt', 'completedAt',
+] as const;
 
 function adminAuthorized(req: VercelRequest): boolean {
   if (!ADMIN_KEY) return false;
   const provided = req.headers['x-admin-key'];
   return typeof provided === 'string' && provided === ADMIN_KEY;
+}
+
+function csvEscape(value: unknown): string {
+  if (value === undefined || value === null) return '';
+  const raw = String(value);
+  if (!/[",\r\n]/.test(raw)) return raw;
+  return `"${raw.replace(/"/g, '""')}"`;
+}
+
+export function rampTxnsToCsv(txns: RampTxn[]): string {
+  const rows = [
+    EXPORT_COLUMNS.join(','),
+    ...txns.map((txn) => EXPORT_COLUMNS.map((col) => csvEscape(txn[col])).join(',')),
+  ];
+  return `${rows.join('\n')}\n`;
+}
+
+export async function seedDemoRampData(): Promise<RampTxn[]> {
+  const profile = getLiquidityProfile();
+  const wallet = 'GBI5UQFUKSZYC7VKPUG7SCDQGZ3ZQV2KRPX73EP7SV73L5ZP5U4AGWPI';
+  const created: RampTxn[] = [];
+  created.push(await createTxn({
+    wallet,
+    kind: 'deposit',
+    status: 'pending_external',
+    network: profile.network,
+    railProvider: profile.railProvider,
+    railMode: profile.railMode,
+    asset: 'native',
+    amountIn: '150.00',
+    amountOut: '19.1083',
+    amountFee: '3.00',
+    feePhp: '3.00',
+    spreadBps: profile.spreadBps,
+    rate: '7.85',
+    proofReference: `RMP-SEED-${Date.now().toString(36).toUpperCase()}`,
+    externalTxId: 'GCASH-SEED-PENDING',
+    providerStatus: 'user_claimed_fiat_sent',
+    operatorNote: 'Seeded pending cash-in for demo review',
+    message: 'PHP payment claimed, awaiting operator confirmation',
+  }));
+  created.push(await createTxn({
+    wallet,
+    kind: 'withdraw',
+    status: 'pending_external',
+    network: profile.network,
+    railProvider: profile.railProvider,
+    railMode: profile.railMode,
+    asset: 'native',
+    amountIn: '5.0000000',
+    amountOut: '39.25',
+    feePhp: '0.79',
+    spreadBps: profile.spreadBps,
+    rate: '7.85',
+    rail: 'EWALLET',
+    destination: 'GCash 09170000000',
+    externalTxId: 'PP-SEED-PENDING',
+    providerStatus: 'PENDING',
+    operatorNote: 'Seeded pending cash-out for demo review',
+    message: 'Awaiting operator to mark PHP sent',
+  }));
+  created.push(await createTxn({
+    wallet,
+    kind: 'withdraw',
+    status: 'completed',
+    network: profile.network,
+    railProvider: profile.railProvider,
+    railMode: profile.railMode,
+    asset: 'native',
+    amountIn: '8.0000000',
+    amountOut: '62.80',
+    feePhp: '1.26',
+    spreadBps: profile.spreadBps,
+    rate: '7.85',
+    rail: 'INSTAPAY',
+    destination: 'Bank account ending 1234',
+    externalTxId: 'PP-SEED-COMPLETE',
+    providerStatus: 'operator_confirmed_fiat_sent',
+    operatorNote: 'Seeded completed payout for audit export',
+    message: 'PHP sent - operator confirmed',
+  }));
+  created.push(await createTxn({
+    wallet,
+    kind: 'deposit',
+    status: 'error',
+    network: profile.network,
+    railProvider: profile.railProvider,
+    railMode: profile.railMode,
+    asset: 'native',
+    amountIn: '75.00',
+    amountOut: '9.5541',
+    amountFee: '1.50',
+    feePhp: '1.50',
+    spreadBps: profile.spreadBps,
+    rate: '7.85',
+    proofReference: `RMP-FAILED-${Date.now().toString(36).toUpperCase()}`,
+    providerStatus: 'operator_rejected',
+    operatorNote: 'Seeded failed cash-in for exception handling demo',
+    message: 'operator failed: payment reference did not match',
+  }));
+  return created;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -55,14 +163,19 @@ async function cashout(req: VercelRequest, res: VercelResponse) {
     if (!['INSTAPAY', 'PESONET', 'EWALLET', 'BANK'].includes(rail)) {
       return res.status(400).json({ error: 'invalid rail' });
     }
+    const profile = getLiquidityProfile();
     const txn = await createTxn({
       wallet,
       kind: 'withdraw',
       status: 'pending_user_transfer_start',
+      network: profile.network,
+      railProvider: profile.railProvider,
+      railMode: profile.railMode,
       asset: 'native',
       amountIn: amountXlm,
       rail,
       destination,
+      providerStatus: profile.railMode === 'mock' ? 'simulated_partner_quote' : 'operator_confirmed',
       message: `Awaiting XLM transfer for cashout to ${rail}`,
     });
     const dep = await getDepositAddress('XLM', txn.id);
@@ -76,6 +189,10 @@ async function cashout(req: VercelRequest, res: VercelResponse) {
       destination,
       beneficiaryName: beneficiaryName ?? 'PalengkePay Customer',
       status: txn.status,
+      network: txn.network,
+      railProvider: txn.railProvider,
+      railMode: txn.railMode,
+      spreadBps: txn.spreadBps,
     });
   }
 
@@ -101,10 +218,15 @@ async function cashout(req: VercelRequest, res: VercelResponse) {
 
     const order = await placeOrder({ market: 'XLM-PHPT', side: 'SELL', type: 'MARKET', amount: txn.amountIn });
     const phpAmount = (Number(order.filledAmount) * Number(order.averagePrice)).toFixed(2);
+    const profile = getLiquidityProfile();
+    const feePhp = (Number(phpAmount) * (profile.feePercent / 100)).toFixed(2);
     await updateTxn(id, {
       pdaxOrderId: order.id,
       amountOut: phpAmount,
+      feePhp,
+      spreadBps: profile.spreadBps,
       rate: order.averagePrice,
+      providerStatus: profile.railMode === 'mock' ? 'simulated_pdax_sell_filled' : 'partner_sell_filled',
       message: 'Awaiting operator to release PHP payout',
     });
     const receipt = await requestCashout({
@@ -117,6 +239,7 @@ async function cashout(req: VercelRequest, res: VercelResponse) {
       pdaxCashoutId: receipt.id,
       externalTxId: receipt.reference,
       status: receipt.status === 'COMPLETED' ? 'completed' : 'pending_external',
+      providerStatus: receipt.status,
       message: receipt.status === 'COMPLETED' ? 'PHP paid out' : 'Awaiting operator to mark PHP sent',
     });
     const final = await getTxn(id);
@@ -132,41 +255,102 @@ async function cashin(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
   const action = (req.query.action as string | undefined) ?? 'quote';
 
+  if (action === 'preview') {
+    const { amountPhp } = (req.body ?? {}) as Record<string, string>;
+    if (!amountPhp) return res.status(400).json({ error: 'amountPhp required' });
+    const quote = await quoteCashin({ amountPhp, asset: 'XLM' });
+    const quoteMeta = quoteWithLiquidityMetadata({
+      id: `rmp_preview_${Date.now().toString(36)}`,
+      amountPhp,
+      assetAmount: quote.assetAmount,
+      providerRate: quote.rate,
+      nowMs: Date.now(),
+    });
+    return res.status(200).json({
+      id: quoteMeta.id,
+      amountPhp: quoteMeta.amountPhp,
+      amountXlm: quoteMeta.amountXlm,
+      rate: quoteMeta.rate,
+      feePhp: quoteMeta.feePhp,
+      spreadBps: quoteMeta.spreadBps,
+      railProvider: quoteMeta.railProvider,
+      railMode: quoteMeta.railMode,
+      proofReference: quoteMeta.proofReference,
+      expiresAt: quoteMeta.expiresAt,
+      instructions: { rail: 'GCash / QR Ph settlement rail', reference: quoteMeta.proofReference },
+    });
+  }
+
   if (action === 'quote') {
     const { wallet, amountPhp } = (req.body ?? {}) as Record<string, string>;
     if (!wallet || !amountPhp) return res.status(400).json({ error: 'wallet, amountPhp required' });
     if (wallet.length !== 56 || !wallet.startsWith('G')) return res.status(400).json({ error: 'wallet must be a G... Stellar address' });
 
     const quote = await quoteCashin({ amountPhp, asset: 'XLM' });
+    const quoteMeta = quoteWithLiquidityMetadata({
+      id: `rmp_preview_${Date.now().toString(36)}`,
+      amountPhp,
+      assetAmount: quote.assetAmount,
+      providerRate: quote.rate,
+      nowMs: Date.now(),
+    });
     const txn = await createTxn({
       wallet,
       kind: 'deposit',
       status: 'incomplete',
+      network: getLiquidityProfile().network,
+      railProvider: quoteMeta.railProvider,
+      railMode: quoteMeta.railMode,
       asset: 'native',
       amountIn: amountPhp,
       amountOut: quote.assetAmount,
+      amountFee: quoteMeta.feePhp,
+      feePhp: quoteMeta.feePhp,
+      spreadBps: quoteMeta.spreadBps,
       rate: quote.rate,
-      message: `Quote valid until ${new Date(quote.expiresAt).toISOString()}`,
+      providerStatus: quoteMeta.railMode === 'mock' ? 'simulated_quote_locked' : 'partner_quote_locked',
+      message: `Quote valid until ${new Date(quoteMeta.expiresAt).toISOString()}`,
+    });
+    const finalQuote = quoteWithLiquidityMetadata({
+      id: txn.id,
+      amountPhp,
+      assetAmount: quote.assetAmount,
+      providerRate: quote.rate,
+      nowMs: txn.startedAt,
+    });
+    await updateTxn(txn.id, {
+      proofReference: finalQuote.proofReference,
+      feePhp: finalQuote.feePhp,
+      amountFee: finalQuote.feePhp,
+      spreadBps: finalQuote.spreadBps,
     });
     return res.status(200).json({
       id: txn.id,
-      amountPhp,
-      amountXlm: quote.assetAmount,
-      rate: quote.rate,
-      expiresAt: quote.expiresAt,
-      instructions: { rail: 'INSTAPAY', reference: txn.id },
+      amountPhp: finalQuote.amountPhp,
+      amountXlm: finalQuote.amountXlm,
+      rate: finalQuote.rate,
+      feePhp: finalQuote.feePhp,
+      spreadBps: finalQuote.spreadBps,
+      railProvider: finalQuote.railProvider,
+      railMode: finalQuote.railMode,
+      proofReference: finalQuote.proofReference,
+      expiresAt: finalQuote.expiresAt,
+      instructions: { rail: 'GCash / QR Ph settlement rail', reference: finalQuote.proofReference },
     });
   }
 
   if (action === 'confirm') {
-    const { id, reference } = (req.body ?? {}) as Record<string, string>;
+    const { id, reference, proofReference, operatorNote } = (req.body ?? {}) as Record<string, string>;
     if (!id) return res.status(400).json({ error: 'id required' });
     const txn = await getTxn(id);
     if (!txn) return res.status(404).json({ error: 'not found' });
     if (txn.kind !== 'deposit') return res.status(400).json({ error: 'not a deposit' });
     await updateTxn(id, {
       status: 'pending_external',
-      externalTxId: reference,
+      externalTxId: reference ?? proofReference,
+      proofReference: proofReference ?? reference ?? txn.proofReference,
+      operatorNote,
+      providerStatus: 'user_claimed_fiat_sent',
       message: 'PHP payment claimed, awaiting operator confirmation',
     });
     const final = await getTxn(id);
@@ -202,20 +386,42 @@ async function admin(req: VercelRequest, res: VercelResponse) {
   if (!adminAuthorized(req)) return res.status(401).json({ error: 'unauthorized' });
 
   if (req.method === 'GET') {
-    const txns = await listPending();
+    const scope = (req.query.scope as string | undefined) ?? 'pending';
+    const format = (req.query.export as string | undefined) ?? '';
+    const network = getLiquidityProfile().network;
+    const txns = scope === 'all'
+      ? await listAllForNetwork(network)
+      : (await listPending()).filter((txn) => (txn.network ?? 'testnet') === network);
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="palengkepay-ramp-audit-${network}.csv"`);
+      return res.status(200).send(rampTxnsToCsv(txns));
+    }
+    if (format === 'json') {
+      res.setHeader('Content-Disposition', `attachment; filename="palengkepay-ramp-audit-${network}.json"`);
+    }
     return res.status(200).json({ transactions: txns });
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
 
   const action = (req.query.action as string | undefined) ?? '';
   const { id, reason } = (req.body ?? {}) as Record<string, string>;
+  if (action === 'seed_demo') {
+    const created = await seedDemoRampData();
+    return res.status(200).json({ ok: true, transactions: created });
+  }
   if (!id) return res.status(400).json({ error: 'id required' });
   const txn = await getTxn(id);
   if (!txn) return res.status(404).json({ error: 'not found' });
 
   if (action === 'mark_php_sent') {
     if (txn.kind !== 'withdraw') return res.status(400).json({ error: 'not a withdraw' });
-    const updated = await updateTxn(id, { status: 'completed', message: 'PHP sent — operator confirmed' });
+    const updated = await updateTxn(id, {
+      status: 'completed',
+      operatorNote: reason,
+      providerStatus: 'operator_confirmed_fiat_sent',
+      message: 'PHP sent — operator confirmed',
+    });
     await fanout(txn.wallet, {
       title: 'PalengkePay — cashout complete',
       body: `PHP ${txn.amountOut ?? '—'} delivered to ${txn.rail}`,
@@ -235,6 +441,7 @@ async function admin(req: VercelRequest, res: VercelResponse) {
       pdaxWithdrawId: wd.id,
       stellarTxHash: completed ? wd.id : undefined,
       status: completed ? 'completed' : 'pending_stellar',
+      providerStatus: String(wd.status),
       message: completed ? 'XLM delivered' : 'XLM withdrawal in flight',
     });
     await fanout(txn.wallet, {

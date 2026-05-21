@@ -7,9 +7,9 @@ import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { usePendingVendors, useAllVendors, useAdminActions } from '../../lib/hooks/useVendor';
 import type { VendorProfile, VendorApplication } from '../../lib/hooks/useVendor';
+import { useToast } from '../../lib/hooks/useToast';
 import { useBulkVendorRatings } from '../../lib/hooks/useRating';
 import type { RatingSummary } from '../../lib/rating';
-import { useToast } from '../../components/Toast';
 import { truncateAddress } from '../../lib/stellar';
 
 const PRODUCT_META: Record<string, { emoji: string; label: string; accent: string; bg: string; chipBg: string; chipColor: string }> = {

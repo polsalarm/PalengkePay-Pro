@@ -1,0 +1,846 @@
+{
+  "generatedAt": "2026-05-20T11:10:11.862Z",
+  "base": "http://127.0.0.1:4174",
+  "results": [
+    {
+      "viewport": "desktop",
+      "route": "/",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-root.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/connect",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-connect.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/customer/home",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-customer-home.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/customer/profile",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-customer-profile.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/customer/scan",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-customer-scan.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/customer/utang",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-customer-utang.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/customer/history",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-customer-history.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/vendor/home",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-vendor-home.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/vendor/profile",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-vendor-profile.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/vendor/utang",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-vendor-utang.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/vendor/transactions",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-vendor-transactions.png"
+    },
+    {
+      "viewport": "desktop",
+      "route": "/market",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "desktop-market.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-root.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/connect",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-connect.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/customer/home",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-customer-home.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/customer/profile",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-customer-profile.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/customer/scan",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-customer-scan.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/customer/utang",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-customer-utang.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/customer/history",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-customer-history.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/vendor/home",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-vendor-home.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/vendor/profile",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-vendor-profile.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/vendor/utang",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-vendor-utang.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/vendor/transactions",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-vendor-transactions.png"
+    },
+    {
+      "viewport": "mobile",
+      "route": "/market",
+      "status": 200,
+      "title": "PalengkePay - Digital Payments para sa Palengke",
+      "ok": true,
+      "blank": false,
+      "console": [
+        {
+          "type": "warning",
+          "text": "The configured WalletConnect 'metadata.url':https://palengke-pay.vercel.app differs from the actual page url:http://127.0.0.1:4174. This is probably unintended and can lead to issues.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/wallet-connect.module-BDmLwSLn.js",
+            "line": 2,
+            "column": 84418,
+            "lineNumber": 2,
+            "columnNumber": 84418
+          }
+        },
+        {
+          "type": "warning",
+          "text": "WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called 2 times.",
+          "location": {
+            "url": "http://127.0.0.1:4174/assets/AlertController-DOFry3dJ.js",
+            "line": 12,
+            "column": 93133,
+            "lineNumber": 12,
+            "columnNumber": 93133
+          }
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "mobile-market.png"
+    }
+  ]
+}

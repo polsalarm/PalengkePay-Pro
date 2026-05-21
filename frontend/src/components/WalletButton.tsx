@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Wallet, Copy, LogOut, Loader2, ChevronDown } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
-import { truncateAddress } from '../lib/stellar';
 
 const WALLET_BADGES: Record<string, { label: string; bg: string; color: string }> = {
   freighter:     { label: 'Freighter',     bg: '#EEF2FF', color: '#4F46E5' },
@@ -17,6 +16,11 @@ function walletBadge(name: string | null) {
   return WALLET_BADGES[key] ?? { label: name, bg: '#F1F5F9', color: '#475569' };
 }
 
+function shortenAddress(address: string): string {
+  if (address.length <= 12) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
 export function WalletButton() {
   const { address, balance, walletName, isConnected, isConnecting, connect, disconnect } = useWallet();
   const [open, setOpen] = useState(false);
@@ -28,8 +32,15 @@ export function WalletButton() {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const copyAddress = async () => {
@@ -42,14 +53,16 @@ export function WalletButton() {
   if (!isConnected) {
     return (
       <button
+        type="button"
         onClick={connect}
         disabled={isConnecting}
-        className="flex items-center gap-2 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all active:scale-95 disabled:opacity-60"
+        className="flex min-h-11 items-center gap-2 text-white text-sm font-bold px-4 rounded-xl transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        aria-busy={isConnecting}
         style={{ backgroundColor: '#008055', boxShadow: '0 2px 8px rgba(15,118,110,0.3)' }}
       >
         {isConnecting
-          ? <Loader2 size={14} className="animate-spin" />
-          : <Wallet size={14} />
+          ? <Loader2 size={14} aria-hidden="true" className="animate-spin" />
+          : <Wallet size={14} aria-hidden="true" />
         }
         {isConnecting ? 'Connecting…' : 'Connect Wallet'}
       </button>
@@ -60,8 +73,12 @@ export function WalletButton() {
     <div ref={ref} className="relative">
       {/* Trigger pill */}
       <button
+        type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-sm font-bold px-3 py-1.5 rounded-full transition-all active:scale-95 border"
+        className="flex min-h-11 items-center gap-2 text-sm font-bold px-3 rounded-full transition-all active:scale-95 border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Wallet menu for ${shortenAddress(address!)}`}
         style={{
           backgroundColor: 'white',
           borderColor: open ? '#008055' : '#E2E8F0',
@@ -70,9 +87,10 @@ export function WalletButton() {
         }}
       >
         <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#22C55E' }} />
-        <span className="font-mono text-xs text-slate-600">{truncateAddress(address!)}</span>
+        <span className="font-mono text-xs text-slate-600">{shortenAddress(address!)}</span>
         <ChevronDown
           size={13}
+          aria-hidden="true"
           className="transition-transform"
           style={{ color: '#94A3B8', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
         />
@@ -81,6 +99,8 @@ export function WalletButton() {
       {/* Dropdown */}
       {open && (
         <div
+          role="menu"
+          aria-label="Wallet actions"
           className="absolute right-0 top-full mt-2 z-50 overflow-hidden"
           style={{
             width: 280,
@@ -93,7 +113,7 @@ export function WalletButton() {
           <div className="p-4" style={{ backgroundColor: '#00284B' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#4ADE80' }} />
+                <span aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#4ADE80' }} />
                 <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   Connected
                 </span>
@@ -122,22 +142,30 @@ export function WalletButton() {
           {/* Address + actions */}
           <div className="bg-white p-3 space-y-2">
             <button
+              type="button"
               onClick={copyAddress}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl transition-all active:scale-95 text-left"
+              className="w-full flex min-h-11 items-center justify-between gap-2 px-3 rounded-xl transition-all active:scale-95 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              role="menuitem"
+              aria-label="Copy wallet address"
               style={{ backgroundColor: '#F8FAFC' }}
             >
               <span className="font-mono text-xs text-slate-500 truncate flex-1">{address}</span>
               <span className="shrink-0 text-xs font-bold" style={{ color: copied ? '#16A34A' : '#008055' }}>
-                {copied ? 'Copied!' : <Copy size={13} />}
+                {copied ? 'Copied!' : <Copy size={13} aria-hidden="true" />}
               </span>
             </button>
+            <p className="sr-only" role="status" aria-live="polite">
+              {copied ? 'Wallet address copied.' : ''}
+            </p>
 
             <button
+              type="button"
               onClick={() => { disconnect(); setOpen(false); }}
-              className="w-full flex items-center justify-center gap-2 text-sm font-bold py-2.5 rounded-xl transition-all active:scale-95"
+              className="w-full flex min-h-11 items-center justify-center gap-2 text-sm font-bold rounded-xl transition-all active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              role="menuitem"
               style={{ backgroundColor: '#FFF1F2', color: '#F43F5E' }}
             >
-              <LogOut size={13} />
+              <LogOut size={13} aria-hidden="true" />
               Disconnect
             </button>
           </div>
