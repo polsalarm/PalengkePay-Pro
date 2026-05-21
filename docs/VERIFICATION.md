@@ -243,3 +243,40 @@ Residual blockers:
 Demo recommendation:
 
 - Use `https://palengke-pay-beta.vercel.app` for the hackathon demo unless the stale `palengke-pay.vercel.app` alias is freed or transferred.
+
+---
+
+## Stronger Liquidity Product Features Local Verification
+
+Timestamp: 2026-05-21 08:26 Asia/Manila
+
+Scope:
+
+- QR Ph-style payment instruction card for cash-in quotes.
+- Rate/fee simulator backed by the non-persistent cash-in preview quote.
+- Operator CSV/JSON audit export and seed-only demo data action.
+- Customer Testnet wallet check route with Stellar Expert proof link.
+
+Verification results:
+
+| Check | Result |
+|---|---|
+| `npm test` | PASS, 18 files / 79 tests |
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `npm run qa:visual` | PASS, 46 desktop + 46 mobile checks |
+| Static route smoke | PASS for `/customer/cashin`, `/customer/cashout`, `/customer/testnet-wallet`, `/admin/ramps` |
+
+API coverage:
+
+- `cashin?action=preview` returns quote metadata without creating a ramp record.
+- Admin export rejects missing admin key.
+- Admin JSON export returns active-network records only.
+- Admin CSV export returns `text/csv` with the audit header.
+- Admin seed demo action appends four representative records without deleting existing records.
+
+Residual limits:
+
+- `vercel dev` could not be used from the linked frontend folder because Vercel project root is configured as `frontend`, which makes local CLI execution look for `frontend/frontend`. API behavior is covered by direct handler tests instead.
+- Real wallet signing on `/customer/testnet-wallet` still requires an actual connected Testnet wallet.
+- Durable KV/Redis is still required for production persistence across serverless instances.

@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
-import { createTxn, listPending, listPendingForNetwork, updateTxn } from './_rampStore.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createTxn, listAllForNetwork, listPending, listPendingForNetwork, resetRampStoreForTests, updateTxn } from './_rampStore.js';
 
 const walletA = 'GA7QYNF7SOWQ3O6W4YMX57Z5T5B2NM4D7BPT57C6K2ZLGV27MNSYTEST';
 const walletB = 'GB7QYNF7SOWQ3O6W4YMX57Z5T5B2NM4D7BPT57C6K2ZLGV27MNSYTEST';
 
 describe('ramp store network metadata', () => {
+  beforeEach(() => {
+    resetRampStoreForTests();
+  });
+
   it('defaults new ramp records to testnet with settlement event history', async () => {
     const txn = await createTxn({
       wallet: walletA,
@@ -53,6 +57,31 @@ describe('ramp store network metadata', () => {
     expect(mainnetPending.map((t) => t.id)).toContain(mainnet.id);
     expect(mainnetPending.map((t) => t.id)).not.toContain(testnet.id);
   });
+
+  it('keeps an all-record index separated by Stellar network', async () => {
+    const completed = await createTxn({
+      wallet: walletA,
+      kind: 'withdraw',
+      status: 'completed',
+      asset: 'native',
+      amountIn: '5.0000000',
+      network: 'testnet',
+    });
+    const failedMainnet = await createTxn({
+      wallet: walletB,
+      kind: 'deposit',
+      status: 'error',
+      asset: 'native',
+      amountIn: '100.00',
+      network: 'mainnet',
+    });
+
+    expect((await listPending()).map((t) => t.id)).not.toContain(completed.id);
+    expect((await listAllForNetwork('testnet')).map((t) => t.id)).toContain(completed.id);
+    expect((await listAllForNetwork('testnet')).map((t) => t.id)).not.toContain(failedMainnet.id);
+    expect((await listAllForNetwork('mainnet')).map((t) => t.id)).toContain(failedMainnet.id);
+  });
+
 
   it('appends settlement events when ramp status changes', async () => {
     const txn = await createTxn({

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowUpFromLine, Copy, Check, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import { ArrowLeft, ArrowUpFromLine, Copy, Check, Loader2, CheckCircle2, XCircle, Calculator, QrCode } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { usePhpRate } from '../../lib/hooks/usePhpRate';
-import { quoteCashin, confirmCashin, getStatus, isTerminal, type CashinQuoteResult, type RampTxn } from '../../lib/ramp';
+import { quoteCashin, previewCashinQuote, confirmCashin, getStatus, isTerminal, type CashinQuoteResult, type RampTxn } from '../../lib/ramp';
 import { notifyWallet } from '../../lib/notify';
+import { buildCashinQrPayload, encodeCashinQrPayload, quoteSecondsRemaining } from '../../lib/ramp-qr';
 
 type Stage = 'form' | 'pay-php' | 'confirming' | 'awaiting-operator' | 'withdrawing' | 'done' | 'failed';
 
@@ -27,13 +29,20 @@ export function CustomerCashin() {
   const [latest, setLatest] = useState<RampTxn | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedQr, setCopiedQr] = useState(false);
   const [senderName, setSenderName] = useState('');
   const [paymentReference, setPaymentReference] = useState('');
   const [proofConfirmed, setProofConfirmed] = useState(false);
+  const [preview, setPreview] = useState<CashinQuoteResult | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const phpNum = Number(amountPhp) || 0;
   const estXlm = phpPerXlm && phpPerXlm > 0 ? (phpNum / phpPerXlm).toFixed(4) : null;
   const canSubmit = address && phpNum >= 50;
+  const activeQuote = quote ?? preview;
+  const qrPayload = quote ? buildCashinQrPayload(quote, latest?.network ?? 'testnet') : null;
+  const qrValue = qrPayload ? encodeCashinQrPayload(qrPayload) : '';
 
   const handleQuote = async () => {
     if (!address) return;
@@ -83,8 +92,41 @@ export function CustomerCashin() {
     return () => clearInterval(interval);
   }, [quote, stage]);
 
+  useEffect(() => {
+    const interval = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (stage !== 'form') return;
+    if (!Number.isFinite(phpNum) || phpNum < 50) {
+      setPreview(null);
+      setPreviewLoading(false);
+      return;
+    }
+    setPreviewLoading(true);
+    const timeout = setTimeout(() => {
+      previewCashinQuote({ amountPhp: phpNum.toFixed(2) })
+        .then(setPreview)
+        .catch(() => setPreview(null))
+        .finally(() => setPreviewLoading(false));
+    }, 350);
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [phpNum, stage]);
+
   const handleCopy = async (text: string) => {
     try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* noop */ }
+  };
+
+  const handleCopyQr = async () => {
+    if (!qrValue) return;
+    try {
+      await navigator.clipboard.writeText(qrValue);
+      setCopiedQr(true);
+      setTimeout(() => setCopiedQr(false), 1500);
+    } catch { /* noop */ }
   };
 
   return (
@@ -162,7 +204,35 @@ export function CustomerCashin() {
             </p>
           </div>
 
+          <div className="rounded-2xl p-4 bg-white border space-y-3" style={{ borderColor: '#F1F5F9' }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Calculator size={16} style={{ color: '#008055' }} />
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Rate and fee simulator</p>
+              </div>
+              {previewLoading && <Loader2 size={14} className="animate-spin text-slate-400" />}
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <Metric label="Gross PHP" value={`PHP ${phpNum > 0 ? phpNum.toFixed(2) : '0.00'}`} />
+              <Metric label="Fee" value={`PHP ${activeQuote?.feePhp ?? '0.00'}`} />
+              <Metric label="Spread" value={`${activeQuote?.spreadBps ?? 85} bps`} />
+              <Metric label="Est. XLM" value={activeQuote?.amountXlm ? `${activeQuote.amountXlm} XLM` : (estXlm ? `${estXlm} XLM` : '—')} />
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Final quote locks the PDAX-style rate for {activeQuote ? `${quoteSecondsRemaining(activeQuote.expiresAt, nowMs)}s` : '60s'} after confirmation.
+            </p>
+          </div>
+
           <div className="rounded-2xl p-4 bg-white border space-y-2" style={{ borderColor: '#F1F5F9' }}>
+            <div className="flex items-center gap-2">
+              <QrCode size={16} style={{ color: '#008055' }} />
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">QR Ph-style payment instruction</p>
+            </div>
+            <div className="flex justify-center py-2">
+              <div className="rounded-2xl border p-3" style={{ borderColor: '#E2E8F0' }}>
+                <QRCodeCanvas value={qrValue} size={168} includeMargin />
+              </div>
+            </div>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Pay via {quote.instructions.rail}</p>
             <p className="text-xs text-slate-500">Send PHP {quote.amountPhp} from GCash, QR Ph, or bank transfer. Use this reference:</p>
             <div className="flex items-center justify-between rounded-xl px-3 py-2" style={{ backgroundColor: '#F8FAFC' }}>
@@ -171,7 +241,11 @@ export function CustomerCashin() {
                 {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? 'Copied' : 'Copy'}
               </button>
             </div>
-            <p className="text-[11px] text-slate-400">Quote expires {new Date(quote.expiresAt).toLocaleTimeString()}</p>
+            <button onClick={handleCopyQr} className="w-full min-h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-1" style={{ backgroundColor: '#F0FDFA', color: '#008055' }}>
+              {copiedQr ? <Check size={12} /> : <Copy size={12} />} {copiedQr ? 'QR payload copied' : 'Copy QR payload'}
+            </button>
+            <p className="text-[11px] text-slate-400">Quote expires in {quoteSecondsRemaining(quote.expiresAt, nowMs)}s · {new Date(quote.expiresAt).toLocaleTimeString()}</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#008055' }}>Demo settlement mode</p>
           </div>
 
           <div className="rounded-2xl p-4 bg-white border space-y-3" style={{ borderColor: '#F1F5F9' }}>
@@ -246,6 +320,15 @@ export function CustomerCashin() {
           <button onClick={() => { setStage('form'); setQuote(null); setErrorMsg(null); }} className="mt-3 px-6 py-2 rounded-xl font-bold" style={{ backgroundColor: '#F1F5F9', color: '#475569' }}>Try again</button>
         </div>
       )}
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl px-3 py-2" style={{ backgroundColor: '#F8FAFC' }}>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+      <p className="mt-0.5 font-bold text-slate-800">{value}</p>
     </div>
   );
 }

@@ -18,6 +18,7 @@ const CustomerUtang = lazy(() => import('./pages/customer/CustomerUtang').then((
 const CustomerProfile = lazy(() => import('./pages/customer/CustomerProfile').then((module) => ({ default: module.CustomerProfile })));
 const CustomerCashin = lazy(() => import('./pages/customer/CustomerCashin').then((module) => ({ default: module.CustomerCashin })));
 const CustomerCashout = lazy(() => import('./pages/customer/CustomerCashout').then((module) => ({ default: module.CustomerCashout })));
+const CustomerTestnetWallet = lazy(() => import('./pages/customer/CustomerTestnetWallet').then((module) => ({ default: module.CustomerTestnetWallet })));
 const VendorApply = lazy(() => import('./pages/vendor/VendorApply').then((module) => ({ default: module.VendorApply })));
 const VendorHome = lazy(() => import('./pages/vendor/VendorHome').then((module) => ({ default: module.VendorHome })));
 const VendorQR = lazy(() => import('./pages/vendor/VendorQR').then((module) => ({ default: module.VendorQR })));
@@ -79,6 +80,7 @@ export default function App() {
                 <Route path="/customer/profile" element={<CustomerProfile />} />
                 <Route path="/customer/cashin" element={<CustomerCashin />} />
                 <Route path="/customer/cashout" element={<CustomerCashout />} />
+                <Route path="/customer/testnet-wallet" element={<CustomerTestnetWallet />} />
 
                 {/* Admin */}
                 <Route path="/admin/market" element={<AdminMarket />} />

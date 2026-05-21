@@ -73,17 +73,20 @@ interface MemoryStore {
   blobs: Map<string, string>;
   walletIndex: Map<string, Set<string>>;
   pending: Set<string>;
+  all: Set<string>;
 }
 
 const memoryGlobal = globalThis as unknown as { __pp_ramp_store?: MemoryStore };
 function memory(): MemoryStore {
   if (!memoryGlobal.__pp_ramp_store) {
-    memoryGlobal.__pp_ramp_store = { blobs: new Map(), walletIndex: new Map(), pending: new Set() };
+    memoryGlobal.__pp_ramp_store = { blobs: new Map(), walletIndex: new Map(), pending: new Set(), all: new Set() };
   }
+  if (!memoryGlobal.__pp_ramp_store.all) memoryGlobal.__pp_ramp_store.all = new Set();
   return memoryGlobal.__pp_ramp_store;
 }
 
 const PENDING_INDEX = 'pp:ramp:pending';
+const ALL_INDEX = 'pp:ramp:all';
 const txnKey = (id: string) => `pp:ramp:${id}`;
 const walletKey = (wallet: string) => `pp:ramp:wallet:${wallet}`;
 
@@ -159,10 +162,12 @@ export async function createTxn(params: Omit<RampTxn, 'id' | 'startedAt' | 'upda
   if (hasRedis()) {
     await redis(['SET', txnKey(txn.id), blob]);
     await redis(['SADD', walletKey(txn.wallet), txn.id]);
+    await redis(['SADD', ALL_INDEX, txn.id]);
     if (!isTerminal(txn.status)) await redis(['SADD', PENDING_INDEX, txn.id]);
   } else {
     const m = memory();
     m.blobs.set(txn.id, blob);
+    m.all.add(txn.id);
     let set = m.walletIndex.get(txn.wallet);
     if (!set) { set = new Set(); m.walletIndex.set(txn.wallet, set); }
     set.add(txn.id);
@@ -241,6 +246,30 @@ export async function listPendingForNetwork(network: LiquidityNetwork): Promise<
   return pending.filter((txn) => (txn.network ?? 'testnet') === network);
 }
 
+export async function listAll(): Promise<RampTxn[]> {
+  let ids: string[];
+  if (hasRedis()) {
+    ids = ((await redis(['SMEMBERS', ALL_INDEX])) as string[] | null) ?? [];
+  } else {
+    ids = Array.from(memory().all);
+  }
+  const out: RampTxn[] = [];
+  for (const id of ids) {
+    const t = await getTxn(id);
+    if (t) out.push(t);
+  }
+  return out.sort((a, b) => b.startedAt - a.startedAt);
+}
+
+export async function listAllForNetwork(network: LiquidityNetwork): Promise<RampTxn[]> {
+  const txns = await listAll();
+  return txns.filter((txn) => (txn.network ?? 'testnet') === network);
+}
+
 export function isPersistent(): boolean {
   return hasRedis();
+}
+
+export function resetRampStoreForTests(): void {
+  memoryGlobal.__pp_ramp_store = { blobs: new Map(), walletIndex: new Map(), pending: new Set(), all: new Set() };
 }

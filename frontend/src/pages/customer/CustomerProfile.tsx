@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { User, Copy, Check, Store, ExternalLink, ShieldCheck, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { User, Copy, Check, Store, ExternalLink, ShieldCheck, ArrowDownToLine, ArrowUpFromLine, Send } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useBalance } from '../../lib/hooks/useBalance';
 import { useFormatAmount } from '../../lib/hooks/useDisplayUnit';
@@ -26,6 +26,8 @@ const STRINGS = {
     cashInSub: 'PHP → XLM via PDAX',
     cashOut: 'Cash Out',
     cashOutSub: 'XLM → PHP to your bank',
+    walletTest: 'Testnet Wallet Check',
+    walletTestSub: 'Send small XLM and view proof',
     preferences: 'Display',
     prefDesc: 'Choose how amounts are shown',
     privacy: 'Privacy',
@@ -48,6 +50,8 @@ const STRINGS = {
     cashInSub: 'PHP → XLM sa PDAX',
     cashOut: 'Mag Cash Out',
     cashOutSub: 'XLM → PHP papunta sa bangko',
+    walletTest: 'Testnet Wallet Check',
+    walletTestSub: 'Magpadala ng maliit na XLM',
     preferences: 'Display',
     prefDesc: 'Piliin kung paano ipakita ang halaga',
     privacy: 'Privacy',
@@ -235,6 +239,21 @@ export function CustomerProfile() {
           </div>
         </NavLink>
       </div>
+
+      <NavLink
+        to="/customer/testnet-wallet"
+        className="rounded-2xl px-5 py-4 flex items-center gap-4 active:scale-[0.98] transition-all"
+        style={{ backgroundColor: 'white', border: '1.5px solid #F1F5F9' }}
+      >
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#F0FDFA' }}>
+          <Send size={18} style={{ color: '#008055' }} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-slate-900">{t.walletTest}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{t.walletTestSub}</p>
+        </div>
+        <ExternalLink size={14} className="shrink-0 text-slate-300" />
+      </NavLink>
 
       {/* Browse market */}
       <NavLink
