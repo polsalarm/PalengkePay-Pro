@@ -64,9 +64,7 @@ const FILTER_LABELS: Record<string, { en: string; tl: string }> = {
 export function VendorUtang() {
   const { address } = useWallet();
   const { utangs, isLoading, error, refetch } = useVendorUtangs(address);
-  const { t } = useLanguage();
-
-  const lang: 'en' | 'tl' = 'tl';
+  const { t, lang } = useLanguage();
   const [showPanel, setShowPanel] = useState(false);
   const [mode, setMode] = useState<Mode>('qr');
   const [step, setStep] = useState<Step>('form');

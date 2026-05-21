@@ -991,7 +991,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Load saved language from localStorage
   const [lang, setLang] = useState<Language>(() => {
     const saved = localStorage.getItem('language') as Language;
-    return saved && (saved === 'en' || saved === 'tl') ? saved : 'tl';
+    return saved && (saved === 'en' || saved === 'tl') ? saved : 'en';
   });
 
   useEffect(() => {

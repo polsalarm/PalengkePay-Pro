@@ -616,7 +616,6 @@ export function VendorTransactions() {
               {receiptLookupTerm && (
                 <button
                   type="button"
-                  aria-label={t('transactions.clear')}
                   onClick={() => setReceiptLookupTerm('')}
                   className="min-h-11 rounded-xl px-3 text-xs font-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                   style={{ color: '#475569', backgroundColor: '#F8FAFC' }}

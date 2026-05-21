@@ -11,6 +11,7 @@ import {
   HandCoins,
   ArrowUp,
 } from 'lucide-react';
+import { WalletButton } from './WalletButton';
 import logoImg from '../assets/logo.png';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -233,6 +234,7 @@ export function Layout() {
                 </button>
               ))}
             </div>
+            <WalletButton />
           </div>
         </header>
 
@@ -268,6 +270,7 @@ export function Layout() {
                 </button>
               ))}
             </div>
+            <WalletButton />
           </div>
         </header>
 
