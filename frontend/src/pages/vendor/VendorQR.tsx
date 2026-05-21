@@ -1,20 +1,22 @@
-import { AlertTriangle, ArrowLeft, ArrowRight, Printer, Store } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Printer, Store } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendor } from '../../lib/hooks/useVendor';
 import { QRGenerator } from '../../components/QRGenerator';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
 import { REGISTRY_CONTRACT_ID } from '../../lib/contracts';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export function VendorQR() {
   const { address } = useWallet();
   const { vendor, isLoading } = useVendor(address);
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   if (!address) {
     return (
       <WalletRequiredState
-        detail="Connect your vendor wallet to display the QR code customers use for payment."
+        detail={t('qr.connectWalletDetail')}
         fullScreen
         tone="dark"
       />
@@ -22,13 +24,17 @@ export function VendorQR() {
   }
 
   const stallInfo = vendor
-    ? `Stall ${vendor.stallNumber} · ${vendor.productType}`
+    ? `${t('qr.stall')} ${vendor.stallNumber} · ${vendor.productType}`
     : undefined;
 
   return (
     <div
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: '#00284B' }}
+      className="flex flex-col min-h-screen"
+      style={{ 
+        backgroundColor: '#00284B',
+        marginTop: '-24px',
+        marginBottom: '-24px',
+      }}
     >
       {/* Banig texture */}
       <div
@@ -41,6 +47,7 @@ export function VendorQR() {
           )`,
         }}
       />
+      
       {/* Ambient glow */}
       <div
         className="fixed pointer-events-none"
@@ -52,33 +59,29 @@ export function VendorQR() {
         }}
       />
 
-      {/* Top bar */}
-      <div className="relative flex items-center gap-3 px-4 pt-4 pb-2 shrink-0">
-        <button
-          onClick={() => navigate('/vendor/home')}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center active:scale-95 shrink-0"
-          style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+      {/* Page Title */}
+      <div className="relative px-4 pt-8 pb-4 shrink-0">
+        <p
+          className="text-xs font-bold uppercase tracking-widest text-center"
+          style={{ color: 'rgba(255,255,255,0.4)' }}
         >
-          <ArrowLeft size={18} style={{ color: 'rgba(255,255,255,0.8)' }} />
-        </button>
-        <div>
-          <p
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
-          >
-            Your QR Code
+          {t('qr.yourQRCode')}
+        </p>
+        <h1
+          className="text-xl font-black text-white text-center leading-tight mt-1"
+          style={{ fontFamily: "'Montserrat', sans-serif" }}
+        >
+          {vendor?.name ?? (isLoading ? t('qr.myQRCode') : t('qr.registerFirst'))}
+        </h1>
+        {stallInfo && !isLoading && vendor && (
+          <p className="text-sm text-center mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            {stallInfo}
           </p>
-          <h1
-            className="text-base font-black text-white leading-tight"
-            style={{ fontFamily: "'Montserrat', sans-serif" }}
-          >
-            {vendor?.name ?? (isLoading ? 'My QR Code' : 'Register first')}
-          </h1>
-        </div>
+        )}
       </div>
 
-      {/* QR — centered, fills remaining space */}
-      <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-6">
+      {/* QR Code */}
+      <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-8">
         {isLoading ? (
           <div className="flex flex-col items-center gap-4">
             <div
@@ -101,7 +104,7 @@ export function VendorQR() {
               <QRGenerator
                 value={address!}
                 size={260}
-                vendorName={vendor?.name ?? 'Your QR Code'}
+                vendorName={vendor?.name ?? t('qr.myQRCode')}
                 stallInfo={stallInfo}
                 downloadable
               />
@@ -130,12 +133,12 @@ export function VendorQR() {
               }
             </div>
             <p className="text-base font-black text-slate-900 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              {REGISTRY_CONTRACT_ID ? 'Register your stall first' : 'Vendor registry unavailable'}
+              {REGISTRY_CONTRACT_ID ? t('qr.registerStallFirst') : t('qr.registryUnavailable')}
             </p>
             <p className="text-sm text-slate-500 mb-5">
               {REGISTRY_CONTRACT_ID
-                ? 'Your customer QR appears after your vendor profile is registered.'
-                : 'Set the vendor registry contract ID before QR profiles can load.'}
+                ? t('qr.registerHint')
+                : t('qr.registryHint')}
             </p>
             {REGISTRY_CONTRACT_ID && (
               <button
@@ -143,21 +146,23 @@ export function VendorQR() {
                 className="w-full flex items-center justify-center gap-2 text-sm font-black rounded-2xl active:scale-95 text-white"
                 style={{ backgroundColor: '#008055', minHeight: '52px' }}
               >
-                Apply as Vendor <ArrowRight size={15} />
+                {t('qr.applyAsVendor')} <ArrowRight size={15} />
               </button>
             )}
           </div>
         )}
       </div>
 
-      {/* Bottom hint */}
+      {/* Bottom hint - only show if vendor exists */}
       {vendor && (
         <div
-          className="relative px-6 py-5 text-center shrink-0"
-          style={{ paddingBottom: 'calc(20px + env(safe-area-inset-bottom))' }}
+          className="relative px-6 py-6 text-center shrink-0"
+          style={{ 
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
+          }}
         >
           <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            I-scan ng customer para magbayad · works offline
+            {t('qr.bottomHint')}
           </p>
         </div>
       )}
@@ -166,6 +171,8 @@ export function VendorQR() {
 }
 
 function QrPrintKit({ vendorName, stallInfo, wallet }: { vendorName: string; stallInfo?: string; wallet: string }) {
+  const { t } = useLanguage();
+  
   return (
     <section className="qr-print-kit rounded-3xl bg-white p-5 space-y-4" style={{ border: '1.5px solid #E2E8F0' }}>
       <style>
@@ -179,16 +186,16 @@ function QrPrintKit({ vendorName, stallInfo, wallet }: { vendorName: string; sta
       </style>
       <div className="screen-only flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-widest text-slate-400">Print-ready QR kit</p>
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400">{t('qr.printReady')}</p>
           <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-            Poster and sticker preview
+            {t('qr.posterPreview')}
           </h2>
         </div>
         <button
           onClick={() => window.print()}
           className="w-11 h-11 rounded-2xl flex items-center justify-center active:scale-95"
           style={{ backgroundColor: '#008055', color: 'white' }}
-          aria-label="Print QR kit"
+          aria-label={t('qr.printKit')}
         >
           <Printer size={18} />
         </button>
@@ -198,7 +205,7 @@ function QrPrintKit({ vendorName, stallInfo, wallet }: { vendorName: string; sta
         <div className="rounded-3xl p-6 text-center" style={{ border: '2px solid #0F172A', backgroundColor: '#FFFDF7' }}>
           <p className="text-sm font-black uppercase tracking-[0.18em]" style={{ color: '#008055' }}>PalengkePay</p>
           <h3 className="text-3xl font-black text-slate-950 mt-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-            Scan to pay
+            {t('qr.scanToPay')}
           </h3>
           <p className="text-lg font-bold text-slate-700 mt-1">{vendorName}</p>
           {stallInfo && <p className="text-sm font-semibold text-slate-500 mt-1">{stallInfo}</p>}
@@ -206,7 +213,7 @@ function QrPrintKit({ vendorName, stallInfo, wallet }: { vendorName: string; sta
             <QRGenerator value={wallet} size={300} vendorName={vendorName} stallInfo={stallInfo} showCaption={false} />
           </div>
           <div className="grid grid-cols-3 gap-2 text-left">
-            {['Open PalengkePay', 'Scan this QR', 'Confirm in wallet'].map((step, index) => (
+            {[t('qr.step1'), t('qr.step2'), t('qr.step3')].map((step, index) => (
               <div key={step} className="rounded-2xl p-3" style={{ backgroundColor: '#F0FDFA', border: '1px solid #A7F3D0' }}>
                 <p className="text-xs font-black" style={{ color: '#008055' }}>0{index + 1}</p>
                 <p className="text-xs font-bold text-slate-800 mt-1">{step}</p>
@@ -216,13 +223,13 @@ function QrPrintKit({ vendorName, stallInfo, wallet }: { vendorName: string; sta
         </div>
 
         <div className="rounded-3xl p-5 text-center" style={{ border: '2px dashed #0F172A', backgroundColor: '#F8FAFC' }}>
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">Sticker</p>
+          <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('qr.sticker')}</p>
           <h3 className="text-xl font-black text-slate-950 mt-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>{vendorName}</h3>
-          <p className="text-xs text-slate-500 mt-1">{stallInfo ?? 'Vendor QR'}</p>
+          <p className="text-xs text-slate-500 mt-1">{stallInfo ?? t('qr.vendorQR')}</p>
           <div className="flex justify-center my-4">
             <QRGenerator value={wallet} size={180} vendorName={vendorName} stallInfo={stallInfo} showCaption={false} />
           </div>
-          <p className="text-xs font-bold text-slate-600">Customer scans to pay by wallet.</p>
+          <p className="text-xs font-bold text-slate-600">{t('qr.stickerHint')}</p>
         </div>
       </div>
     </section>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle, Loader2, X, ExternalLink, AlertTriangle, Store, RotateCcw, ScanLine, Home, List, HandCoins, Store as StoreIcon } from 'lucide-react';
-import { useNavigate, NavLink } from 'react-router-dom';
+import { ArrowLeft, CheckCircle, Loader2, X, ExternalLink, AlertTriangle, Store, RotateCcw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { QRScanner } from '../../components/QRScanner';
 import type { QRScanMeta } from '../../components/QRScanner';
 import { PaymentForm } from '../../components/PaymentForm';
@@ -15,16 +15,19 @@ import { stellarExpertAccountUrl, stellarExpertUrl, truncateAddress } from '../.
 import { formatPhp, formatXlm, type StableCheckoutQuote } from '../../lib/checkout-quote';
 import { ESCROW_CONTRACT_ID } from '../../lib/contracts';
 import { savePaymentProof } from '../../lib/payment-proof';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const STROOPS = 10_000_000;
 
-const INTERVAL_LABELS: Record<number, string> = {
-  604800: 'weekly',
-  1209600: 'biweekly',
-  2592000: 'monthly',
+const INTERVAL_LABELS: Record<number, { en: string; tl: string }> = {
+  604800: { en: 'weekly', tl: 'lingguhan' },
+  1209600: { en: 'biweekly', tl: 'bawat dalawang linggo' },
+  2592000: { en: 'monthly', tl: 'buwanan' },
 };
-function intervalLabel(secs: number) {
-  return INTERVAL_LABELS[secs] ?? `every ${Math.round(secs / 86400)}d`;
+function intervalLabel(secs: number, t: (key: string, params?: Record<string, string | number>) => string) {
+  const label = INTERVAL_LABELS[secs];
+  if (label) return t(`scan.interval.${label.en}`);
+  return t('scan.interval.every', { days: Math.round(secs / 86400) });
 }
 
 type Step = 'scan' | 'manual' | 'pay' | 'confirm' | 'done' | 'utang_offer' | 'utang_done';
@@ -38,6 +41,7 @@ interface PendingPayment {
 export function CustomerScan() {
   const navigate = useNavigate();
   const { address } = useWallet();
+  const { t } = useLanguage();
 
   const [step, setStep] = useState<Step>('scan');
   const [vendorAddress, setVendorAddress] = useState('');
@@ -87,7 +91,6 @@ export function CustomerScan() {
       }
     } catch (parseError) {
       void parseError;
-      // Not an installment QR payload.
     }
     return false;
   };
@@ -131,7 +134,7 @@ export function CustomerScan() {
   const handleAcceptUtang = async () => {
     if (!utangOffer || !address) return;
     if (utangOffer.c && utangOffer.c !== address) {
-      setUtangError('This installment offer is assigned to another customer wallet');
+      setUtangError(t('scan.utangWrongWallet'));
       setUtangAcceptStatus('failed');
       return;
     }
@@ -153,7 +156,7 @@ export function CustomerScan() {
       setUtangAcceptStatus('confirmed');
       setStep('utang_done');
     } else {
-      setUtangError('Transaction failed — check wallet and try again');
+      setUtangError(t('scan.utangFailed'));
       setUtangAcceptStatus('failed');
     }
   };
@@ -167,13 +170,13 @@ export function CustomerScan() {
   };
 
   const stepTitle: Record<Step, string> = {
-    scan: 'Scan QR',
-    manual: 'Enter Address',
-    pay: 'Pay Vendor',
-    confirm: 'Confirm Payment',
-    done: 'Payment Sent!',
-    utang_offer: 'Installment Offer',
-    utang_done: 'Accepted!',
+    scan: t('scan.title'),
+    manual: t('scan.manualTitle'),
+    pay: t('scan.payTitle'),
+    confirm: t('scan.confirmTitle'),
+    done: t('scan.doneTitle'),
+    utang_offer: t('scan.utangOfferTitle'),
+    utang_done: t('scan.utangDoneTitle'),
   };
 
   const vendorDisplay = vendor?.name ?? scannedMeta?.name ?? truncateAddress(vendorAddress);
@@ -181,146 +184,150 @@ export function CustomerScan() {
   if (!address) {
     return (
       <WalletRequiredState
-        detail="Connect your wallet before scanning payment QRs or accepting installment offers."
+        detail={t('scan.walletRequiredDetail')}
         fullScreen
         tone="dark"
       />
     );
   }
 
-  return (
-    <div
-      className="animate-page-in"
-      style={{ paddingBottom: step === 'scan' ? 0 : 'calc(80px + env(safe-area-inset-bottom))' }}
-    >
-      {/* ── Header ── */}
-      {step !== 'scan' && (
-        <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-          <button
-            onClick={() => {
-              if (step === 'done' || step === 'utang_done') navigate('/customer/home');
-              else backToScan();
-            }}
-            className="w-10 h-10 rounded-2xl flex items-center justify-center transition-colors active:scale-95"
-            style={{ backgroundColor: '#F1F5F9' }}
-          >
-            <ArrowLeft size={18} style={{ color: '#475569' }} />
-          </button>
-          <h1
-            className="text-lg font-black text-slate-900"
-            style={{ fontFamily: "'Montserrat', sans-serif" }}
-          >
-            {stepTitle[step]}
-          </h1>
-        </div>
-      )}
-
-      {/* ── Step: scan ── */}
-      {step === 'scan' && (
+  // For scan mode - full blue background with centered content
+  if (step === 'scan') {
+    return (
+      <div
+        className="min-h-screen"
+        style={{
+          backgroundColor: '#00284B',
+          marginTop: '-24px',
+          marginBottom: '-24px',
+          marginLeft: '-32px',
+          marginRight: '-32px',
+          width: 'calc(100% + 64px)',
+        }}
+      >
+        {/* Background texture */}
         <div
-          className="flex flex-col"
+          className="fixed inset-0 pointer-events-none opacity-[0.04]"
           style={{
-            backgroundColor: '#00284B',
-            minHeight: '100dvh',
+            backgroundImage: `repeating-linear-gradient(
+              45deg,
+              white 0px,
+              white 1px,
+              transparent 1px,
+              transparent 12px
+            ),
+            repeating-linear-gradient(
+              -45deg,
+              white 0px,
+              white 1px,
+              transparent 1px,
+              transparent 12px
+            )`,
           }}
-        >
-          {/* Banig texture */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-[0.04]"
-            style={{
-              backgroundImage: `repeating-linear-gradient(
-                45deg, white 0px, white 1px, transparent 1px, transparent 12px
-              ), repeating-linear-gradient(
-                -45deg, white 0px, white 1px, transparent 1px, transparent 12px
-              )`,
-            }}
-          />
-          {/* Ambient glow */}
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              top: -80, left: '50%', transform: 'translateX(-50%)',
-              width: 320, height: 320, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(20,184,166,0.25) 0%, transparent 65%)',
-              filter: 'blur(60px)',
-            }}
-          />
+        />
 
+        {/* Glow */}
+        <div
+          className="fixed pointer-events-none"
+          style={{
+            top: -100,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 400,
+            height: 400,
+            borderRadius: '50%',
+            background:
+              'radial-gradient(circle, rgba(20,184,166,0.2) 0%, transparent 65%)',
+            filter: 'blur(60px)',
+          }}
+        />
+
+        {/* CONTENT WRAPPER - centered with side margins */}
+        <div className="relative max-w-md mx-auto px-5 flex flex-col min-h-screen">
+          
           {/* Header */}
-          <div className="relative px-4 pt-4 pb-4 flex items-center gap-3 shrink-0">
-            <button
-              onClick={() => navigate('/customer/home')}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center active:scale-95 shrink-0"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+          <div className="pt-8 pb-4">
+            <p
+              className="text-xs font-bold uppercase tracking-widest text-center"
+              style={{ color: 'rgba(255,255,255,0.4)' }}
             >
-              <ArrowLeft size={18} style={{ color: 'rgba(255,255,255,0.8)' }} />
-            </button>
-            <div>
-              <h1 className="text-base font-black text-white leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                I-Scan ang QR
-              </h1>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                Payment QR at utang offer — auto-detect
-              </p>
-            </div>
+              {t('scan.scanHeader')}
+            </p>
+
+            <h1
+              className="text-xl font-black text-white text-center mt-1"
+              style={{ fontFamily: "'Montserrat', sans-serif" }}
+            >
+              {t('scan.title')}
+            </h1>
+
+            <p
+              className="text-sm text-center mt-1"
+              style={{ color: 'rgba(255,255,255,0.5)' }}
+            >
+              {t('scan.scanSub')}
+            </p>
           </div>
 
           {/* Scanner */}
-          <div className="relative flex-1">
-            <QRScanner
-              onScan={handlePaymentScan}
-              onRawScan={handleRawScan}
-              onManualEntry={() => setStep('manual')}
-            />
+          <div className="flex-1 flex items-center justify-center py-4">
+            <div className="w-full">
+              <QRScanner
+                onScan={handlePaymentScan}
+                onRawScan={handleRawScan}
+                onManualEntry={() => setStep('manual')}
+              />
+            </div>
           </div>
 
-          {/* Bottom nav */}
-          <nav
-            className="shrink-0 bg-white border-t border-slate-200"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          {/* Bottom */}
+          <div
+            className="pb-6 text-center"
+            style={{
+              paddingBottom: 'calc(24px + env(safe-area-inset-bottom))',
+            }}
           >
-            <div className="flex h-16 items-center">
-              {[
-                { to: '/customer/home', icon: Home, label: 'Home' },
-                { to: '/customer/history', icon: List, label: 'History' },
-                { to: '/customer/scan', icon: ScanLine, label: 'Scan', center: true },
-                { to: '/customer/utang', icon: HandCoins, label: 'Utang' },
-                { to: '/market', icon: StoreIcon, label: 'Market' },
-              ].map(({ to, icon: Icon, label, center }) => {
-                if (center) {
-                  return (
-                    <div key={to} className="flex-1 flex flex-col items-center justify-center overflow-visible">
-                      <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg -translate-y-5 border-4 border-white bg-teal-600">
-                        <Icon size={22} className="text-white" />
-                      </div>
-                      <span className="text-xs font-medium -mt-3.5 text-teal-700">{label}</span>
-                    </div>
-                  );
-                }
-                return (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    className={({ isActive }) =>
-                      `flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-w-0 ${isActive ? 'text-teal-700' : 'text-slate-400'}`
-                    }
-                  >
-                    <Icon size={18} />
-                    <span className="text-xs font-medium leading-tight">{label}</span>
-                  </NavLink>
-                );
-              })}
-            </div>
-          </nav>
+            <p
+              className="text-xs"
+              style={{ color: 'rgba(255,255,255,0.35)' }}
+            >
+              {t('scan.bottomHint')}
+            </p>
+          </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* ── Step: manual address ── */}
+  // For other steps - normal content with max-width
+  return (
+    <div className="max-w-md mx-auto space-y-4 pb-8">
+      {/* Back button */}
+      <div className="flex items-center gap-3 pt-2">
+        <button
+          onClick={() => {
+            if (step === 'done' || step === 'utang_done') navigate('/customer/home');
+            else backToScan();
+          }}
+          className="w-10 h-10 rounded-2xl flex items-center justify-center transition-colors active:scale-95"
+          style={{ backgroundColor: '#F1F5F9' }}
+        >
+          <ArrowLeft size={18} style={{ color: '#475569' }} />
+        </button>
+        <h1
+          className="text-lg font-black text-slate-900"
+          style={{ fontFamily: "'Montserrat', sans-serif" }}
+        >
+          {stepTitle[step]}
+        </h1>
+      </div>
+
+      {/* Manual Entry Form */}
       {step === 'manual' && (
-        <form onSubmit={handleManualSubmit} className="px-4 pt-2 space-y-4">
+        <form onSubmit={handleManualSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">
-              Vendor Wallet Address
+              {t('scan.vendorAddressLabel')}
             </label>
             <input
               type="text"
@@ -336,7 +343,7 @@ export function CustomerScan() {
               autoFocus
             />
             <p className="text-xs text-slate-400 mt-1.5 px-1">
-              56-character Stellar address starting with G
+              {t('scan.vendorAddressHint')}
             </p>
           </div>
           <button
@@ -344,30 +351,28 @@ export function CustomerScan() {
             className="w-full text-white font-bold rounded-2xl active:scale-95 transition-all"
             style={{ backgroundColor: '#008055', minHeight: '56px', fontSize: '1rem' }}
           >
-            Ituloy
+            {t('scan.continue')}
           </button>
         </form>
       )}
 
-      {/* ── Step: payment form ── */}
+      {/* Payment Form */}
       {step === 'pay' && (
-        <div className="px-4 pt-2">
-          <PaymentForm
-            vendorAddress={vendorAddress}
-            vendor={vendor}
-            isLoading={vendorLoading}
-            preloadedVendorName={scannedMeta?.name}
-            preloadedStallInfo={scannedMeta?.stallInfo}
-            onSubmit={handlePay}
-            disabled={false}
-            settlementMode={settlementMode}
-          />
-        </div>
+        <PaymentForm
+          vendorAddress={vendorAddress}
+          vendor={vendor}
+          isLoading={vendorLoading}
+          preloadedVendorName={scannedMeta?.name}
+          preloadedStallInfo={scannedMeta?.stallInfo}
+          onSubmit={handlePay}
+          disabled={false}
+          settlementMode={settlementMode}
+        />
       )}
 
-      {/* ── Step: confirm ── */}
+      {/* Confirm Payment */}
       {step === 'confirm' && pendingPayment && (
-        <div className="px-4 pt-2 space-y-3">
+        <div className="space-y-3">
           {/* Vendor card */}
           <div
             className="rounded-2xl p-4 flex items-center gap-3"
@@ -381,7 +386,7 @@ export function CustomerScan() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: '#008055' }}>
-                Nagbabayad kay
+                {t('scan.payingTo')}
               </p>
               <p className="text-base font-black text-slate-900 truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {vendorDisplay}
@@ -389,13 +394,13 @@ export function CustomerScan() {
             </div>
           </div>
 
-          {/* Amount — large and confident */}
+          {/* Amount */}
           <div
             className="rounded-3xl p-6 text-center"
             style={{ backgroundColor: '#00284B' }}
           >
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Halagang Babayaran
+              {t('scan.amountToPay')}
             </p>
             <p
               className="font-black text-white leading-none mb-1"
@@ -416,7 +421,7 @@ export function CustomerScan() {
             >
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Price lock
+                  {t('scan.priceLock')}
                 </p>
                 <p className="text-sm font-black text-white">
                   ₱{pendingPayment.quote.phpPerXlm.toFixed(2)}/XLM
@@ -424,7 +429,7 @@ export function CustomerScan() {
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Expires
+                  {t('scan.expires')}
                 </p>
                 <p className="text-sm font-black text-white">
                   {new Date(pendingPayment.quote.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -448,8 +453,8 @@ export function CustomerScan() {
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22C55E' }} />
             {settlementMode === 'contract'
-              ? 'On-chain receipt — recorded by PalengkePayment'
-              : 'Gasless — fees sponsored, zero cost sa iyo'}
+              ? t('scan.onChainReceipt')
+              : t('scan.gasless')}
           </div>
 
           {status === 'idle' && (
@@ -464,7 +469,7 @@ export function CustomerScan() {
                 boxShadow: '0 6px 24px rgba(15,118,110,0.4)',
               }}
             >
-              Kumpirmahin at I-sign
+              {t('scan.confirmAndSign')}
             </button>
           )}
 
@@ -485,136 +490,131 @@ export function CustomerScan() {
         </div>
       )}
 
-      {/* ── Step: payment done ── */}
+      {/* Payment Done */}
       {step === 'done' && (
-        <div className="px-4 pt-2">
+        <div
+          className="rounded-3xl overflow-hidden"
+          style={{ border: '1.5px solid #F1F5F9' }}
+        >
           <div
-            className="rounded-3xl overflow-hidden"
-            style={{ border: '1.5px solid #F1F5F9' }}
+            className="p-8 text-center"
+            style={{ background: 'linear-gradient(135deg, #00284B 0%, #008055 100%)' }}
           >
-            {/* Green success header */}
             <div
-              className="p-8 text-center"
-              style={{ background: 'linear-gradient(135deg, #00284B 0%, #008055 100%)' }}
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
-              >
-                <CheckCircle size={40} className="text-white" />
-              </div>
-              <h2
-                className="text-xl font-black text-white mb-1"
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
-              >
-                Bayad na!
-              </h2>
-              {pendingPayment && (
-                <p
-                  className="font-black text-white leading-none mt-3"
-                  style={{
-                    fontSize: formatPhp(pendingPayment.quote.phpAmount).length > 10 ? '2rem' : '2.5rem',
-                    fontFamily: "'Montserrat', sans-serif",
-                    letterSpacing: '-0.02em',
-                  }}
-                >
-                  {formatPhp(pendingPayment.quote.phpAmount)}
-                </p>
-              )}
-              {pendingPayment && (
-                <p className="text-sm mt-2 font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                  {formatXlm(pendingPayment.quote.xlmAmount)} at ₱{pendingPayment.quote.phpPerXlm.toFixed(2)}/XLM
-                </p>
-              )}
-              {vendorDisplay && (
-                <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                  kay {vendorDisplay}
-                </p>
-              )}
+              <CheckCircle size={40} className="text-white" />
             </div>
+            <h2
+              className="text-xl font-black text-white mb-1"
+              style={{ fontFamily: "'Montserrat', sans-serif" }}
+            >
+              {t('scan.paymentComplete')}
+            </h2>
+            {pendingPayment && (
+              <p
+                className="font-black text-white leading-none mt-3"
+                style={{
+                  fontSize: formatPhp(pendingPayment.quote.phpAmount).length > 10 ? '2rem' : '2.5rem',
+                  fontFamily: "'Montserrat', sans-serif",
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {formatPhp(pendingPayment.quote.phpAmount)}
+              </p>
+            )}
+            {pendingPayment && (
+              <p className="text-sm mt-2 font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                {formatXlm(pendingPayment.quote.xlmAmount)} at ₱{pendingPayment.quote.phpPerXlm.toFixed(2)}/XLM
+              </p>
+            )}
+            {vendorDisplay && (
+              <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                {t('scan.toVendor', { name: vendorDisplay })}
+              </p>
+            )}
+          </div>
 
-            {/* Actions */}
-            <div className="bg-white p-5 space-y-3">
-              {pendingPayment && (
-                <div
-                  className="rounded-2xl p-4"
-                  style={{ backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0' }}
-                >
-                  <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
-                    Dual-currency receipt
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-slate-400">Customer paid</p>
-                      <p className="text-sm font-black text-slate-900">{formatPhp(pendingPayment.quote.phpAmount)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400">Settled on Stellar</p>
-                      <p className="text-sm font-black text-slate-900">{formatXlm(pendingPayment.quote.xlmAmount)}</p>
-                    </div>
+          <div className="bg-white p-5 space-y-3">
+            {pendingPayment && (
+              <div
+                className="rounded-2xl p-4"
+                style={{ backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0' }}
+              >
+                <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
+                  {t('scan.dualReceipt')}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-slate-400">{t('scan.customerPaid')}</p>
+                    <p className="text-sm font-black text-slate-900">{formatPhp(pendingPayment.quote.phpAmount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">{t('scan.settledOnStellar')}</p>
+                    <p className="text-sm font-black text-slate-900">{formatXlm(pendingPayment.quote.xlmAmount)}</p>
                   </div>
                 </div>
-              )}
-              {txHash && (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => navigate(`/receipt/${txHash}`)}
-                    className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
-                    style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
-                  >
-                    Digital Resibo
-                  </button>
-                  <a
-                    href={stellarExpertUrl(txHash)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
-                    style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
-                  >
-                    <ExternalLink size={13} /> Stellar Expert
-                  </a>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={backToScan}
-                  className="flex items-center justify-center gap-2 font-bold rounded-2xl active:scale-95 transition-all text-sm"
-                  style={{
-                    minHeight: '52px',
-                    border: '2px solid #E2E8F0',
-                    color: '#475569',
-                    backgroundColor: 'white',
-                  }}
-                >
-                  <RotateCcw size={14} /> Bayad Ulit
-                </button>
-                <button
-                  onClick={() => navigate('/customer/home')}
-                  className="font-bold rounded-2xl active:scale-95 transition-all text-sm text-white"
-                  style={{ minHeight: '52px', backgroundColor: '#008055' }}
-                >
-                  Home
-                </button>
               </div>
+            )}
+            {txHash && (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => navigate(`/receipt/${txHash}`)}
+                  className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
+                  style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
+                >
+                  {t('scan.digitalReceipt')}
+                </button>
+                <a
+                  href={stellarExpertUrl(txHash)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full transition-colors active:scale-95"
+                  style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
+                >
+                  <ExternalLink size={13} /> {t('scan.stellarExpert')}
+                </a>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={backToScan}
+                className="flex items-center justify-center gap-2 font-bold rounded-2xl active:scale-95 transition-all text-sm"
+                style={{
+                  minHeight: '52px',
+                  border: '2px solid #E2E8F0',
+                  color: '#475569',
+                  backgroundColor: 'white',
+                }}
+              >
+                <RotateCcw size={14} /> {t('scan.payAgain')}
+              </button>
+              <button
+                onClick={() => navigate('/customer/home')}
+                className="font-bold rounded-2xl active:scale-95 transition-all text-sm text-white"
+                style={{ minHeight: '52px', backgroundColor: '#008055' }}
+              >
+                {t('scan.home')}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Step: utang offer ── */}
+      {/* Utang Offer */}
       {step === 'utang_offer' && utangOffer && (
-        <div className="px-4 pt-2 space-y-3">
-          {/* Offer header */}
+        <div className="space-y-3">
           <div
             className="rounded-2xl p-4 flex items-center justify-between"
             style={{ backgroundColor: '#FFFBEB', border: '2px solid #FDE68A' }}
           >
             <div>
               <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#D97706' }}>
-                Installment Credit Offer
+                {t('scan.installmentOffer')}
               </p>
               <p className="text-sm font-black text-slate-800 mt-0.5" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                Suriin bago tanggapin
+                {t('scan.reviewBeforeAccept')}
               </p>
             </div>
             <button
@@ -626,14 +626,13 @@ export function CustomerScan() {
             </button>
           </div>
 
-          {/* Offer details */}
           <div
             className="rounded-3xl overflow-hidden"
             style={{ border: '1.5px solid #F1F5F9' }}
           >
             {utangOffer.d && (
               <div className="px-5 py-4" style={{ borderBottom: '1px solid #F8FAFC' }}>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Mga Biniling Item</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{t('scan.itemsBought')}</p>
                 <p className="text-base font-bold text-slate-800">{utangOffer.d}</p>
               </div>
             )}
@@ -664,15 +663,15 @@ export function CustomerScan() {
                   className="text-base font-black text-slate-900 leading-tight capitalize"
                   style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >
-                  {intervalLabel(utangOffer.i)}
+                  {intervalLabel(utangOffer.i, t)}
                 </p>
-                <p className="text-xs text-slate-400 mt-0.5">interval</p>
+                <p className="text-xs text-slate-400 mt-0.5">{t('scan.interval')}</p>
               </div>
             </div>
 
             <div className="px-5 py-3" style={{ borderTop: '1px solid #F8FAFC', backgroundColor: '#FAFAFA' }}>
               <p className="text-xs text-slate-400 font-mono truncate">
-                Vendor: {utangOffer.v.slice(0, 12)}…{utangOffer.v.slice(-6)}
+                {t('scan.vendor')}: {utangOffer.v.slice(0, 12)}…{utangOffer.v.slice(-6)}
               </p>
             </div>
           </div>
@@ -684,9 +683,9 @@ export function CustomerScan() {
             >
               <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: '#D97706' }} />
               <div>
-                <p className="text-sm font-black text-slate-800">Installment contract not configured</p>
+                <p className="text-sm font-black text-slate-800">{t('scan.contractNotConfigured')}</p>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  This offer can be reviewed, but it cannot be accepted until VITE_UTANG_ESCROW_CONTRACT_ID is set.
+                  {t('scan.contractHint')}
                 </p>
               </div>
             </div>
@@ -705,7 +704,7 @@ export function CustomerScan() {
                 boxShadow: '0 6px 24px rgba(15,118,110,0.4)',
               }}
             >
-              {ESCROW_CONTRACT_ID ? 'Tanggapin at I-sign' : 'Contract not configured'}
+              {ESCROW_CONTRACT_ID ? t('scan.acceptAndSign') : t('scan.contractNotConfigured')}
             </button>
           )}
 
@@ -715,8 +714,8 @@ export function CustomerScan() {
               style={{ backgroundColor: '#F8FAFC' }}
             >
               <Loader2 className="animate-spin mx-auto" size={28} style={{ color: '#008055' }} />
-              <p className="text-sm font-bold text-slate-600">Kumpirmahin sa iyong wallet…</p>
-              <p className="text-xs text-slate-400">Sa mobile: buksan ang LOBSTR app at i-approve.</p>
+              <p className="text-sm font-bold text-slate-600">{t('scan.confirmInWallet')}</p>
+              <p className="text-xs text-slate-400">{t('scan.confirmWalletHint')}</p>
             </div>
           )}
 
@@ -734,74 +733,72 @@ export function CustomerScan() {
                 className="w-full text-white font-bold rounded-2xl active:scale-95"
                 style={{ backgroundColor: '#008055', minHeight: '56px' }}
               >
-                Subukan Ulit
+                {t('scan.tryAgain')}
               </button>
             </div>
           )}
         </div>
       )}
 
-      {/* ── Step: utang done ── */}
+      {/* Utang Done */}
       {step === 'utang_done' && (
-        <div className="px-4 pt-2">
+        <div
+          className="rounded-3xl overflow-hidden"
+          style={{ border: '1.5px solid #F1F5F9' }}
+        >
           <div
-            className="rounded-3xl overflow-hidden"
-            style={{ border: '1.5px solid #F1F5F9' }}
+            className="p-8 text-center"
+            style={{ background: 'linear-gradient(135deg, #1C1917 0%, #D97706 100%)' }}
           >
             <div
-              className="p-8 text-center"
-              style={{ background: 'linear-gradient(135deg, #1C1917 0%, #D97706 100%)' }}
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
-              >
-                <CheckCircle size={40} className="text-white" />
-              </div>
-              <h2
-                className="text-xl font-black text-white mb-1"
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
-              >
-                Kasunduan Tinanggap!
-              </h2>
-              <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                Aktibo na ang installment plan.
-              </p>
+              <CheckCircle size={40} className="text-white" />
             </div>
+            <h2
+              className="text-xl font-black text-white mb-1"
+              style={{ fontFamily: "'Montserrat', sans-serif" }}
+            >
+              {t('scan.agreementAccepted')}
+            </h2>
+            <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              {t('scan.agreementActive')}
+            </p>
+          </div>
 
-            <div className="bg-white p-5 space-y-3">
-              {utangTxHash && (
-                <a
-                  href={stellarExpertUrl(utangTxHash)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full active:scale-95"
-                  style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
-                >
-                  <ExternalLink size={13} /> Tingnan sa Stellar Expert
-                </a>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => navigate('/customer/utang')}
-                  className="font-bold rounded-2xl active:scale-95 text-sm"
-                  style={{
-                    minHeight: '52px',
-                    border: '2px solid #E2E8F0',
-                    color: '#475569',
-                    backgroundColor: 'white',
-                  }}
-                >
-                  Tingnan Utang
-                </button>
-                <button
-                  onClick={() => navigate('/customer/home')}
-                  className="font-bold rounded-2xl active:scale-95 text-sm text-white"
-                  style={{ minHeight: '52px', backgroundColor: '#008055' }}
-                >
-                  Home
-                </button>
-              </div>
+          <div className="bg-white p-5 space-y-3">
+            {utangTxHash && (
+              <a
+                href={stellarExpertUrl(utangTxHash)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full active:scale-95"
+                style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
+              >
+                <ExternalLink size={13} /> {t('scan.viewOnExpert')}
+              </a>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => navigate('/customer/utang')}
+                className="font-bold rounded-2xl active:scale-95 text-sm"
+                style={{
+                  minHeight: '52px',
+                  border: '2px solid #E2E8F0',
+                  color: '#475569',
+                  backgroundColor: 'white',
+                }}
+              >
+                {t('scan.viewUtang')}
+              </button>
+              <button
+                onClick={() => navigate('/customer/home')}
+                className="font-bold rounded-2xl active:scale-95 text-sm text-white"
+                style={{ minHeight: '52px', backgroundColor: '#008055' }}
+              >
+                {t('scan.home')}
+              </button>
             </div>
           </div>
         </div>

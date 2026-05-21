@@ -4,6 +4,7 @@ import { useWallet } from '../../lib/hooks/useWallet';
 import { useApplyVendor } from '../../lib/hooks/useVendor';
 import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress } from '../../lib/stellar';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const PRODUCT_TYPES = ['fish', 'meat', 'vegetables', 'fruits', 'rice & grains', 'spices', 'other'];
 const REGISTRY_ID = import.meta.env.VITE_VENDOR_REGISTRY_CONTRACT_ID as string | undefined;
@@ -101,13 +102,13 @@ function StallPicker({ value, onChange }: { value: string; onChange: (s: string)
       {/* Legend */}
       <div className="flex items-center gap-4">
         {[
-          { swatch: { backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0' }, label: 'Available' },
-          { swatch: { backgroundColor: '#F1F5F9' }, label: 'Occupied' },
-          { swatch: { backgroundColor: sc.active }, label: 'Selected' },
-        ].map(({ swatch, label }) => (
-          <span key={label} className="flex items-center gap-1.5 text-xs text-slate-400">
+          { swatch: { backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0' }, labelKey: 'Available' },
+          { swatch: { backgroundColor: '#F1F5F9' }, labelKey: 'Occupied' },
+          { swatch: { backgroundColor: sc.active }, labelKey: 'Selected' },
+        ].map(({ swatch, labelKey }) => (
+          <span key={labelKey} className="flex items-center gap-1.5 text-xs text-slate-400">
             <span className="w-3 h-3 rounded shrink-0" style={swatch} />
-            {label}
+            <span>{labelKey}</span>
           </span>
         ))}
       </div>
@@ -130,6 +131,7 @@ export function VendorApply() {
   const { address, isConnected, connect } = useWallet();
   const { apply, isSubmitting, error, txHash } = useApplyVendor();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [done, setDone] = useState(false);
   const [form, setForm] = useState({ name: '', stallNumber: '', productType: 'fish', phone: '' });
 
@@ -140,12 +142,12 @@ export function VendorApply() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConnected) { connect(); return; }
-    if (!REGISTRY_ID) { showToast('Vendor registry contract is not configured.', 'error'); return; }
+    if (!REGISTRY_ID) { showToast(t('apply.registryNotConfigured'), 'error'); return; }
     if (!address) return;
-    if (!form.stallNumber) { showToast('Select a stall number first.', 'error'); return; }
+    if (!form.stallNumber) { showToast(t('apply.selectStallError'), 'error'); return; }
     const ok = await apply(address, form.name, form.stallNumber, form.phone, form.productType);
     if (ok) {
-      showToast('Application submitted! Waiting for admin approval.', 'success');
+      showToast(t('apply.successToast'), 'success');
       setDone(true);
     } else if (error) {
       showToast(error.slice(0, 100), 'error');
@@ -181,10 +183,10 @@ export function VendorApply() {
               className="text-xl font-black text-white mb-1"
               style={{ fontFamily: "'Montserrat', sans-serif" }}
             >
-              Application Submitted!
+              {t('apply.successTitle')}
             </h2>
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              Admin will review and approve your registration.
+              {t('apply.successDesc')}
             </p>
           </div>
 
@@ -192,15 +194,15 @@ export function VendorApply() {
             {/* Details card */}
             <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: '#F8FAFC' }}>
               <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#94A3B8' }}>
-                Your Details
+                {t('apply.yourDetails')}
               </p>
               {[
-                { icon: QrCode,  label: 'Stall Name',  value: form.name },
-                { icon: MapPin,  label: 'Stall',       value: form.stallNumber },
-                { icon: Tag,     label: 'Product',     value: `${meta.emoji} ${form.productType}` },
-                ...(form.phone ? [{ icon: Phone, label: 'Phone', value: form.phone }] : []),
-              ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="flex items-center gap-3">
+                { icon: QrCode,  labelKey: 'stallName',  value: form.name },
+                { icon: MapPin,  labelKey: 'stall',       value: form.stallNumber },
+                { icon: Tag,     labelKey: 'product',     value: `${meta.emoji} ${form.productType}` },
+                ...(form.phone ? [{ icon: Phone, labelKey: 'phone', value: form.phone }] : []),
+              ].map(({ icon: Icon, labelKey, value }) => (
+                <div key={labelKey} className="flex items-center gap-3">
                   <div
                     className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                     style={{ backgroundColor: '#F0FDFA' }}
@@ -208,7 +210,7 @@ export function VendorApply() {
                     <Icon size={13} style={{ color: '#008055' }} />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">{label}</p>
+                    <p className="text-xs text-slate-400">{t(`apply.${labelKey}`)}</p>
                     <p className="text-sm font-bold text-slate-800 capitalize">{value}</p>
                   </div>
                 </div>
@@ -223,7 +225,7 @@ export function VendorApply() {
                 className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full active:scale-95"
                 style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
               >
-                <ExternalLink size={13} /> View on Stellar Expert
+                <ExternalLink size={13} /> {t('apply.viewOnExpert')}
               </a>
             )}
           </div>
@@ -264,10 +266,10 @@ export function VendorApply() {
             className="text-xl font-black text-white mb-1"
             style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
-            Apply as Vendor
+            {t('apply.title')}
           </h1>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            I-submit ang stall info. Admin ang mag-approve ng registration mo.
+            {t('apply.subtitle')}
           </p>
 
           {/* Wallet status */}
@@ -286,7 +288,7 @@ export function VendorApply() {
                 className="text-xs font-bold px-3 py-1 rounded-full"
                 style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: 'white' }}
               >
-                Connect Wallet
+                {t('apply.connectWallet')}
               </button>
             )}
           </div>
@@ -300,9 +302,9 @@ export function VendorApply() {
         >
           <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: '#D97706' }} />
           <div>
-            <p className="text-sm font-black text-slate-800">Vendor registry not configured</p>
+            <p className="text-sm font-black text-slate-800">{t('apply.registryNotConfigured')}</p>
             <p className="text-xs text-amber-700 mt-0.5">
-              Set VITE_VENDOR_REGISTRY_CONTRACT_ID before new vendor applications can be submitted.
+              {t('apply.registryHint')}
             </p>
           </div>
         </div>
@@ -314,11 +316,11 @@ export function VendorApply() {
         {/* Stall name */}
         <div>
           <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
-            Pangalan ng Stall
+            {t('apply.stallNameLabel')}
           </label>
           <input
             type="text" required value={form.name} onChange={update('name')}
-            placeholder="e.g. Aling Nena Sari-Sari"
+            placeholder={t('apply.stallNamePlaceholder')}
             className="w-full rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-800 focus:outline-none transition-all placeholder:font-normal placeholder:text-slate-300"
             style={{ border: '2px solid #E2E8F0' }}
             onFocus={(e) => { e.target.style.borderColor = '#008055'; }}
@@ -329,7 +331,7 @@ export function VendorApply() {
         {/* Product type */}
         <div>
           <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
-            Uri ng Produkto
+            {t('apply.productTypeLabel')}
           </label>
           <div className="relative">
             <select
@@ -345,10 +347,7 @@ export function VendorApply() {
                 </option>
               ))}
             </select>
-            {/* Selected preview badge */}
-            <div
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none"
-            >
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-lg pointer-events-none">
               {meta.emoji}
             </div>
           </div>
@@ -357,7 +356,7 @@ export function VendorApply() {
         {/* Stall picker */}
         <div>
           <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
-            Piliin ang Stall
+            {t('apply.selectStallLabel')}
           </label>
           <div
             className="rounded-3xl p-4"
@@ -373,7 +372,7 @@ export function VendorApply() {
         {/* Phone */}
         <div>
           <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
-            Telepono <span className="font-normal normal-case text-slate-400">(optional)</span>
+            {t('apply.phoneLabel')} <span className="font-normal normal-case text-slate-400">({t('apply.optional')})</span>
           </label>
           <input
             type="tel" value={form.phone} onChange={update('phone')}
@@ -393,7 +392,7 @@ export function VendorApply() {
           >
             <Wallet size={14} style={{ color: '#008055' }} className="shrink-0" />
             <div className="min-w-0">
-              <p className="text-xs text-slate-400 mb-0.5">Payment wallet</p>
+              <p className="text-xs text-slate-400 mb-0.5">{t('apply.paymentWallet')}</p>
               <p className="text-xs font-mono text-slate-600 truncate">{address}</p>
             </div>
           </div>
@@ -414,14 +413,14 @@ export function VendorApply() {
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
-              <Loader2 size={18} className="animate-spin" /> Isinusumite…
+              <Loader2 size={18} className="animate-spin" /> {t('apply.submitting')}
             </span>
           ) : !REGISTRY_ID ? (
-            'Registry not configured'
+            t('apply.registryNotConfiguredShort')
           ) : !isConnected ? (
-            'I-connect ang Wallet'
+            t('apply.connectWallet')
           ) : (
-            'I-submit ang Application'
+            t('apply.submitButton')
           )}
         </button>
       </form>

@@ -10,10 +10,19 @@ import { UtangCard } from '../../components/UtangCard';
 import { stellarExpertUrl } from '../../lib/stellar';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
 import { ESCROW_CONTRACT_ID } from '../../lib/contracts';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const STROOPS = 10_000_000;
-const INTERVAL_LABELS: Record<number, string> = { 604800: 'weekly', 1209600: 'biweekly', 2592000: 'monthly' };
-function intervalLabel(secs: number) { return INTERVAL_LABELS[secs] ?? `every ${Math.round(secs / 86400)}d`; }
+const INTERVAL_LABELS: Record<number, { en: string; tl: string }> = {
+  604800: { en: 'weekly', tl: 'lingguhan' },
+  1209600: { en: 'biweekly', tl: 'bawat dalawang linggo' },
+  2592000: { en: 'monthly', tl: 'buwanan' },
+};
+function intervalLabel(secs: number, t: (key: string, params?: Record<string, string | number>) => string) {
+  const label = INTERVAL_LABELS[secs];
+  if (label) return t(`customerUtang.interval.${label.en}`);
+  return t('customerUtang.interval.every', { days: Math.round(secs / 86400) });
+}
 const UTANG_FILE_DIV = 'qr-utang-file-scanner';
 
 export function CustomerUtang() {
@@ -21,6 +30,7 @@ export function CustomerUtang() {
   const { utangs, isLoading, error: fetchError, refetch } = useCustomerUtangs(address);
   const { status, txHash, error, payInstallment, reset } = usePayInstallment();
   const { createUtang, isCreating } = useCreateUtang();
+  const { t } = useLanguage();
   const { count: defaultsCount, refetch: refetchDefaults } = useCustomerDefaults(address);
   const { resumeAfterLate, isResuming, error: resumeError, txHash: resumeTxHash } = useResumeAfterLate();
 
@@ -60,17 +70,16 @@ export function CustomerUtang() {
         setOfferTxHash(null);
         setOfferError(null);
       } else {
-        setUploadError('This QR is not an installment offer. Use Scan to Pay for payment QRs.');
+        setUploadError(t('customerUtang.uploadErrorInvalid'));
         setTimeout(() => setUploadError(null), 5000);
       }
     } catch {
-      setUploadError('Could not read QR from image. Try a clearer photo.');
+      setUploadError(t('customerUtang.uploadErrorRead'));
       setTimeout(() => setUploadError(null), 5000);
     } finally {
       setUploadLoading(false);
       try { await scanner.clear(); } catch (clearError) {
         void clearError;
-        // File scanner cleanup is best-effort.
       }
     }
   };
@@ -78,7 +87,7 @@ export function CustomerUtang() {
   const handleAcceptOffer = async () => {
     if (!uploadedOffer || !address) return;
     if (uploadedOffer.c && uploadedOffer.c !== address) {
-      setOfferError('This installment offer is assigned to another customer wallet');
+      setOfferError(t('customerUtang.offerWrongWallet'));
       setOfferAcceptStatus('failed');
       return;
     }
@@ -100,7 +109,7 @@ export function CustomerUtang() {
       setOfferAcceptStatus('confirmed');
       refetch();
     } else {
-      setOfferError('Transaction failed — check wallet and try again');
+      setOfferError(t('customerUtang.offerFailed'));
       setOfferAcceptStatus('failed');
     }
   };
@@ -137,7 +146,7 @@ export function CustomerUtang() {
   }
 
   if (!address) {
-    return <WalletRequiredState detail="Connect your wallet to review installment plans and accept vendor credit offers." />;
+    return <WalletRequiredState detail={t('customerUtang.connectWalletDetail')} />;
   }
 
   return (
@@ -150,10 +159,10 @@ export function CustomerUtang() {
             className="text-xl font-black text-slate-900 leading-tight"
             style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
-            My Utang
+            {t('customerUtang.title')}
           </h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-sm text-slate-400">Iyong mga installment plans</p>
+            <p className="text-sm text-slate-400">{t('customerUtang.subtitle')}</p>
             {defaultsCount > 0 && (
               <span
                 className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -178,11 +187,14 @@ export function CustomerUtang() {
           }}
         >
           <ImageUp size={15} />
-          {uploadLoading ? 'Reading…' : 'Upload QR'}
+          {uploadLoading ? t('customerUtang.reading') : t('customerUtang.uploadQR')}
         </button>
       </div>
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUploadQR} />
 
+      {/* Rest of the file remains the same as your version... */}
+      {/* (Continue with the rest of your file - the bottom sheets, etc.) */}
+   
       {/* ── Upload error ── */}
       {uploadError && (
         <div
@@ -200,9 +212,9 @@ export function CustomerUtang() {
         >
           <AlertTriangle size={18} className="shrink-0 mt-0.5" style={{ color: '#D97706' }} />
           <div>
-            <p className="text-sm font-black text-slate-800">Installment contract not configured</p>
+            <p className="text-sm font-black text-slate-800">{t('customerUtang.contractNotConfigured')}</p>
             <p className="text-xs text-amber-700 mt-0.5">
-              Set VITE_UTANG_ESCROW_CONTRACT_ID before customers can load or accept installment plans.
+              {t('customerUtang.contractHint')}
             </p>
           </div>
         </div>
@@ -216,7 +228,7 @@ export function CustomerUtang() {
         >
           <AlertTriangle size={18} className="shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-rose-800">Hindi ma-load ang installment plans</p>
+            <p className="text-sm font-black text-rose-800">{t('customerUtang.loadFailed')}</p>
             <p className="text-xs font-medium mt-0.5 text-rose-600">{fetchError}</p>
           </div>
           <button
@@ -224,7 +236,7 @@ export function CustomerUtang() {
             className="text-xs font-bold px-3 py-2 rounded-xl active:scale-95 self-start"
             style={{ backgroundColor: 'white', color: '#BE123C', border: '1px solid #FECDD3' }}
           >
-            Retry
+            {t('customerUtang.retry')}
           </button>
         </div>
       )}
@@ -260,7 +272,7 @@ export function CustomerUtang() {
               className="text-xs font-bold uppercase tracking-[0.18em] mb-2"
               style={{ color: 'rgba(255,255,255,0.65)' }}
             >
-              Total Due — Next Installments
+              {t('customerUtang.totalDue')}
             </p>
             <div className="flex items-baseline gap-2 mb-3">
               <span
@@ -276,7 +288,7 @@ export function CustomerUtang() {
               <span className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>XLM</span>
             </div>
             <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>
-              {active.length} aktibong plan{active.length !== 1 ? 's' : ''}
+              {t('customerUtang.activePlans', { count: active.length })}
             </p>
           </div>
         </div>
@@ -300,7 +312,7 @@ export function CustomerUtang() {
                 boxShadow: filter === f ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
               }}
             >
-              {f}
+              {t(`customerUtang.filter.${f}`)}
             </button>
           ))}
         </div>
@@ -339,24 +351,24 @@ export function CustomerUtang() {
             className="text-base font-black text-slate-800 mb-1"
             style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
-            {filter === 'active' ? 'Walang aktibong plan' : `Walang ${filter} na plans`}
+            {filter === 'active' ? t('customerUtang.emptyActive') : t('customerUtang.emptyFiltered', { filter: t(`customerUtang.filter.${filter}`) })}
           </p>
           <p className="text-sm text-slate-500 mb-5">
-            Humingi ng installment QR sa iyong vendor, tapos i-scan o i-upload.
+            {t('customerUtang.emptyDesc')}
           </p>
           <div className="flex items-center justify-center gap-4">
             <div
               className="flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl"
               style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
             >
-              <ScanLine size={14} /> Scan QR
+              <ScanLine size={14} /> {t('customerUtang.scanQR')}
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl active:scale-95"
               style={{ color: '#D97706', backgroundColor: '#FEF3C7' }}
             >
-              <ImageUp size={14} /> Upload QR
+              <ImageUp size={14} /> {t('customerUtang.uploadQR')}
             </button>
           </div>
         </div>
@@ -394,10 +406,10 @@ export function CustomerUtang() {
             <div className="px-5 pt-2 pb-3 flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#D97706' }}>
-                  Installment Credit Offer
+                  {t('customerUtang.installmentOffer')}
                 </p>
                 <p className="text-base font-black text-slate-900 mt-0.5" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                  Suriin bago tanggapin
+                  {t('customerUtang.reviewBeforeAccept')}
                 </p>
               </div>
               {offerAcceptStatus !== 'signing' && !isCreating && (
@@ -416,7 +428,7 @@ export function CustomerUtang() {
               <div className="rounded-2xl overflow-hidden" style={{ border: '1.5px solid #F1F5F9' }}>
                 {uploadedOffer.d && (
                   <div className="px-4 py-3" style={{ borderBottom: '1px solid #F8FAFC' }}>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Mga Item</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{t('utang.items')}</p>
                     <p className="text-sm font-bold text-slate-800">{uploadedOffer.d}</p>
                   </div>
                 )}
@@ -425,7 +437,7 @@ export function CustomerUtang() {
                     <p className="text-xl font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                       {(uploadedOffer.a / STROOPS).toFixed(2)}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">XLM total</p>
+                    <p className="text-xs text-slate-400 mt-0.5">XLM {t('customerUtang.total')}</p>
                   </div>
                   <div className="p-4 text-center">
                     <p className="text-xl font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
@@ -435,14 +447,14 @@ export function CustomerUtang() {
                   </div>
                   <div className="p-4 text-center">
                     <p className="text-base font-black text-slate-900 leading-tight capitalize" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                      {intervalLabel(uploadedOffer.i)}
+                      {intervalLabel(uploadedOffer.i, t)}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">interval</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{t('customerUtang.interval')}</p>
                   </div>
                 </div>
                 <div className="px-4 py-2.5" style={{ backgroundColor: '#FAFAFA', borderTop: '1px solid #F8FAFC' }}>
                   <p className="text-xs text-slate-400 font-mono truncate">
-                    Vendor: {uploadedOffer.v.slice(0, 12)}…{uploadedOffer.v.slice(-6)}
+                    {t('customerUtang.vendor')}: {uploadedOffer.v.slice(0, 12)}…{uploadedOffer.v.slice(-6)}
                   </p>
                 </div>
               </div>
@@ -459,14 +471,14 @@ export function CustomerUtang() {
                     boxShadow: '0 6px 20px rgba(15,118,110,0.35)',
                   }}
                 >
-                  Tanggapin at I-sign
+                  {t('customerUtang.acceptAndSign')}
                 </button>
               )}
               {(offerAcceptStatus === 'signing' || isCreating) && (
                 <div className="text-center py-5 space-y-2 rounded-2xl" style={{ backgroundColor: '#F8FAFC' }}>
                   <Loader2 className="animate-spin mx-auto" size={26} style={{ color: '#008055' }} />
-                  <p className="text-sm font-bold text-slate-600">Kumpirmahin sa iyong wallet…</p>
-                  <p className="text-xs text-slate-400">Sa mobile: buksan ang LOBSTR at i-approve.</p>
+                  <p className="text-sm font-bold text-slate-600">{t('customerUtang.confirmInWallet')}</p>
+                  <p className="text-xs text-slate-400">{t('customerUtang.confirmWalletHint')}</p>
                 </div>
               )}
               {offerAcceptStatus === 'confirmed' && (
@@ -476,7 +488,7 @@ export function CustomerUtang() {
                     style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}
                   >
                     <CheckCircle size={20} style={{ color: '#16A34A' }} />
-                    <p className="text-sm font-bold text-green-800">Kasunduan tinanggap!</p>
+                    <p className="text-sm font-bold text-green-800">{t('customerUtang.agreementAccepted')}</p>
                   </div>
                   {offerTxHash && (
                     <a
@@ -486,7 +498,7 @@ export function CustomerUtang() {
                       className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full"
                       style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
                     >
-                      <ExternalLink size={12} /> Tingnan sa Stellar Expert
+                      <ExternalLink size={12} /> {t('customerUtang.viewOnExpert')}
                     </a>
                   )}
                   <button
@@ -494,7 +506,7 @@ export function CustomerUtang() {
                     className="w-full font-bold rounded-2xl active:scale-95 text-sm"
                     style={{ minHeight: '52px', border: '2px solid #E2E8F0', color: '#475569' }}
                   >
-                    Isara
+                    {t('customerUtang.close')}
                   </button>
                 </div>
               )}
@@ -512,7 +524,7 @@ export function CustomerUtang() {
                     className="w-full text-white font-bold rounded-2xl active:scale-95"
                     style={{ backgroundColor: '#008055', minHeight: '52px' }}
                   >
-                    Subukan Ulit
+                    {t('customerUtang.tryAgain')}
                   </button>
                 </div>
               )}
@@ -642,7 +654,7 @@ export function CustomerUtang() {
 
             <div className="px-5 pt-2 pb-2 flex items-center justify-between">
               <p className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                Bayad ng Installment
+                {t('customerUtang.payInstallment')}
               </p>
               {status !== 'building' && status !== 'signing' && status !== 'submitting' && (
                 <button
@@ -675,7 +687,7 @@ export function CustomerUtang() {
                   className="text-xs font-bold uppercase tracking-widest mb-2"
                   style={{ color: 'rgba(255,255,255,0.4)' }}
                 >
-                  Installment {paying.installmentsPaid + 1} of {paying.installmentsTotal}
+                  {t('customerUtang.installmentNumber', { current: paying.installmentsPaid + 1, total: paying.installmentsTotal })}
                 </p>
                 <p
                   className="font-black text-white leading-none"
@@ -702,14 +714,14 @@ export function CustomerUtang() {
                     boxShadow: '0 6px 20px rgba(15,118,110,0.35)',
                   }}
                 >
-                  Kumpirmahin ang Bayad
+                  {t('customerUtang.confirmPayment')}
                 </button>
               )}
               {(status === 'building' || status === 'signing' || status === 'submitting') && (
                 <div className="text-center py-5 space-y-2 rounded-2xl" style={{ backgroundColor: '#F8FAFC' }}>
                   <Loader2 className="animate-spin mx-auto" size={26} style={{ color: '#008055' }} />
                   <p className="text-sm font-bold text-slate-600">
-                    {status === 'building' ? 'Inihahanda…' : status === 'signing' ? 'Kumpirmahin sa wallet…' : 'Pinoproseso…'}
+                    {status === 'building' ? t('customerUtang.preparing') : status === 'signing' ? t('customerUtang.confirmInWallet') : t('customerUtang.processing')}
                   </p>
                 </div>
               )}
@@ -720,7 +732,7 @@ export function CustomerUtang() {
                     style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}
                   >
                     <CheckCircle size={20} style={{ color: '#16A34A' }} />
-                    <p className="text-sm font-bold text-green-800">Bayad na!</p>
+                    <p className="text-sm font-bold text-green-800">{t('customerUtang.paymentComplete')}</p>
                   </div>
                   {txHash && (
                     <a
@@ -730,7 +742,7 @@ export function CustomerUtang() {
                       className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full"
                       style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
                     >
-                      <ExternalLink size={12} /> Tingnan sa Stellar Expert
+                      <ExternalLink size={12} /> {t('customerUtang.viewOnExpert')}
                     </a>
                   )}
                   <button
@@ -738,7 +750,7 @@ export function CustomerUtang() {
                     className="w-full font-bold rounded-2xl active:scale-95 text-sm"
                     style={{ minHeight: '52px', border: '2px solid #E2E8F0', color: '#475569' }}
                   >
-                    Isara
+                    {t('customerUtang.close')}
                   </button>
                 </div>
               )}
@@ -756,7 +768,7 @@ export function CustomerUtang() {
                     className="w-full text-white font-bold rounded-2xl active:scale-95"
                     style={{ backgroundColor: '#008055', minHeight: '52px' }}
                   >
-                    Subukan Ulit
+                    {t('customerUtang.tryAgain')}
                   </button>
                 </div>
               )}

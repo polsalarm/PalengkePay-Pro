@@ -7,6 +7,7 @@ import { usePhpRate } from '../../lib/hooks/usePhpRate';
 import { quoteCashin, previewCashinQuote, confirmCashin, getStatus, isTerminal, type CashinQuoteResult, type RampTxn } from '../../lib/ramp';
 import { notifyWallet } from '../../lib/notify';
 import { buildCashinQrPayload, encodeCashinQrPayload, quoteSecondsRemaining } from '../../lib/ramp-qr';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 type Stage = 'form' | 'pay-php' | 'confirming' | 'awaiting-operator' | 'withdrawing' | 'done' | 'failed';
 
@@ -22,6 +23,7 @@ export function CustomerCashin() {
   const navigate = useNavigate();
   const { address } = useWallet();
   const { rate: phpPerXlm } = usePhpRate();
+  const { t } = useLanguage();
 
   const [amountPhp, setAmountPhp] = useState('');
   const [stage, setStage] = useState<Stage>('form');
@@ -68,8 +70,8 @@ export function CustomerCashin() {
       });
       setStage(stageFromStatus(r.status));
       if (address) notifyWallet(address, {
-        title: 'PalengkePay — payment received',
-        body: r.status === 'completed' ? 'XLM in your wallet' : 'Waiting on operator to release XLM',
+        title: t('cashin.notificationTitle'),
+        body: r.status === 'completed' ? t('cashin.notificationBodyComplete') : t('cashin.notificationBodyWaiting'),
         url: '/customer/profile',
       });
     } catch (err: unknown) {
@@ -82,12 +84,12 @@ export function CustomerCashin() {
     if (!quote) return;
     if (stage !== 'confirming' && stage !== 'awaiting-operator' && stage !== 'withdrawing') return;
     const interval = setInterval(async () => {
-      const t = await getStatus(quote.id);
-      if (!t) return;
-      setLatest(t);
-      const next = stageFromStatus(t.status);
+      const txn = await getStatus(quote.id);
+      if (!txn) return;
+      setLatest(txn);
+      const next = stageFromStatus(txn.status);
       setStage(next);
-      if (isTerminal(t.status)) clearInterval(interval);
+      if (isTerminal(txn.status)) clearInterval(interval);
     }, 4000);
     return () => clearInterval(interval);
   }, [quote, stage]);
@@ -132,7 +134,7 @@ export function CustomerCashin() {
   return (
     <div className="space-y-4 animate-page-in max-w-md">
       <button onClick={() => navigate('/customer/profile')} className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
-        <ArrowLeft size={14} /> Back
+        <ArrowLeft size={14} /> {t('common.back')}
       </button>
 
       <div className="flex items-center gap-3">
@@ -140,8 +142,8 @@ export function CustomerCashin() {
           <ArrowUpFromLine size={20} style={{ color: '#008055' }} />
         </div>
         <div>
-          <h1 className="text-xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>Cash In</h1>
-          <p className="text-xs text-slate-400">PHP → XLM via PDAX</p>
+          <h1 className="text-xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{t('cashin.title')}</h1>
+          <p className="text-xs text-slate-400">{t('cashin.subtitle')}</p>
         </div>
       </div>
 
@@ -149,7 +151,7 @@ export function CustomerCashin() {
         <div className="space-y-3">
           <div className="rounded-2xl p-4 bg-white border" style={{ borderColor: '#F1F5F9' }}>
             <label className="block">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Amount (PHP)</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('cashin.amountPhp')}</span>
               <input
                 type="number"
                 inputMode="decimal"
@@ -160,7 +162,7 @@ export function CustomerCashin() {
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
               />
               <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-slate-400">Min 50 PHP</span>
+                <span className="text-xs text-slate-400">{t('cashin.minAmount')}</span>
                 {estXlm && <span className="text-xs font-bold" style={{ color: '#008055' }}>≈ {estXlm} XLM</span>}
               </div>
             </label>
@@ -174,9 +176,9 @@ export function CustomerCashin() {
             className="w-full py-3 rounded-2xl font-black text-white disabled:opacity-40 active:scale-[0.98] transition-all"
             style={{ backgroundColor: '#008055', fontFamily: "'Montserrat', sans-serif" }}
           >
-            Get quote
+            {t('cashin.getQuote')}
           </button>
-          <p className="text-[11px] text-slate-400 text-center">Powered by PDAX (mock mode in dev)</p>
+          <p className="text-[11px] text-slate-400 text-center">{t('cashin.poweredBy')}</p>
         </div>
       )}
 
@@ -184,23 +186,23 @@ export function CustomerCashin() {
         <div className="space-y-3">
           <div className="rounded-2xl p-4 bg-white border space-y-3" style={{ borderColor: '#F1F5F9' }}>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">You pay</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('cashin.youPay')}</span>
               <span className="font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>PHP {quote.amountPhp}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">You receive</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('cashin.youReceive')}</span>
               <span className="font-black" style={{ color: '#008055', fontFamily: "'Montserrat', sans-serif" }}>{quote.amountXlm} XLM</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Rate</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('cashin.rate')}</span>
               <span className="text-xs text-slate-500">1 XLM = PHP {quote.rate}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Fee / spread</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('cashin.feeSpread')}</span>
               <span className="text-xs text-slate-500">PHP {quote.feePhp ?? '0.00'} · {quote.spreadBps ?? 0} bps</span>
             </div>
             <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#008055' }}>
-              {quote.railMode === 'partner_api' ? 'Partner API mode' : quote.railMode === 'manual_operator' ? 'Manual operator mode' : 'Demo settlement mode'}
+              {quote.railMode === 'partner_api' ? t('cashin.partnerApiMode') : quote.railMode === 'manual_operator' ? t('cashin.manualOperatorMode') : t('cashin.demoSettlementMode')}
             </p>
           </div>
 
@@ -208,59 +210,59 @@ export function CustomerCashin() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Calculator size={16} style={{ color: '#008055' }} />
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Rate and fee simulator</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('cashin.rateSimulator')}</p>
               </div>
               {previewLoading && <Loader2 size={14} className="animate-spin text-slate-400" />}
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <Metric label="Gross PHP" value={`PHP ${phpNum > 0 ? phpNum.toFixed(2) : '0.00'}`} />
-              <Metric label="Fee" value={`PHP ${activeQuote?.feePhp ?? '0.00'}`} />
-              <Metric label="Spread" value={`${activeQuote?.spreadBps ?? 85} bps`} />
-              <Metric label="Est. XLM" value={activeQuote?.amountXlm ? `${activeQuote.amountXlm} XLM` : (estXlm ? `${estXlm} XLM` : '—')} />
+              <Metric label={t('cashin.grossPhp')} value={`PHP ${phpNum > 0 ? phpNum.toFixed(2) : '0.00'}`} />
+              <Metric label={t('cashin.fee')} value={`PHP ${activeQuote?.feePhp ?? '0.00'}`} />
+              <Metric label={t('cashin.spread')} value={`${activeQuote?.spreadBps ?? 85} bps`} />
+              <Metric label={t('cashin.estXlm')} value={activeQuote?.amountXlm ? `${activeQuote.amountXlm} XLM` : (estXlm ? `${estXlm} XLM` : '—')} />
             </div>
             <p className="text-[11px] text-slate-400">
-              Final quote locks the PDAX-style rate for {activeQuote ? `${quoteSecondsRemaining(activeQuote.expiresAt, nowMs)}s` : '60s'} after confirmation.
+              {t('cashin.quoteHint', { seconds: activeQuote ? `${quoteSecondsRemaining(activeQuote.expiresAt, nowMs)}s` : '60s' })}
             </p>
           </div>
 
           <div className="rounded-2xl p-4 bg-white border space-y-2" style={{ borderColor: '#F1F5F9' }}>
             <div className="flex items-center gap-2">
               <QrCode size={16} style={{ color: '#008055' }} />
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">QR Ph-style payment instruction</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('cashin.qrInstruction')}</p>
             </div>
             <div className="flex justify-center py-2">
               <div className="rounded-2xl border p-3" style={{ borderColor: '#E2E8F0' }}>
                 <QRCodeCanvas value={qrValue} size={168} includeMargin />
               </div>
             </div>
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Pay via {quote.instructions.rail}</p>
-            <p className="text-xs text-slate-500">Send PHP {quote.amountPhp} from GCash, QR Ph, or bank transfer. Use this reference:</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('cashin.payVia', { rail: quote.instructions.rail })}</p>
+            <p className="text-xs text-slate-500">{t('cashin.sendInstruction', { amount: quote.amountPhp })}</p>
             <div className="flex items-center justify-between rounded-xl px-3 py-2" style={{ backgroundColor: '#F8FAFC' }}>
               <span className="font-mono text-sm font-bold">{quote.instructions.reference}</span>
               <button onClick={() => handleCopy(quote.instructions.reference)} className="px-2 py-1 rounded-md text-[11px] font-bold flex items-center gap-1" style={{ backgroundColor: '#F0FDFA', color: '#008055' }}>
-                {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? 'Copied' : 'Copy'}
+                {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? t('cashin.copied') : t('cashin.copy')}
               </button>
             </div>
             <button onClick={handleCopyQr} className="w-full min-h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-1" style={{ backgroundColor: '#F0FDFA', color: '#008055' }}>
-              {copiedQr ? <Check size={12} /> : <Copy size={12} />} {copiedQr ? 'QR payload copied' : 'Copy QR payload'}
+              {copiedQr ? <Check size={12} /> : <Copy size={12} />} {copiedQr ? t('cashin.qrCopied') : t('cashin.copyQrPayload')}
             </button>
-            <p className="text-[11px] text-slate-400">Quote expires in {quoteSecondsRemaining(quote.expiresAt, nowMs)}s · {new Date(quote.expiresAt).toLocaleTimeString()}</p>
-            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#008055' }}>Demo settlement mode</p>
+            <p className="text-[11px] text-slate-400">{t('cashin.expiresIn', { seconds: quoteSecondsRemaining(quote.expiresAt, nowMs), time: new Date(quote.expiresAt).toLocaleTimeString() })}</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#008055' }}>{t('cashin.demoModeNotice')}</p>
           </div>
 
           <div className="rounded-2xl p-4 bg-white border space-y-3" style={{ borderColor: '#F1F5F9' }}>
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Payment proof</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('cashin.paymentProof')}</p>
             <input
               value={senderName}
               onChange={(e) => setSenderName(e.target.value)}
-              placeholder="Sender name"
+              placeholder={t('cashin.senderNamePlaceholder')}
               className="w-full px-3 py-2 rounded-xl border text-sm"
               style={{ borderColor: '#E2E8F0' }}
             />
             <input
               value={paymentReference}
               onChange={(e) => setPaymentReference(e.target.value)}
-              placeholder="GCash / QR Ph reference number"
+              placeholder={t('cashin.referencePlaceholder')}
               className="w-full px-3 py-2 rounded-xl border text-sm"
               style={{ borderColor: '#E2E8F0' }}
             />
@@ -271,7 +273,7 @@ export function CustomerCashin() {
                 onChange={(e) => setProofConfirmed(e.target.checked)}
                 className="mt-0.5"
               />
-              I sent the PHP payment and understand operator confirmation is required in demo settlement mode.
+              {t('cashin.confirmationCheckbox')}
             </label>
           </div>
 
@@ -281,9 +283,9 @@ export function CustomerCashin() {
             className="w-full py-3 rounded-2xl font-black text-white active:scale-[0.98] transition-all disabled:opacity-40"
             style={{ backgroundColor: '#008055', fontFamily: "'Montserrat', sans-serif" }}
           >
-            I have paid — proceed
+            {t('cashin.proceedButton')}
           </button>
-          <button onClick={() => setStage('form')} className="w-full py-2 text-xs text-slate-500 font-bold">Cancel</button>
+          <button onClick={() => setStage('form')} className="w-full py-2 text-xs text-slate-500 font-bold">{t('cashin.cancel')}</button>
         </div>
       )}
 
@@ -291,14 +293,14 @@ export function CustomerCashin() {
         <div className="rounded-2xl p-6 bg-white border text-center space-y-3" style={{ borderColor: '#F1F5F9' }}>
           <Loader2 size={32} className="mx-auto animate-spin" style={{ color: '#008055' }} />
           <p className="font-bold text-slate-900">
-            {stage === 'confirming' && 'Submitting payment claim…'}
-            {stage === 'awaiting-operator' && 'Waiting for operator to confirm your PHP payment'}
-            {stage === 'withdrawing' && 'Sending XLM to your wallet…'}
+            {stage === 'confirming' && t('cashin.submittingClaim')}
+            {stage === 'awaiting-operator' && t('cashin.waitingOperator')}
+            {stage === 'withdrawing' && t('cashin.sendingXlm')}
           </p>
           <p className="text-xs text-slate-400">
             {stage === 'awaiting-operator'
-              ? 'We will push-notify you once operator releases XLM. You can close this page.'
-              : (latest?.message ?? 'Please keep this page open')}
+              ? t('cashin.operatorWaitMessage')
+              : (latest?.message ?? t('cashin.keepPageOpen'))}
           </p>
         </div>
       )}
@@ -306,18 +308,18 @@ export function CustomerCashin() {
       {stage === 'done' && latest && (
         <div className="rounded-2xl p-6 bg-white border text-center space-y-3" style={{ borderColor: '#F1F5F9' }}>
           <CheckCircle2 size={40} className="mx-auto" style={{ color: '#008055' }} />
-          <p className="font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>Cashin complete</p>
-          <p className="text-sm text-slate-500">{latest.amountOut ?? '—'} XLM in your wallet</p>
-          <button onClick={() => navigate('/customer/profile')} className="mt-3 px-6 py-2 rounded-xl font-bold text-white" style={{ backgroundColor: '#008055' }}>Done</button>
+          <p className="font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{t('cashin.completeTitle')}</p>
+          <p className="text-sm text-slate-500">{latest.amountOut ?? '—'} XLM {t('cashin.inYourWallet')}</p>
+          <button onClick={() => navigate('/customer/profile')} className="mt-3 px-6 py-2 rounded-xl font-bold text-white" style={{ backgroundColor: '#008055' }}>{t('cashin.done')}</button>
         </div>
       )}
 
       {stage === 'failed' && (
         <div className="rounded-2xl p-6 bg-white border text-center space-y-3" style={{ borderColor: '#FECACA' }}>
           <XCircle size={40} className="mx-auto text-red-500" />
-          <p className="font-black text-slate-900">Cashin failed</p>
-          <p className="text-xs text-red-500">{errorMsg ?? 'Unknown error'}</p>
-          <button onClick={() => { setStage('form'); setQuote(null); setErrorMsg(null); }} className="mt-3 px-6 py-2 rounded-xl font-bold" style={{ backgroundColor: '#F1F5F9', color: '#475569' }}>Try again</button>
+          <p className="font-black text-slate-900">{t('cashin.failedTitle')}</p>
+          <p className="text-xs text-red-500">{errorMsg ?? t('cashin.unknownError')}</p>
+          <button onClick={() => { setStage('form'); setQuote(null); setErrorMsg(null); }} className="mt-3 px-6 py-2 rounded-xl font-bold" style={{ backgroundColor: '#F1F5F9', color: '#475569' }}>{t('cashin.tryAgain')}</button>
         </div>
       )}
     </div>
