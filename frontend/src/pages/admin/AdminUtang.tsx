@@ -8,6 +8,9 @@ import {
   useMarkDefault,
   isOverdue,
   daysPastDue,
+  secondsPastDue,
+  useUtangGracePeriod,
+  formatGraceSeconds,
 } from '../../lib/hooks/useUtang';
 import { simulateViewCall, addressToScVal, u32ToScVal, truncateAddress } from '../../lib/stellar';
 import { UtangCard } from '../../components/UtangCard';
@@ -26,12 +29,23 @@ interface RawUtang {
   installments_paid: number;
   next_due: bigint;
   interval_seconds: bigint;
-  status: { tag: string };
+  // Soroban enum variants without associated data come through scValToNative
+  // in stellar-sdk@15 as a 1-element array (e.g. ["Defaulted"]). Older
+  // SDKs returned { tag: "..." } or a plain string. Accept any shape so the
+  // UI keeps working across SDK versions.
+  status: string | string[] | { tag: string };
   description: string;
 }
 
+function readStatusTag(s: RawUtang['status']): string {
+  if (typeof s === 'string') return s;
+  if (Array.isArray(s) && s.length > 0) return String(s[0]);
+  if (s && typeof s === 'object' && 'tag' in s) return String(s.tag);
+  return 'Active';
+}
+
 function mapUtang(raw: RawUtang): UtangRecord {
-  const tag = raw.status?.tag ?? 'Active';
+  const tag = readStatusTag(raw.status);
   return {
     id: raw.id,
     customerWallet: String(raw.customer),
@@ -83,8 +97,6 @@ function useAllUtangs(vendorWallets: string[]) {
   return { utangs, isLoading, error, refetch };
 }
 
-const GRACE_DEFAULT_DAYS = 7;
-
 type Filter = 'overdue' | 'eligible' | 'defaulted' | 'all';
 
 export function AdminUtang() {
@@ -95,6 +107,7 @@ export function AdminUtang() {
   const vendorWallets = useMemo(() => vendors.map((v) => v.wallet).filter(Boolean), [vendors]);
   const { utangs, isLoading: loadingUtangs, refetch } = useAllUtangs(vendorWallets);
   const { markDefault, isMarking } = useMarkDefault();
+  const { gracePeriodSecs } = useUtangGracePeriod();
   const [busyId, setBusyId] = useState<bigint | null>(null);
   const [filter, setFilter] = useState<Filter>('eligible');
 
@@ -104,11 +117,11 @@ export function AdminUtang() {
       if (u.status === 'defaulted') defaulted += 1;
       else if (u.status === 'active' && isOverdue(u.nextDueSecs)) {
         overdue += 1;
-        if (daysPastDue(u.nextDueSecs) > GRACE_DEFAULT_DAYS) eligible += 1;
+        if (secondsPastDue(u.nextDueSecs) > gracePeriodSecs) eligible += 1;
       }
     }
     return { overdue, eligible, defaulted, total: utangs.length };
-  }, [utangs]);
+  }, [utangs, gracePeriodSecs]);
 
   const filtered = useMemo(() => {
     const sorted = [...utangs].sort((a, b) => {
@@ -123,14 +136,14 @@ export function AdminUtang() {
         return sorted.filter(
           (u) => u.status === 'active'
             && isOverdue(u.nextDueSecs)
-            && daysPastDue(u.nextDueSecs) > GRACE_DEFAULT_DAYS
+            && secondsPastDue(u.nextDueSecs) > gracePeriodSecs
         );
       case 'defaulted':
         return sorted.filter((u) => u.status === 'defaulted');
       default:
         return sorted;
     }
-  }, [utangs, filter]);
+  }, [utangs, filter, gracePeriodSecs]);
 
   const handleMarkDefault = async (u: UtangRecord) => {
     if (!address) return;
@@ -217,7 +230,7 @@ export function AdminUtang() {
           <div className="mt-4 px-3 py-2 rounded-xl flex items-start gap-2" style={{ backgroundColor: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)' }}>
             <AlertTriangle size={12} style={{ color: '#FCD34D' }} className="mt-0.5 shrink-0" />
             <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              Mark Default is only callable after {GRACE_DEFAULT_DAYS}d grace past <code>next_due</code>. Reserve (1% of payments) pays out to vendor; customer can resume by paying 5% late fee.
+              Mark Default is only callable after {formatGraceSeconds(gracePeriodSecs)} grace past <code>next_due</code>. Reserve (1% of payments) pays out to vendor; customer can resume by paying 5% late fee.
             </p>
           </div>
         </div>
@@ -243,6 +256,7 @@ export function AdminUtang() {
             perspective="admin"
             onMarkDefault={handleMarkDefault}
             busy={isMarking && busyId === u.id}
+            graceSeconds={gracePeriodSecs}
           />
         ))}
       </div>
