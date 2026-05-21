@@ -30,27 +30,41 @@ test('/vendor/transactions exposes income proof exports, recovery, and caveats',
   await fs.mkdir('qa-artifacts/states', { recursive: true });
   await page.goto('/vendor/transactions');
 
-  await expect(page.getByRole('heading', { name: 'Income Proof Pack' })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText(/Exportable vendor proof with source labels and Testnet caveats/i)).toBeVisible();
-  await expect(page.getByText(/Testnet exports are demo evidence/i)).toBeVisible();
-  await expect(page.getByText(/fallback rows are not the canonical payment contract source/i)).toBeVisible();
-  await expect(page.getByText('PHP est.')).toBeVisible();
-  await expect(page.getByText('Date range')).toBeVisible();
-  await expect(page.getByLabel('Proof readiness checklist').getByText('Payment rows')).toBeVisible();
-  await expect(page.getByLabel('Proof readiness checklist').getByText('Live hash')).toBeVisible();
-  await expect(page.getByRole('button', { name: /CSV/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /JSON/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Certificate/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Print/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Copy live hash/i })).toBeVisible();
+  // Income Proof Pack is now opened from a transaction row click rather
+  // than rendered inline. Wait for the row, then open the modal before
+  // asserting on proof-pack contents.
+  const proofRow = page.getByRole('button', { name: /Open income proof pack for this transaction/i }).first();
+  await expect(proofRow).toBeVisible({ timeout: 15_000 });
+  await proofRow.click();
+
+  const proofModal = page.getByRole('dialog', { name: 'Income Proof Pack' });
+  await expect(proofModal).toBeVisible({ timeout: 15_000 });
+  await expect(proofModal.getByRole('heading', { name: 'Income Proof Pack' })).toBeVisible();
+  await expect(proofModal.getByText(/Exportable vendor proof with source labels and Testnet caveats/i)).toBeVisible();
+  await expect(proofModal.getByText(/Testnet exports are demo evidence/i)).toBeVisible();
+  await expect(proofModal.getByText(/fallback rows are not the canonical payment contract source/i)).toBeVisible();
+  await expect(proofModal.getByText('PHP est.')).toBeVisible();
+  await expect(proofModal.getByText('Date range')).toBeVisible();
+  await expect(proofModal.getByLabel('Proof readiness checklist').getByText('Payment rows')).toBeVisible();
+  await expect(proofModal.getByLabel('Proof readiness checklist').getByText('Live hash')).toBeVisible();
+  await expect(proofModal.getByRole('button', { name: /CSV/i })).toBeVisible();
+  await expect(proofModal.getByRole('button', { name: /JSON/i })).toBeVisible();
+  await expect(proofModal.getByRole('button', { name: /Certificate/i })).toBeVisible();
+  await expect(proofModal.getByRole('button', { name: /Print/i })).toBeVisible();
+  await expect(proofModal.getByRole('button', { name: /Copy live hash/i })).toBeVisible();
   const certificateDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Certificate/i }).click();
+  await proofModal.getByRole('button', { name: /Certificate/i }).click();
   await certificateDownload;
-  await expect(page.getByRole('status', { name: /Export status/i })).toContainText(/Certificate export prepared for \d+ transactions?/);
-  await expect(page.getByText('PalengkePay Income Proof Certificate')).toBeVisible();
-  await expect(page.getByText('Prepared for lender, cooperative, LGU, or aid-program review.')).toBeVisible();
-  await expect(page.getByText('Live hash').nth(1)).toBeVisible();
-  await expect(page.getByText('qa-vendor-proof-hash').first()).toBeVisible();
+  await expect(proofModal.getByRole('status', { name: /Export status/i })).toContainText(/Certificate export prepared for \d+ transactions?/);
+  await expect(proofModal.getByText('PalengkePay Income Proof Certificate')).toBeVisible();
+  await expect(proofModal.getByText('Prepared for lender, cooperative, LGU, or aid-program review.')).toBeVisible();
+  await expect(proofModal.getByText('Live hash').nth(1)).toBeVisible();
+  await expect(proofModal.getByText('qa-vendor-proof-hash').first()).toBeVisible();
+
+  // Close the modal before asserting on underlying page content.
+  await proofModal.getByRole('button', { name: 'Close' }).click();
+  await expect(proofModal).toBeHidden();
+
   await expect(page.getByRole('heading', { name: 'Transaction Recovery Desk' })).toBeVisible();
   await expect(page.getByText('Receipt lookup', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Transaction hash: qa-vendor-proof-hash').first()).toBeVisible({ timeout: 15_000 });
