@@ -1,15 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, QrCode, ScanLine, List, User, UserPlus, Users, HandCoins, ChevronLeft, ChevronRight, ArrowUp } from 'lucide-react';
+import {
+  Home,
+  QrCode,
+  ScanLine,
+  List,
+  User,
+  UserPlus,
+  Users,
+  HandCoins,
+  ArrowUp,
+} from 'lucide-react';
 import { WalletButton } from './WalletButton';
 import logoImg from '../assets/logo.png';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const vendorNav = [
-  { to: '/vendor/home', icon: Home, label: 'Home' },
-  { to: '/vendor/qr', icon: QrCode, label: 'My QR' },
-  { to: '/vendor/transactions', icon: List, label: 'History' },
-  { to: '/vendor/utang', icon: HandCoins, label: 'Utang' },
-  { to: '/vendor/profile', icon: User, label: 'Profile' },
+  { to: '/vendor/home', icon: Home, label: 'Home', center: false },
+  { to: '/vendor/transactions', icon: List, label: 'History', center: false },
+  { to: '/vendor/qr', icon: QrCode, label: 'My QR', center: true },
+  { to: '/vendor/utang', icon: HandCoins, label: 'Utang', center: false },
+  { to: '/vendor/profile', icon: User, label: 'Profile', center: false },
 ];
 
 const customerNav = [
@@ -43,22 +54,35 @@ const PAGE_TITLES: Record<string, string> = {
   '/vendor/apply': 'Apply as Vendor',
 };
 
+// Pages that should NOT have the container wrapper (full width)
+const fullWidthPages = ['/vendor/qr', '/customer/scan'];
+
 function useNavItems() {
   const { pathname } = useLocation();
+
   if (pathname.startsWith('/vendor')) return vendorNav;
   if (pathname.startsWith('/customer') || pathname === '/market') return customerNav;
   if (pathname.startsWith('/admin')) return adminNav;
+
   return null;
 }
 
-function ScrollToTop({ scrollRef }: { scrollRef: React.RefObject<HTMLElement | null> }) {
+function ScrollToTop({
+  scrollRef,
+}: {
+  scrollRef: React.RefObject<HTMLElement | null>;
+}) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const el = scrollRef.current;
+
     if (!el) return;
+
     const onScroll = () => setVisible(el.scrollTop > 300);
+
     el.addEventListener('scroll', onScroll, { passive: true });
+
     return () => el.removeEventListener('scroll', onScroll);
   }, [scrollRef]);
 
@@ -67,8 +91,13 @@ function ScrollToTop({ scrollRef }: { scrollRef: React.RefObject<HTMLElement | n
   return (
     <button
       type="button"
-      onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-40 w-11 h-11 rounded-full bg-teal-700 hover:bg-teal-600 active:scale-95 text-white shadow-lg flex items-center justify-center transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+      onClick={() =>
+        scrollRef.current?.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        })
+      }
+      className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-40 w-11 h-11 rounded-full bg-[#008055] hover:bg-[#006b48] active:scale-95 text-white shadow-lg flex items-center justify-center transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
       aria-label="Scroll to top"
     >
       <ArrowUp size={16} aria-hidden="true" />
@@ -79,10 +108,19 @@ function ScrollToTop({ scrollRef }: { scrollRef: React.RefObject<HTMLElement | n
 export function Layout() {
   const navItems = useNavItems();
   const { pathname } = useLocation();
+
   const [collapsed, setCollapsed] = useState(false);
+
   const scrollRef = useRef<HTMLElement>(null);
-  const isFullscreen = pathname === '/vendor/qr' || pathname === '/onboard' || pathname === '/customer/scan';
+
+  // Keep /customer/scan as fullscreen so it handles its own UI
+  const isFullscreen = pathname === '/onboard';
+
   const pageTitle = PAGE_TITLES[pathname] ?? '';
+
+  const { lang, setLang } = useLanguage();
+
+  const isFullWidthPage = fullWidthPages.includes(pathname);
 
   useEffect(() => {
     scrollRef.current?.focus({ preventScroll: true });
@@ -96,7 +134,7 @@ export function Layout() {
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[1000] focus:rounded-xl focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-black focus:text-teal-700 focus:shadow-lg focus:outline focus:outline-2 focus:outline-offset-2"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[1000] focus:rounded-xl focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-black focus:text-[#008055] focus:shadow-lg focus:outline focus:outline-2 focus:outline-offset-2"
       >
         Skip to main content
       </a>
@@ -107,22 +145,28 @@ export function Layout() {
           collapsed ? 'w-16' : 'w-60'
         }`}
       >
-        {/* Logo Section */}
-        <div className={`flex items-center h-16 border-b border-slate-200 shrink-0 ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-6'}`}>
+        <div
+          className={`flex items-center h-16 border-b border-slate-200 shrink-0 ${
+            collapsed ? 'justify-center px-0' : 'gap-2.5 px-6'
+          }`}
+        >
           <img
             src={logoImg}
             alt="PalengkePay"
             className="w-7 h-7 rounded-lg object-cover shrink-0"
           />
+
           {!collapsed && (
-            <span className="font-semibold" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+            <span
+              className="font-semibold"
+              style={{ fontFamily: "'Montserrat', sans-serif" }}
+            >
               <span style={{ color: '#00284B' }}>Palengke</span>
               <span style={{ color: '#008055' }}>Pay</span>
             </span>
           )}
         </div>
 
-        {/* Navigation Links */}
         {navItems && (
           <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
             {navItems.map(({ to, icon: Icon, label }) => (
@@ -135,42 +179,24 @@ export function Layout() {
                     collapsed ? 'justify-center' : ''
                   } ${
                     isActive
-                      ? 'bg-teal-50 text-teal-700'
+                      ? 'bg-[#008055]/10 text-[#008055]'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`
                 }
               >
-                <Icon size={18} aria-hidden="true" className="shrink-0" />
+                <Icon
+                  size={18}
+                  aria-hidden="true"
+                  className="shrink-0"
+                />
+
                 {!collapsed && label}
               </NavLink>
             ))}
           </nav>
         )}
 
-        {/* Wallet Button Section */}
-        <div className={`border-t border-slate-200 shrink-0 ${collapsed ? 'py-3 flex justify-center' : 'p-4'}`}>
-          {!collapsed && <WalletButton />}
-          {collapsed && (
-            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center mx-auto">
-              <span className="text-xs font-bold text-slate-600">₱</span>
-            </div>
-          )}
-        </div>
-
-        {/* Collapse Toggle Button - Fixed positioning */}
-        <button
-          type="button"
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-5 top-16 w-11 h-11 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-expanded={!collapsed}
-        >
-          {collapsed ? (
-            <ChevronRight size={14} aria-hidden="true" className="text-slate-500" />
-          ) : (
-            <ChevronLeft size={14} aria-hidden="true" className="text-slate-500" />
-          )}
-        </button>
+        {/* Wallet Button Section removed */}
       </aside>
 
       {/* ── Main column ─────────────────────────────────── */}
@@ -178,30 +204,72 @@ export function Layout() {
 
         {/* Mobile top bar */}
         <header className="lg:hidden shrink-0 bg-white border-b border-slate-200 h-14 flex items-center justify-between px-4 z-20">
-          <div className="flex items-center gap-2 min-w-0 shrink-0">
+          <div className="flex items-center min-w-0 shrink-0">
             <img
               src={logoImg}
               alt="PalengkePay"
-              className="w-6 h-6 rounded-md object-cover shrink-0"
+              className="w-7 h-7 rounded-md object-cover shrink-0"
             />
-            <span className="font-semibold text-sm" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              <span style={{ color: '#00284B' }}>Palengke</span>
-              <span style={{ color: '#008055' }}>Pay</span>
-            </span>
           </div>
-          <div className="shrink-0 ml-3">
-            <WalletButton />
+
+          <div className="flex items-center gap-1.5 shrink-0 ml-3">
+            <div className="flex items-center rounded-full p-0.5 bg-slate-100">
+              {(['en', 'tl'] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full transition-all"
+                  style={
+                    lang === l
+                      ? {
+                          backgroundColor: '#008055',
+                          color: 'white',
+                        }
+                      : {
+                          color: '#64748B',
+                        }
+                  }
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </header>
 
         {/* Desktop top bar */}
         <header className="hidden lg:flex shrink-0 bg-white border-b border-slate-200 h-14 items-center justify-between px-6 z-20">
           {pageTitle ? (
-            <h1 className="text-sm font-semibold text-slate-700">{pageTitle}</h1>
+            <h1 className="text-sm font-semibold text-slate-700">
+              {pageTitle}
+            </h1>
           ) : (
             <div />
           )}
-          <WalletButton />
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center rounded-full p-0.5 bg-slate-100">
+              {(['en', 'tl'] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className="text-xs font-bold px-3 py-1 rounded-full transition-all"
+                  style={
+                    lang === l
+                      ? {
+                          backgroundColor: '#008055',
+                          color: 'white',
+                        }
+                      : {
+                          color: '#64748B',
+                        }
+                  }
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
         </header>
 
         {/* Scrollable content */}
@@ -211,7 +279,16 @@ export function Layout() {
           tabIndex={-1}
           className="flex-1 overflow-y-auto outline-none"
         >
-          <div key={pathname} className={`max-w-3xl mx-auto w-full px-4 lg:px-8 pt-6 animate-page-in ${navItems ? 'pb-24' : 'pb-6'}`}>
+          <div
+            key={pathname}
+            className={
+              isFullWidthPage
+                ? 'w-full mx-auto p-0 animate-page-in'
+                : `max-w-3xl mx-auto w-full px-4 lg:px-8 pt-6 animate-page-in ${
+                    navItems ? 'pb-24' : 'pb-6'
+                  }`
+            }
+          >
             <Outlet />
           </div>
         </main>
@@ -226,6 +303,7 @@ export function Layout() {
           <div className="flex h-16 items-center overflow-visible">
             {navItems.map((item) => {
               const { to, icon: Icon, label } = item;
+
               const isFab = 'center' in item && item.center;
 
               if (isFab) {
@@ -239,12 +317,25 @@ export function Layout() {
                       <>
                         <div
                           className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg -translate-y-5 border-4 border-white transition-colors ${
-                            isActive ? 'bg-teal-600' : 'bg-teal-700'
+                            isActive
+                              ? 'bg-[#008055]'
+                              : 'bg-[#008055]'
                           }`}
                         >
-                          <Icon size={22} aria-hidden="true" className="text-white" />
+                          <Icon
+                            size={22}
+                            aria-hidden="true"
+                            className="text-white"
+                          />
                         </div>
-                        <span className={`text-xs font-medium -mt-3.5 transition-colors ${isActive ? 'text-teal-700' : 'text-slate-400'}`}>
+
+                        <span
+                          className={`text-xs font-medium -mt-3.5 transition-colors ${
+                            isActive
+                              ? 'text-[#008055]'
+                              : 'text-slate-400'
+                          }`}
+                        >
                           {label}
                         </span>
                       </>
@@ -259,12 +350,17 @@ export function Layout() {
                   to={to}
                   className={({ isActive }) =>
                     `flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors min-w-0 ${
-                      isActive ? 'text-teal-700' : 'text-slate-400 hover:text-slate-600'
+                      isActive
+                        ? 'text-[#008055]'
+                        : 'text-slate-400 hover:text-slate-600'
                     }`
                   }
                 >
                   <Icon size={18} aria-hidden="true" />
-                  <span className="text-xs font-medium leading-tight">{label}</span>
+
+                  <span className="text-xs font-medium leading-tight">
+                    {label}
+                  </span>
                 </NavLink>
               );
             })}
@@ -272,7 +368,9 @@ export function Layout() {
         </nav>
       )}
 
-      <ScrollToTop scrollRef={scrollRef as React.RefObject<HTMLElement | null>} />
+      <ScrollToTop
+        scrollRef={scrollRef as React.RefObject<HTMLElement | null>}
+      />
     </div>
   );
 }

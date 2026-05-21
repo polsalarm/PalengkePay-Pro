@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QrCode, HandCoins, ExternalLink, TrendingUp, ArrowRight, Zap, AlertCircle, RefreshCw, Power, Loader2 } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
@@ -10,82 +10,18 @@ import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, stellarExpertUrl, getServer } from '../../lib/stellar';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { useLanguage } from '../../contexts/LanguageContext';
 
-const STRINGS = {
-  en: {
-    greeting: (name: string, time: string) => `${time}, ${name}`,
-    goodMorning: 'Good morning',
-    goodAfternoon: 'Good afternoon',
-    goodEvening: 'Good evening',
-    todayEarnings: "Today's Earnings",
-    paymentsToday: (n: number) => `${n} payment${n !== 1 ? 's' : ''} today`,
-    wallet: 'Wallet',
-    allTimeEarnings: 'All-time',
-    totalPayments: 'Payments',
-    showQR: 'Show My QR',
-    showQRSub: 'Display code to accept payment',
-    utang: 'Utang',
-    utangSub: 'Installment credit',
-    recentPayments: 'Recent Payments',
-    viewAll: 'View all',
-    loadFailed: 'Failed to load',
-    retry: 'Retry',
-    emptyTitle: 'No payments yet',
-    emptyDesc: 'Share your QR to start receiving',
-    showQRBtn: 'Show my QR',
-    today: 'Today',
-    yesterday: 'Yesterday',
-    stallOpen: 'Stall is open',
-    stallClosed: 'Stall is closed',
-    tapToClose: 'Tap to close',
-    tapToOpen: 'Tap to open',
-    statusToastOpen: 'Stall set to OPEN. Customers can see you live.',
-    statusToastClosed: 'Stall set to CLOSED. You won\'t appear in the live directory.',
-    statusError: 'Could not update status',
-  },
-  tl: {
-    greeting: (name: string, time: string) => `${time}, ${name}`,
-    goodMorning: 'Magandang umaga',
-    goodAfternoon: 'Magandang tanghali',
-    goodEvening: 'Magandang gabi',
-    todayEarnings: 'Kita Ngayon',
-    paymentsToday: (n: number) => `${n} bayad ngayon`,
-    wallet: 'Pitaka',
-    allTimeEarnings: 'Kabuuan',
-    totalPayments: 'Mga Bayad',
-    showQR: 'Ipakita ang QR',
-    showQRSub: 'I-display para tumanggap ng bayad',
-    utang: 'Utang',
-    utangSub: 'Installment na kredito',
-    recentPayments: 'Mga Huling Bayad',
-    viewAll: 'Lahat',
-    loadFailed: 'Hindi na-load',
-    retry: 'Subukan ulit',
-    emptyTitle: 'Wala pang bayad',
-    emptyDesc: 'I-share ang iyong QR para makatanggap',
-    showQRBtn: 'Ipakita ang QR ko',
-    today: 'Ngayon',
-    yesterday: 'Kahapon',
-    stallOpen: 'Bukas ang stall',
-    stallClosed: 'Sarado ang stall',
-    tapToClose: 'I-tap para magsara',
-    tapToOpen: 'I-tap para magbukas',
-    statusToastOpen: 'Bukas na ang stall. Makikita ka ng mga kustomer.',
-    statusToastClosed: 'Sarado na. Hindi ka mapapakita sa live directory.',
-    statusError: 'Hindi na-update ang status',
-  },
-};
-
-function groupByDate(txs: TxRecord[], lang: 'en' | 'tl') {
+function groupByDate(txs: TxRecord[], lang: 'en' | 'tl', t: (key: string, params?: any) => string) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
   const buckets: Record<string, TxRecord[]> = {};
   for (const tx of txs) {
     const d = new Date(tx.createdAt); d.setHours(0, 0, 0, 0);
     const key = d.getTime() === today.getTime()
-      ? STRINGS[lang].today
+      ? t('common.today')
       : d.getTime() === yesterday.getTime()
-        ? STRINGS[lang].yesterday
+        ? t('common.yesterday')
         : d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
     if (!buckets[key]) buckets[key] = [];
     buckets[key].push(tx);
@@ -105,17 +41,16 @@ export function VendorHome() {
   const { toggle: toggleStatus, isPending: statusPending } = useToggleVendorStatus(address);
   const { showToast } = useToast();
   const prevCountRef = useRef<number | null>(null);
-  const [lang, setLang] = useState<'en' | 'tl'>('tl');
-  const t = STRINGS[lang];
+  const { t, lang } = useLanguage(); // Use global language
 
   const isOpen = openStatus?.isOpen ?? true;
   const handleToggleStatus = async () => {
     const ok = await toggleStatus(!isOpen);
     if (ok) {
-      showToast(!isOpen ? t.statusToastOpen : t.statusToastClosed, 'success');
+      showToast(!isOpen ? t('vendor.statusToastOpen') : t('vendor.statusToastClosed'), 'success');
       refetchStatus();
     } else {
-      showToast(t.statusError, 'error');
+      showToast(t('vendor.statusError'), 'error');
     }
   };
 
@@ -172,12 +107,20 @@ export function VendorHome() {
   }, [transactions, showToast]);
 
   const h = new Date().getHours();
-  const timeGreeting = h < 12 ? t.goodMorning : h < 18 ? t.goodAfternoon : t.goodEvening;
+  const getTimeGreeting = () => {
+    if (h < 12) return t('vendor.goodMorning');
+    if (h < 18) return t('vendor.goodAfternoon');
+    return t('vendor.goodEvening');
+  };
+  
+  const timeGreeting = getTimeGreeting();
   const firstName = vendor?.name?.split(' ')[0] ?? 'Vendor';
+  const greetingText = t('vendor.greeting', { name: firstName, time: timeGreeting });
+  
   const earnings = todayEarnings();
   const count = todayCount();
   const recent = transactions.slice(0, 10);
-  const groups = groupByDate(recent, lang);
+  const groups = groupByDate(recent, lang, t);
   const allTimeTotal = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
 
   const earningsStr = earnings.toFixed(2);
@@ -228,7 +171,7 @@ export function VendorHome() {
         >₱</div>
 
         <div className="relative p-5 pb-6">
-          {/* Top row: greeting + lang toggle */}
+          {/* Top row: greeting only (language toggle removed - now in navbar) */}
           <div className="flex items-center justify-between mb-4">
             {/* Live greeting pill */}
             <div
@@ -236,27 +179,7 @@ export function VendorHome() {
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' }}
             >
               <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#4ADE80' }} />
-              {t.greeting(firstName, timeGreeting)}
-            </div>
-
-            {/* Language toggle */}
-            <div
-              className="flex items-center rounded-full p-0.5"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-            >
-              {(['en', 'tl'] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  className="text-xs font-bold px-3 py-1 rounded-full transition-all"
-                  style={lang === l
-                    ? { backgroundColor: '#008055', color: 'white' }
-                    : { color: 'rgba(255,255,255,0.45)' }
-                  }
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
+              {greetingText}
             </div>
           </div>
 
@@ -281,10 +204,10 @@ export function VendorHome() {
               />
               <div className="text-left min-w-0">
                 <p className="text-sm font-black text-white truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                  {isOpen ? t.stallOpen : t.stallClosed}
+                  {isOpen ? t('vendor.stallOpen') : t('vendor.stallClosed')}
                 </p>
                 <p className="text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  {isOpen ? t.tapToClose : t.tapToOpen}
+                  {isOpen ? t('vendor.tapToClose') : t('vendor.tapToOpen')}
                 </p>
               </div>
             </div>
@@ -294,12 +217,12 @@ export function VendorHome() {
             }
           </button>
 
-          {/* Earnings — full width, no competing chip */}
+          {/* Earnings */}
           <div className="mb-1">
             <p
               className="text-xs font-bold uppercase tracking-[0.18em] mb-2"
               style={{ color: 'rgba(255,255,255,0.35)' }}
-            >{t.todayEarnings}</p>
+            >{t('vendor.todayEarnings')}</p>
 
             {isLoading
               ? <div className="h-12 w-40 skeleton rounded-xl mb-2" />
@@ -327,31 +250,31 @@ export function VendorHome() {
             <div className="flex items-center gap-1.5 mt-2">
               <Zap size={11} style={{ color: '#FDE68A' }} />
               <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                {t.paymentsToday(count)}
+                {t('vendor.paymentsToday', { count: count })}
               </span>
             </div>
           </div>
 
-          {/* Stats row — 3 cols: all-time, payments, wallet */}
+          {/* Stats row */}
           <div
             className="mt-4 pt-4 grid grid-cols-3 gap-3"
             style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
           >
             <div>
-              <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.allTimeEarnings}</p>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('vendor.allTimeEarnings')}</p>
               <p className="text-sm font-black text-white leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {allTimeTotal.toFixed(2)}
               </p>
               <p className="text-xs opacity-40 text-white">XLM</p>
             </div>
             <div>
-              <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.totalPayments}</p>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('vendor.totalPayments')}</p>
               <p className="text-sm font-black text-white leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {transactions.length}
               </p>
             </div>
             <div>
-              <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t.wallet}</p>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('vendor.wallet')}</p>
               <p className="text-sm font-black text-white leading-tight truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {balanceStr}
               </p>
@@ -373,7 +296,6 @@ export function VendorHome() {
             boxShadow: '0 8px 32px rgba(15,118,110,0.45)',
           }}
         >
-          {/* Dot pattern */}
           <div
             className="absolute inset-0 pointer-events-none opacity-10"
             style={{
@@ -381,12 +303,10 @@ export function VendorHome() {
               backgroundSize: '20px 20px',
             }}
           />
-          {/* Right glow */}
           <div
             className="absolute right-0 top-0 bottom-0 w-32 pointer-events-none"
             style={{ background: 'linear-gradient(to left, rgba(20,184,166,0.4), transparent)' }}
           />
-          {/* Pulsing ring icon */}
           <div className="relative shrink-0">
             <div
               className="absolute inset-0 rounded-2xl animate-ping opacity-20"
@@ -404,10 +324,10 @@ export function VendorHome() {
               className="font-black text-lg leading-tight"
               style={{ fontFamily: "'Montserrat', sans-serif" }}
             >
-              {t.showQR}
+              {t('vendor.showQR')}
             </p>
             <p className="text-sm mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              {t.showQRSub}
+              {t('vendor.showQRSub')}
             </p>
           </div>
           <ArrowRight size={20} style={{ color: 'rgba(255,255,255,0.5)' }} className="shrink-0" />
@@ -434,9 +354,9 @@ export function VendorHome() {
           </div>
           <div className="flex-1 text-left min-w-0">
             <p className="text-sm font-black text-slate-900 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              {t.utang}
+              {t('vendor.utang')}
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">{t.utangSub}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{t('vendor.utangSub')}</p>
           </div>
           <ArrowRight size={16} style={{ color: '#D97706' }} className="shrink-0" />
         </button>
@@ -449,14 +369,14 @@ export function VendorHome() {
             className="text-base font-black text-slate-900"
             style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
-            {t.recentPayments}
+            {t('vendor.recentPayments')}
           </h2>
           <button
             onClick={() => navigate('/vendor/transactions')}
             className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full active:scale-95"
             style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
           >
-            {t.viewAll} <ArrowRight size={11} />
+            {t('vendor.viewAll')} <ArrowRight size={11} />
           </button>
         </div>
 
@@ -484,14 +404,14 @@ export function VendorHome() {
               >
                 <AlertCircle size={22} style={{ color: '#F43F5E' }} />
               </div>
-              <p className="text-sm font-bold text-slate-600 mb-1">{t.loadFailed}</p>
+              <p className="text-sm font-bold text-slate-600 mb-1">{t('vendor.loadFailed')}</p>
               <p className="text-xs text-slate-400 mb-4">{error}</p>
               <button
                 onClick={retry}
                 className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2.5 rounded-xl active:scale-95"
                 style={{ color: '#008055', backgroundColor: '#F0FDFA' }}
               >
-                <RefreshCw size={12} /> {t.retry}
+                <RefreshCw size={12} /> {t('vendor.retry')}
               </button>
             </div>
           )}
@@ -505,15 +425,15 @@ export function VendorHome() {
                 <TrendingUp size={26} style={{ color: '#14B8A6' }} />
               </div>
               <p className="text-base font-black text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                {t.emptyTitle}
+                {t('vendor.emptyTitle')}
               </p>
-              <p className="text-sm text-slate-500 mb-5">{t.emptyDesc}</p>
+              <p className="text-sm text-slate-500 mb-5">{t('vendor.emptyDesc')}</p>
               <button
                 onClick={() => navigate('/vendor/qr')}
                 className="inline-flex items-center gap-2 text-sm font-bold px-5 py-3 rounded-2xl active:scale-95"
                 style={{ color: 'white', backgroundColor: '#008055' }}
               >
-                <QrCode size={15} /> {t.showQRBtn}
+                <QrCode size={15} /> {t('vendor.showQRBtn')}
               </button>
             </div>
           )}

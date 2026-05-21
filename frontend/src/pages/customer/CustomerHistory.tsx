@@ -8,40 +8,16 @@ import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
 import { useVendorName } from '../../lib/hooks/useVendor';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
 import { formatPhp } from '../../lib/checkout-quote';
+import { useLanguage } from '../../contexts/LanguageContext';
 
-const STRINGS = {
-  en: {
-    header: 'Payment History',
-    totalSpentSub: 'XLM total spent',
-    transactions: 'Transactions',
-    avgPerPayment: 'Avg per payment',
-    emptyTitle: 'No payments yet',
-    emptyDesc: 'Scan a vendor QR code to get started',
-    scanBtn: 'Scan to Pay',
-    today: 'Today',
-    yesterday: 'Yesterday',
-  },
-  tl: {
-    header: 'Kasaysayan ng Bayad',
-    totalSpentSub: 'XLM kabuuang gastos',
-    transactions: 'Mga Transaksyon',
-    avgPerPayment: 'Avg bawat bayad',
-    emptyTitle: 'Walang bayad pa',
-    emptyDesc: 'I-scan ang QR ng vendor para magsimula',
-    scanBtn: 'I-scan Ngayon',
-    today: 'Ngayon',
-    yesterday: 'Kahapon',
-  },
-};
-
-function groupByDate(txs: TxRecord[], t: typeof STRINGS['en']) {
+function groupByDate(txs: TxRecord[], t: (key: string, params?: any) => string) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
   const buckets: Record<string, TxRecord[]> = {};
   for (const tx of txs) {
     const d = new Date(tx.createdAt); d.setHours(0, 0, 0, 0);
-    const key = d.getTime() === today.getTime() ? t.today
-      : d.getTime() === yesterday.getTime() ? t.yesterday
+    const key = d.getTime() === today.getTime() ? t('common.today')
+      : d.getTime() === yesterday.getTime() ? t('common.yesterday')
       : d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
     if (!buckets[key]) buckets[key] = [];
     buckets[key].push(tx);
@@ -116,14 +92,13 @@ export function CustomerHistory() {
   const navigate = useNavigate();
   const { address } = useWallet();
   const { transactions, isLoading, error, retry } = useCustomerTransactions(address);
-  const [lang, setLang] = useState<'en' | 'tl'>('tl');
-  const t = STRINGS[lang];
+  const { t, lang } = useLanguage();
 
   const totalSpent = transactions.reduce((s, tx) => s + tx.amountXlm, 0);
   const groups = groupByDate(transactions, t);
 
   if (!address) {
-    return <WalletRequiredState detail="Connect your wallet to load your payment history and receipts." />;
+    return <WalletRequiredState detail={t('history.connectWalletDetail')} />;
   }
 
   return (
@@ -161,29 +136,11 @@ export function CustomerHistory() {
         >₱</div>
 
         <div className="relative p-5">
-          {/* Label + lang toggle */}
+          {/* Label - no language toggle here (already in navbar) */}
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {t.header}
+              {t('history.header')}
             </p>
-            <div
-              className="flex items-center rounded-full p-0.5"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-            >
-              {(['en', 'tl'] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  className="text-xs font-bold px-3 py-1 rounded-full transition-all"
-                  style={lang === l
-                    ? { backgroundColor: '#008055', color: 'white' }
-                    : { color: 'rgba(255,255,255,0.45)' }
-                  }
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
           </div>
 
           {isLoading ? (
@@ -204,13 +161,13 @@ export function CustomerHistory() {
                 {totalSpent.toFixed(2)}
               </p>
               <p className="text-sm font-semibold mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                {t.totalSpentSub}
+                {t('history.totalSpentSub')}
               </p>
 
               <div className="grid grid-cols-2 gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                 <div>
                   <p className="text-xs font-medium mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {t.transactions}
+                    {t('history.transactions')}
                   </p>
                   <p className="text-base font-black text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     {transactions.length}
@@ -218,7 +175,7 @@ export function CustomerHistory() {
                 </div>
                 <div>
                   <p className="text-xs font-medium mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {t.avgPerPayment}
+                    {t('history.avgPerPayment')}
                   </p>
                   <p className="text-base font-black text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     {transactions.length ? (totalSpent / transactions.length).toFixed(2) : '0.00'}
@@ -261,7 +218,7 @@ export function CustomerHistory() {
               <AlertTriangle size={24} style={{ color: '#F43F5E' }} />
             </div>
             <p className="text-sm font-black text-slate-800 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              Hindi ma-load ang history
+              {t('history.loadFailed')}
             </p>
             <p className="text-xs text-slate-500 mb-5">{error}</p>
             <button
@@ -269,7 +226,7 @@ export function CustomerHistory() {
               className="inline-flex items-center gap-1.5 text-xs font-bold px-5 py-2.5 rounded-xl active:scale-95"
               style={{ color: '#BE123C', backgroundColor: '#FFF1F2', border: '1px solid #FECDD3' }}
             >
-              <RefreshCw size={12} /> Retry
+              <RefreshCw size={12} /> {t('history.retry')}
             </button>
           </div>
         )}
@@ -283,15 +240,15 @@ export function CustomerHistory() {
               <ShoppingBag size={28} style={{ color: '#008055' }} />
             </div>
             <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              {t.emptyTitle}
+              {t('history.emptyTitle')}
             </p>
-            <p className="text-xs text-slate-400 mb-5">{t.emptyDesc}</p>
+            <p className="text-xs text-slate-400 mb-5">{t('history.emptyDesc')}</p>
             <button
               onClick={() => navigate('/customer/scan')}
               className="inline-flex items-center gap-1.5 text-xs font-bold px-5 py-2.5 rounded-xl active:scale-95 text-white"
               style={{ backgroundColor: '#008055' }}
             >
-              <ScanLine size={12} /> {t.scanBtn}
+              <ScanLine size={12} /> {t('history.scanBtn')}
             </button>
           </div>
         )}

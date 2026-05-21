@@ -10,6 +10,7 @@ import { buildPaymentTx, submitTx } from '../../lib/stellar';
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
 import { buildCollectionsSummary } from '../../lib/vendor-proof';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const ESCROW_ID = import.meta.env.VITE_UTANG_ESCROW_CONTRACT_ID as string | undefined;
 const FEE_XLM = import.meta.env.VITE_UTANG_FEE_XLM ?? '1';
@@ -63,6 +64,7 @@ const FILTER_LABELS: Record<string, { en: string; tl: string }> = {
 export function VendorUtang() {
   const { address } = useWallet();
   const { utangs, isLoading, error, refetch } = useVendorUtangs(address);
+  const { t } = useLanguage();
 
   const [lang, setLang] = useState<'en' | 'tl'>('tl');
   const [showPanel, setShowPanel] = useState(false);
@@ -93,18 +95,18 @@ export function VendorUtang() {
   const owedFontSize = owedStr.length >= 10 ? '1.8rem' : owedStr.length >= 8 ? '2.2rem' : owedStr.length >= 6 ? '2.8rem' : '3.4rem';
 
   if (!address) {
-    return <WalletRequiredState detail="Connect your vendor wallet to create and manage installment agreements." />;
+    return <WalletRequiredState detail={t('profile.connectWalletDetail')} />;
   }
 
   function validate(): boolean {
     setFormError(null);
-    if (!address) { setFormError('Wallet not connected'); return false; }
-    if (!form.description.trim()) { setFormError(lang === 'tl' ? 'Ilagay ang mga items' : 'Enter items description'); return false; }
+    if (!address) { setFormError(t('profile.walletNotConnected')); return false; }
+    if (!form.description.trim()) { setFormError(t('vendorUtang.itemsRequired')); return false; }
     const amount = parseFloat(form.totalAmountXlm);
-    if (!amount || amount <= 0) { setFormError(lang === 'tl' ? 'Ilagay ang tamang halaga' : 'Enter a valid amount'); return false; }
+    if (!amount || amount <= 0) { setFormError(t('vendorUtang.validAmountRequired')); return false; }
     if (mode === 'manual') {
       if (!form.customerWallet.trim().startsWith('G') || form.customerWallet.trim().length !== 56) {
-        setFormError(lang === 'tl' ? 'Ilagay ang wastong Stellar wallet address (G..., 56 chars)' : 'Enter a valid Stellar wallet address (G..., 56 chars)');
+        setFormError(t('vendorUtang.validWalletRequired'));
         return false;
       }
     }
@@ -144,7 +146,7 @@ export function VendorUtang() {
       const msg = (err as { message?: string }).message ?? String(err);
       setFeeError(
         msg.includes('rejected') || msg.includes('cancel')
-          ? (lang === 'tl' ? 'Kinansela ang transaksyon' : 'Transaction cancelled')
+          ? t('vendorUtang.transactionCancelled')
           : msg.slice(0, 120)
       );
       setFeeStatus('failed');
@@ -172,56 +174,42 @@ export function VendorUtang() {
   }
 
   const stepTitle = step === 'qr_display'
-    ? (lang === 'tl' ? 'Ipakita sa Customer' : 'Show QR to Customer')
+    ? t('vendorUtang.showQRToCustomer')
     : step === 'fee_payment'
-    ? (lang === 'tl' ? 'Bayad sa Serbisyo' : 'Service Fee')
-    : (lang === 'tl' ? 'Bagong Kasunduan' : 'New Agreement');
+    ? t('vendorUtang.serviceFee')
+    : t('vendorUtang.newAgreement');
 
   return (
     <div className="space-y-5">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1
-            className="text-xl font-black text-slate-900"
-            style={{ fontFamily: "'Montserrat', sans-serif" }}
-          >
-            {lang === 'tl' ? 'Utang (BNPL)' : 'Utang (BNPL)'}
-          </h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            {lang === 'tl' ? 'I-manage ang mga installment' : 'Manage installment agreements'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* EN/TL toggle */}
-          <button
-            onClick={() => setLang((l) => l === 'en' ? 'tl' : 'en')}
-            className="flex items-center text-xs font-bold rounded-full px-2.5 py-1 transition-all"
-            style={{
-              backgroundColor: 'rgba(15,118,110,0.1)',
-              color: '#008055',
-              border: '1px solid rgba(15,118,110,0.2)',
-            }}
-          >
-            {lang === 'en' ? 'TL' : 'EN'}
-          </button>
-          {ESCROW_ID && (
-            <button
-              onClick={() => { setShowPanel(true); setMode('qr'); setStep('form'); }}
-              className="flex items-center gap-1.5 text-white px-4 rounded-xl text-sm font-bold transition-all active:scale-95"
-              style={{
-                background: 'linear-gradient(135deg, #008055, #0D9488)',
-                minHeight: '44px',
-                boxShadow: '0 4px 14px rgba(15,118,110,0.35)',
-              }}
-            >
-              <Plus size={15} />
-              {lang === 'tl' ? 'Bagong Utang' : 'New Utang'}
-            </button>
-          )}
-        </div>
-      </div>
+<div className="flex items-center justify-between">
+  <div>
+    <h1
+      className="text-xl font-black text-slate-900"
+      style={{ fontFamily: "'Montserrat', sans-serif" }}
+    >
+      {t('vendorUtang.title')}
+    </h1>
+    <p className="text-sm text-slate-400 mt-0.5">
+      {t('vendorUtang.subtitle')}
+    </p>
+  </div>
+  {ESCROW_ID && (
+    <button
+      onClick={() => { setShowPanel(true); setMode('qr'); setStep('form'); }}
+      className="flex items-center gap-1.5 text-white px-4 rounded-xl text-sm font-bold transition-all active:scale-95"
+      style={{
+        background: 'linear-gradient(135deg, #008055, #0D9488)',
+        minHeight: '44px',
+        boxShadow: '0 4px 14px rgba(15,118,110,0.35)',
+      }}
+    >
+      <Plus size={15} />
+      {t('vendorUtang.newUtang')}
+    </button>
+  )}
+</div>
 
       {/* ── No escrow warning ── */}
       {!ESCROW_ID && (
@@ -231,10 +219,7 @@ export function VendorUtang() {
         >
           <AlertTriangle size={18} style={{ color: '#D97706' }} className="shrink-0 mt-0.5" />
           <p className="text-sm" style={{ color: '#92400E' }}>
-            {lang === 'tl'
-              ? <>I-set ang <code style={{ backgroundColor: 'rgba(245,158,11,0.2)', borderRadius: 4, padding: '0 4px' }}>VITE_UTANG_ESCROW_CONTRACT_ID</code> para ma-enable ang BNPL.</>
-              : <>Set <code style={{ backgroundColor: 'rgba(245,158,11,0.2)', borderRadius: 4, padding: '0 4px' }}>VITE_UTANG_ESCROW_CONTRACT_ID</code> to enable BNPL.</>
-            }
+            {t('vendorUtang.escrowWarning')}
           </p>
         </div>
       )}
@@ -248,7 +233,7 @@ export function VendorUtang() {
           <AlertTriangle size={18} style={{ color: '#F43F5E' }} className="shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-black text-slate-800">
-              {lang === 'tl' ? 'Hindi ma-load ang mga kasunduan' : 'Could not load agreements'}
+              {t('vendorUtang.loadFailed')}
             </p>
             <p className="text-xs font-medium text-rose-600 mt-0.5">{error}</p>
           </div>
@@ -257,7 +242,7 @@ export function VendorUtang() {
             className="text-xs font-bold px-3 py-2 rounded-xl active:scale-95 self-start"
             style={{ backgroundColor: 'white', color: '#BE123C', border: '1px solid #FECDD3' }}
           >
-            Retry
+            {t('vendorUtang.retry')}
           </button>
         </div>
       )}
@@ -296,7 +281,7 @@ export function VendorUtang() {
             className="text-xs font-bold uppercase tracking-widest mb-2 relative"
             style={{ color: 'rgba(120,53,15,0.7)' }}
           >
-            {lang === 'tl' ? 'Kabuuang Natatanggap' : 'Total Outstanding'}
+            {t('vendorUtang.totalOutstanding')}
           </p>
           <p
             className="font-black leading-none relative"
@@ -310,7 +295,7 @@ export function VendorUtang() {
             <span className="text-base font-bold ml-2" style={{ color: 'rgba(120,53,15,0.6)' }}>XLM</span>
           </p>
           <p className="text-sm font-semibold mt-2 relative" style={{ color: 'rgba(120,53,15,0.7)' }}>
-            {active.length} {lang === 'tl' ? `aktibong kasunduan${active.length !== 1 ? '' : ''}` : `active agreement${active.length !== 1 ? 's' : ''}`}
+            {t('vendorUtang.activeAgreements', { count: active.length })}
           </p>
         </div>
       )}
@@ -325,13 +310,11 @@ export function VendorUtang() {
             <div className="flex items-center gap-2 mb-1">
               <BarChart3 size={18} style={{ color: '#D97706' }} />
               <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                {lang === 'tl' ? 'Collections Report' : 'Collections Report'}
+                {t('vendorUtang.collectionsReport')}
               </h2>
             </div>
             <p className="text-xs text-slate-500">
-              {lang === 'tl'
-                ? 'Buod ng aktibo, tapos, overdue, at defaulted na kasunduan.'
-                : 'Summary of active, completed, overdue, and defaulted agreements.'}
+              {t('vendorUtang.collectionsDesc')}
             </p>
           </div>
           <span
@@ -345,10 +328,10 @@ export function VendorUtang() {
 
         <div className="grid grid-cols-2 gap-2">
           {[
-            { label: 'Active', value: collectionsSummary.activeAgreements },
-            { label: 'Completed', value: collectionsSummary.completedAgreements },
-            { label: 'Overdue', value: collectionsSummary.overdueAgreements },
-            { label: 'Defaulted', value: collectionsSummary.defaultedAgreements },
+            { label: t('vendorUtang.active'), value: collectionsSummary.activeAgreements },
+            { label: t('vendorUtang.completed'), value: collectionsSummary.completedAgreements },
+            { label: t('vendorUtang.overdue'), value: collectionsSummary.overdueAgreements },
+            { label: t('vendorUtang.defaulted'), value: collectionsSummary.defaultedAgreements },
           ].map(({ label, value }) => (
             <div key={label} className="rounded-2xl p-3" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
               <p className="text-xs font-bold text-slate-400 mb-1">{label}</p>
@@ -359,14 +342,14 @@ export function VendorUtang() {
 
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-2xl p-4" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
-            <p className="text-xs font-bold mb-1" style={{ color: '#C2410C' }}>Outstanding</p>
+            <p className="text-xs font-bold mb-1" style={{ color: '#C2410C' }}>{t('vendorUtang.outstanding')}</p>
             <p className="text-xl font-black" style={{ color: '#9A3412', fontFamily: "'Montserrat', sans-serif" }}>
               {collectionsSummary.totalOutstandingXlm.toFixed(2)}
               <span className="text-xs font-bold ml-1">XLM</span>
             </p>
           </div>
           <div className="rounded-2xl p-4" style={{ backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}>
-            <p className="text-xs font-bold mb-1" style={{ color: '#047857' }}>Collected</p>
+            <p className="text-xs font-bold mb-1" style={{ color: '#047857' }}>{t('vendorUtang.collected')}</p>
             <p className="text-xl font-black" style={{ color: '#065F46', fontFamily: "'Montserrat', sans-serif" }}>
               {collectionsSummary.totalCollectedXlm.toFixed(2)}
               <span className="text-xs font-bold ml-1">XLM</span>
@@ -432,16 +415,14 @@ export function VendorUtang() {
           </div>
           <p className="text-sm font-bold text-slate-700 mb-1">
             {filter === 'all'
-              ? (lang === 'tl' ? 'Walang kasunduan pa' : 'No agreements yet')
-              : (lang === 'tl' ? `Walang ${FILTER_LABELS[filter].tl.toLowerCase()} na kasunduan` : `No ${filter} agreements`)
+              ? t('vendorUtang.noAgreements')
+              : t('vendorUtang.noFilteredAgreements', { filter: FILTER_LABELS[filter][lang] })
             }
           </p>
           {filter === 'all' && (
             <>
               <p className="text-xs text-slate-400 mb-5">
-                {lang === 'tl'
-                  ? 'Gumawa ng installment para sa customer via QR o manual'
-                  : 'Create an installment agreement for a customer via QR or manual entry'}
+                {t('vendorUtang.emptyDesc')}
               </p>
               <button
                 onClick={() => { setShowPanel(true); setMode('qr'); setStep('form'); }}
@@ -452,7 +433,7 @@ export function VendorUtang() {
                 }}
               >
                 <Plus size={13} />
-                {lang === 'tl' ? 'Bagong Utang' : 'New Utang'}
+                {t('vendorUtang.newUtang')}
               </button>
             </>
           )}
@@ -556,7 +537,7 @@ export function VendorUtang() {
                     {mode === 'manual' && (
                       <div>
                         <label className="block text-xs font-bold mb-1.5" style={{ color: '#008055' }}>
-                          {lang === 'tl' ? 'Customer Wallet Address' : 'Customer Wallet Address'}
+                          {t('vendorUtang.customerWalletAddress')}
                         </label>
                         <div className="flex gap-2">
                           <input
@@ -595,7 +576,7 @@ export function VendorUtang() {
                               style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
                             >
                               <p className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                                {lang === 'tl' ? 'I-scan ang wallet ng customer' : "Scan customer's wallet QR"}
+                                {t('vendorUtang.scanCustomerWallet')}
                               </p>
                               <button
                                 onClick={() => setShowCustomerScanner(false)}
@@ -613,14 +594,14 @@ export function VendorUtang() {
                     {/* Items description */}
                     <div>
                       <label className="block text-xs font-bold mb-1.5" style={{ color: '#008055' }}>
-                        {lang === 'tl' ? 'Mga Items' : 'Items'}
+                        {t('vendorUtang.items')}
                         <span className="font-normal ml-1" style={{ color: 'rgba(15,23,42,0.35)' }}>
-                          {lang === 'tl' ? '(binibili nila sa credit)' : '(what they\'re buying on credit)'}
+                          {t('vendorUtang.itemsHint')}
                         </span>
                       </label>
                       <input
                         type="text"
-                        placeholder={lang === 'tl' ? 'hal. 5kg bigas, 2kg baboy, gulay' : 'e.g. 5kg rice, 2kg pork, vegetables'}
+                        placeholder={t('vendorUtang.itemsPlaceholder')}
                         maxLength={100}
                         value={form.description}
                         onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -636,7 +617,7 @@ export function VendorUtang() {
                     {/* Amount */}
                     <div>
                       <label className="block text-xs font-bold mb-1.5" style={{ color: '#008055' }}>
-                        {lang === 'tl' ? 'Kabuuang Halaga (XLM)' : 'Total Amount (XLM)'}
+                        {t('vendorUtang.totalAmount')}
                       </label>
                       <input
                         type="number"
@@ -658,7 +639,7 @@ export function VendorUtang() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-bold mb-1.5" style={{ color: '#008055' }}>
-                          {lang === 'tl' ? 'Installments' : 'Installments'}
+                          {t('vendorUtang.installments')}
                         </label>
                         <select
                           value={form.installmentsTotal}
@@ -675,7 +656,7 @@ export function VendorUtang() {
                       </div>
                       <div>
                         <label className="block text-xs font-bold mb-1.5" style={{ color: '#008055' }}>
-                          {lang === 'tl' ? 'Agwat' : 'Interval'}
+                          {t('vendorUtang.interval')}
                         </label>
                         <select
                           value={form.intervalDays}
@@ -732,7 +713,7 @@ export function VendorUtang() {
                       }}
                     >
                       <QrCode size={17} />
-                      {lang === 'tl' ? 'I-generate ang QR Code' : 'Generate QR Code'}
+                      {t('vendorUtang.generateQRCode')}
                     </button>
                   ) : (
                     <button
@@ -746,7 +727,7 @@ export function VendorUtang() {
                       }}
                     >
                       <QrCode size={17} />
-                      {lang === 'tl' ? 'Gumawa ng Customer QR' : 'Create Customer QR'}
+                      {t('vendorUtang.createCustomerQR')}
                     </button>
                   )}
                 </>
@@ -774,21 +755,21 @@ export function VendorUtang() {
                       className="text-xs font-bold uppercase tracking-widest relative"
                       style={{ color: 'rgba(255,255,255,0.5)' }}
                     >
-                      {lang === 'tl' ? 'Buod ng Kasunduan' : 'Agreement Summary'}
+                      {t('vendorUtang.agreementSummary')}
                     </p>
                     <p className="text-base font-bold text-white relative">{form.description}</p>
                     <div className="space-y-2 relative">
                       {[
                         {
-                          label: lang === 'tl' ? 'Kabuuang halaga' : 'Total amount',
+                          label: t('vendorUtang.totalAmount'),
                           value: `${form.totalAmountXlm} XLM`,
                         },
                         {
-                          label: lang === 'tl' ? 'Installments' : 'Installments',
+                          label: t('vendorUtang.installments'),
                           value: `${form.installmentsTotal} × ${(Number(form.totalAmountXlm) / form.installmentsTotal).toFixed(2)} XLM`,
                         },
                         {
-                          label: lang === 'tl' ? 'Agwat' : 'Interval',
+                          label: t('vendorUtang.interval'),
                           value: INTERVAL_OPTIONS.find((o) => o.days === form.intervalDays)?.[lang === 'tl' ? 'labelTl' : 'label'] ?? '',
                         },
                       ].map(({ label, value }) => (
@@ -808,12 +789,12 @@ export function VendorUtang() {
                     <div className="flex items-center gap-2">
                       <ShieldCheck size={18} style={{ color: '#D97706' }} className="shrink-0" />
                       <p className="text-sm font-bold" style={{ color: '#92400E' }}>
-                        {lang === 'tl' ? 'Bayad sa Serbisyo ng PalengkePay' : 'PalengkePay Service Fee'}
+                        {t('vendorUtang.serviceFeeTitle')}
                       </p>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm" style={{ color: '#B45309' }}>
-                        {lang === 'tl' ? 'Bayad sa paglikha ng QR utang' : 'QR utang creation fee'}
+                        {t('vendorUtang.serviceFeeDesc')}
                       </span>
                       <span
                         className="font-black"
@@ -823,9 +804,7 @@ export function VendorUtang() {
                       </span>
                     </div>
                     <p className="text-xs" style={{ color: 'rgba(146,64,14,0.7)' }}>
-                      {lang === 'tl'
-                        ? 'One-time fee bawat QR na kasunduan. Bayad sa PalengkePay para ma-register on-chain.'
-                        : 'One-time fee per QR agreement. Paid to PalengkePay to register this installment on-chain.'}
+                      {t('vendorUtang.serviceFeeNote')}
                     </p>
                   </div>
 
@@ -850,9 +829,7 @@ export function VendorUtang() {
                       }}
                     >
                       <CheckCircle size={17} />
-                      {lang === 'tl'
-                        ? `Bayaran ang ${FEE_XLM} XLM at I-generate ang QR`
-                        : `Pay ${FEE_XLM} XLM & Generate QR`}
+                      {t('vendorUtang.payAndGenerateQR', { fee: FEE_XLM })}
                     </button>
                   ) : (
                     <div
@@ -864,7 +841,7 @@ export function VendorUtang() {
                       }}
                     >
                       <Loader2 size={17} className="animate-spin" />
-                      {lang === 'tl' ? 'Kumpirmahin sa wallet…' : 'Confirm in wallet…'}
+                      {t('vendorUtang.confirmInWallet')}
                     </div>
                   )}
                 </div>
@@ -925,7 +902,7 @@ export function VendorUtang() {
                     }}
                   >
                     <Download size={17} />
-                    {lang === 'tl' ? 'I-download ang QR Image' : 'Download QR Image'}
+                    {t('vendorUtang.downloadQR')}
                   </button>
 
                   {/* How it works */}
@@ -934,24 +911,13 @@ export function VendorUtang() {
                     style={{ backgroundColor: 'rgba(15,118,110,0.07)', border: '1px solid rgba(15,118,110,0.12)' }}
                   >
                     <p className="text-sm font-bold" style={{ color: '#008055' }}>
-                      {lang === 'tl' ? 'Paano ito gumagana' : 'How it works'}
+                      {t('vendorUtang.howItWorks')}
                     </p>
                     <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: 'rgba(15,118,110,0.8)' }}>
-                      {lang === 'tl' ? (
-                        <>
-                          <li>Ipakita itong QR sa iyong customer</li>
-                          <li>Buksan ng customer ang PalengkePay → My Utang → i-tap ang Scan</li>
-                          <li>Tingnan ng customer ang detalye at i-tap ang Tanggapin</li>
-                          <li>Awtomatikong nai-register ang kasunduan on-chain</li>
-                        </>
-                      ) : (
-                        <>
-                          <li>Show this QR to your customer</li>
-                          <li>Customer opens PalengkePay → My Utang → tap Scan</li>
-                          <li>Customer reviews details and taps Accept</li>
-                          <li>Agreement registers on-chain automatically</li>
-                        </>
-                      )}
+                      <li>{t('vendorUtang.step1')}</li>
+                      <li>{t('vendorUtang.step2')}</li>
+                      <li>{t('vendorUtang.step3')}</li>
+                      <li>{t('vendorUtang.step4')}</li>
                     </ol>
                   </div>
 
@@ -966,7 +932,7 @@ export function VendorUtang() {
                       backgroundColor: 'white',
                     }}
                   >
-                    {lang === 'tl' ? 'Isara' : 'Done'}
+                    {t('vendorUtang.done')}
                   </button>
                 </div>
               )}

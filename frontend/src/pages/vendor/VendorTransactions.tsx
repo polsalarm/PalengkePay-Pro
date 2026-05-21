@@ -1,4 +1,8 @@
-import { useMemo, useState } from 'react';
+
+
+
+
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, CalendarDays, CheckCircle2, Copy, Database, Download, ExternalLink, FileJson, FileText, Printer, QrCode, RefreshCw, Search, ShieldCheck, TrendingUp, Zap } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
@@ -24,44 +28,16 @@ import {
   toProofCsv,
   type ProofPeriodKind,
 } from '../../lib/vendor-proof';
+import { useLanguage } from '../../contexts/LanguageContext';
 
-const STRINGS = {
-  en: {
-    header: 'All Earnings',
-    allTimeSub: 'XLM all-time',
-    todayEarnings: "Today's Earnings",
-    paymentsToday: 'Payments Today',
-    emptyTitle: 'No transactions yet',
-    emptyDesc: 'Share your QR code to receive your first payment',
-    showQr: 'Show QR',
-    failedTitle: 'Failed to load',
-    retry: 'Retry',
-    today: 'Today',
-    yesterday: 'Yesterday',
-  },
-  tl: {
-    header: 'Lahat ng Kita',
-    allTimeSub: 'XLM kabuuan',
-    todayEarnings: 'Kita Ngayon',
-    paymentsToday: 'Mga Bayad Ngayon',
-    emptyTitle: 'Wala pang bayad',
-    emptyDesc: 'I-share ang QR code para matanggap ang unang bayad',
-    showQr: 'Ipakita ang QR',
-    failedTitle: 'Hindi ma-load',
-    retry: 'Subukan Ulit',
-    today: 'Ngayon',
-    yesterday: 'Kahapon',
-  },
-};
-
-function groupByDate(txs: TxRecord[], t: typeof STRINGS['en']) {
+function groupByDate(txs: TxRecord[], t: (key: string, params?: any) => string) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
   const buckets: Record<string, TxRecord[]> = {};
   for (const tx of txs) {
     const d = new Date(tx.createdAt); d.setHours(0, 0, 0, 0);
-    const key = d.getTime() === today.getTime() ? t.today
-      : d.getTime() === yesterday.getTime() ? t.yesterday
+    const key = d.getTime() === today.getTime() ? t('common.today')
+      : d.getTime() === yesterday.getTime() ? t('common.yesterday')
       : d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
     if (!buckets[key]) buckets[key] = [];
     buckets[key].push(tx);
@@ -140,13 +116,12 @@ export function VendorTransactions() {
   const { address } = useWallet();
   const { vendor } = useVendor(address);
   const { transactions, isLoading, error, retry, todayEarnings, todayCount } = useVendorTransactions(address);
-  const [lang, setLang] = useState<'en' | 'tl'>('tl');
+  const { t } = useLanguage();
   const [periodKind, setPeriodKind] = useState<ProofPeriodKind>('30d');
   const [searchTerm, setSearchTerm] = useState('');
   const [receiptLookupTerm, setReceiptLookupTerm] = useState('');
   const [exportStatus, setExportStatus] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
-  const t = STRINGS[lang];
   const selectedPeriod = PROOF_PERIODS.find((period) => period.kind === periodKind) ?? PROOF_PERIODS[1];
   const searchedTransactions = useMemo(
     () => filterTransactionsBySearch(transactions, searchTerm),
@@ -227,7 +202,6 @@ export function VendorTransactions() {
 
       {/* ── Hero stats card ── */}
       <div className="relative rounded-3xl overflow-hidden" style={{ backgroundColor: '#00284B' }}>
-        {/* Banig texture */}
         <div
           className="absolute inset-0 pointer-events-none opacity-[0.04]"
           style={{
@@ -238,7 +212,6 @@ export function VendorTransactions() {
             )`,
           }}
         />
-        {/* ₱ watermark */}
         <div
           className="absolute select-none pointer-events-none font-black"
           style={{
@@ -248,31 +221,10 @@ export function VendorTransactions() {
         >₱</div>
 
         <div className="relative p-5">
-          {/* Label + lang toggle */}
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {t.header}
+              {t('transactions.header')}
             </p>
-            <div
-              className="flex items-center rounded-full p-0.5"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-            >
-              {(['en', 'tl'] as const).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  aria-pressed={lang === l}
-                  onClick={() => setLang(l)}
-                  className="text-xs font-bold px-3 rounded-full transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                  style={lang === l
-                    ? { minHeight: 44, minWidth: 44, backgroundColor: '#008055', color: 'white' }
-                    : { minHeight: 44, minWidth: 44, color: 'rgba(255,255,255,0.72)' }
-                  }
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
           </div>
 
           {isLoading ? (
@@ -293,13 +245,13 @@ export function VendorTransactions() {
                 {allTimeTotal.toFixed(2)}
               </p>
               <p className="text-sm font-semibold mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                {t.allTimeSub}
+                {t('transactions.allTimeSub')}
               </p>
 
               <div className="grid grid-cols-2 gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                 <div>
                   <p className="text-xs font-medium mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {t.todayEarnings}
+                    {t('transactions.todayEarnings')}
                   </p>
                   <p className="text-base font-black text-white flex items-center gap-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     <Zap size={13} style={{ color: '#FDE68A' }} />
@@ -309,7 +261,7 @@ export function VendorTransactions() {
                 </div>
                 <div>
                   <p className="text-xs font-medium mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {t.paymentsToday}
+                    {t('transactions.paymentsToday')}
                   </p>
                   <p className="text-base font-black text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                     {count}
@@ -334,12 +286,12 @@ export function VendorTransactions() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <ShieldCheck size={18} aria-hidden="true" style={{ color: '#008055' }} />
-                <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                  Income Proof Pack
+                <h2 className="text-base font-black text-slate-900">
+                  {t('transactions.incomeProofPack')}
                 </h2>
               </div>
               <p className="text-xs text-slate-500">
-                Exportable vendor proof with source labels and Testnet caveats.
+                {t('transactions.incomeProofDesc')}
               </p>
             </div>
             <span
@@ -377,10 +329,10 @@ export function VendorTransactions() {
 
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: 'Transactions', value: String(proofSummary.transactionCount) },
-              { label: 'Total XLM', value: proofSummary.totalXlm.toFixed(2) },
-              { label: 'PHP est.', value: proofSummary.estimatedPhpTotal ? `PHP ${proofSummary.estimatedPhpTotal.toFixed(2)}` : 'Unavailable' },
-              { label: 'Date range', value: proofSummary.dateRange.label },
+              { label: t('transactions.transactions'), value: String(proofSummary.transactionCount) },
+              { label: t('transactions.totalXlm'), value: proofSummary.totalXlm.toFixed(2) },
+              { label: t('transactions.phpEst'), value: proofSummary.estimatedPhpTotal ? `PHP ${proofSummary.estimatedPhpTotal.toFixed(2)}` : t('transactions.unavailable') },
+              { label: t('transactions.dateRange'), value: proofSummary.dateRange.label },
             ].map(({ label, value }) => (
               <div key={label} className="rounded-2xl p-3" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
                 <p className="text-xs font-bold text-slate-400 mb-1">{label}</p>
@@ -400,28 +352,28 @@ export function VendorTransactions() {
               <p className="text-sm font-black text-slate-800">{proofSummary.readiness.label}</p>
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <p className="text-slate-500">Payment data: <span className="font-bold text-slate-700">{proofSummary.readiness.paymentDataPresent ? 'Present' : 'Missing'}</span></p>
-              <p className="text-slate-500">Repayment data: <span className="font-bold text-slate-700">{proofSummary.readiness.repaymentDataPresent ? 'Present' : 'Not attached'}</span></p>
-              <p className="text-slate-500">Live proof: <span className="font-bold text-slate-700">{proofSummary.readiness.liveProofMissing ? 'Missing' : 'Attached'}</span></p>
-              <p className="text-slate-500">Customers: <span className="font-bold text-slate-700">{proofSummary.uniqueCustomers}</span></p>
+              <p className="text-slate-500">{t('transactions.paymentData')}: <span className="font-bold text-slate-700">{proofSummary.readiness.paymentDataPresent ? t('transactions.present') : t('transactions.missing')}</span></p>
+              <p className="text-slate-500">{t('transactions.repaymentData')}: <span className="font-bold text-slate-700">{proofSummary.readiness.repaymentDataPresent ? t('transactions.present') : t('transactions.notAttached')}</span></p>
+              <p className="text-slate-500">{t('transactions.liveProof')}: <span className="font-bold text-slate-700">{proofSummary.readiness.liveProofMissing ? t('transactions.missing') : t('transactions.attached')}</span></p>
+              <p className="text-slate-500">{t('transactions.customers')}: <span className="font-bold text-slate-700">{proofSummary.uniqueCustomers}</span></p>
             </div>
           </div>
 
           <div className="grid gap-2 sm:grid-cols-3" aria-label="Proof readiness checklist">
             {[
               {
-                label: 'Payment rows',
-                value: proofSummary.readiness.paymentDataPresent ? `${proofSummary.transactionCount} attached` : 'Missing',
+                label: t('transactions.paymentRows'),
+                value: proofSummary.readiness.paymentDataPresent ? `${proofSummary.transactionCount} ${t('transactions.attached')}` : t('transactions.missing'),
                 ok: proofSummary.readiness.paymentDataPresent,
               },
               {
-                label: 'Live hash',
-                value: proofSummary.livePaymentTxHash ? 'Attached' : 'Needed',
+                label: t('transactions.liveHash'),
+                value: proofSummary.livePaymentTxHash ? t('transactions.attached') : t('transactions.needed'),
                 ok: !!proofSummary.livePaymentTxHash,
               },
               {
-                label: 'Repayments',
-                value: proofSummary.readiness.repaymentDataPresent ? 'Attached' : 'Not attached',
+                label: t('transactions.repayments'),
+                value: proofSummary.readiness.repaymentDataPresent ? t('transactions.attached') : t('transactions.notAttached'),
                 ok: proofSummary.readiness.repaymentDataPresent,
               },
             ].map((item) => (
@@ -447,7 +399,9 @@ export function VendorTransactions() {
           </div>
 
           <div className="rounded-2xl p-4" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
-            <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: '#C2410C' }}>Caveats</p>
+            <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: '#C2410C' }}>
+              {t('transactions.caveats')}
+            </p>
             <ul className="space-y-1">
               {proofSummary.caveats.map((caveat) => (
                 <li key={caveat} className="text-xs text-orange-800">- {caveat}</li>
@@ -483,15 +437,15 @@ export function VendorTransactions() {
             {proofSummary.livePaymentTxHash ? (
               <button
                 type="button"
-                onClick={() => void copyToClipboard(proofSummary.livePaymentTxHash ?? '', 'Live hash')}
+                onClick={() => void copyToClipboard(proofSummary.livePaymentTxHash ?? '', t('transactions.liveHash'))}
                 className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-xs font-black active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                 style={{ color: '#008055', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}
               >
-                <Copy size={13} aria-hidden="true" /> Copy live hash
+                <Copy size={13} aria-hidden="true" /> {t('transactions.copyLiveHash')}
               </button>
             ) : (
               <p className="mt-3 rounded-xl px-3 py-2 text-xs font-semibold" style={{ color: '#9A3412', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A' }}>
-                Capture one real Testnet payment before sharing this certificate outside the demo team.
+                {t('transactions.captureHashHint')}
               </p>
             )}
           </div>
@@ -522,7 +476,7 @@ export function VendorTransactions() {
               className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ minHeight: 46, color: '#0F172A', backgroundColor: '#EEF2FF', border: '1px solid #C7D2FE' }}
             >
-              <FileText size={14} aria-hidden="true" /> Certificate
+              <FileText size={14} aria-hidden="true" /> {t('transactions.certificate')}
             </button>
             <button
               type="button"
@@ -530,7 +484,7 @@ export function VendorTransactions() {
               className="flex items-center justify-center gap-1.5 text-xs font-black rounded-2xl active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ minHeight: 46, color: '#334155', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
             >
-              <Printer size={14} aria-hidden="true" /> Print
+              <Printer size={14} aria-hidden="true" /> {t('transactions.print')}
             </button>
           </div>
           {proofActionStatus && (
@@ -559,11 +513,11 @@ export function VendorTransactions() {
               <div className="flex items-center gap-2 mb-1">
                 <RefreshCw size={18} aria-hidden="true" style={{ color: '#008055' }} />
                 <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                  Transaction Recovery Desk
+                  {t('transactions.recoveryDesk')}
                 </h2>
               </div>
               <p className="text-xs text-slate-500">
-                Receipt lookup, resend path, and sponsor diagnostics for customer payment issues.
+                {t('transactions.recoveryDesc')}
               </p>
             </div>
             <span
@@ -576,9 +530,11 @@ export function VendorTransactions() {
 
           <div className="grid gap-2 md:grid-cols-3">
             <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Receipt lookup</p>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
+                {t('transactions.receiptLookup')}
+              </p>
               <p className="text-sm font-black text-slate-900 break-words" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                {recoverySummary.receiptLookup.latestReference ?? 'No receipt yet'}
+                {recoverySummary.receiptLookup.latestReference ?? t('transactions.noReceiptYet')}
               </p>
               <p className="text-xs text-slate-500 mt-2">{recoverySummary.receiptLookup.detail}</p>
               {recoverySummary.receiptLookup.latestUrl && (
@@ -589,13 +545,15 @@ export function VendorTransactions() {
                   className="inline-flex min-h-11 items-center gap-1.5 text-xs font-black mt-3 rounded-xl px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                   style={{ color: '#008055', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}
                 >
-                  <ExternalLink size={12} aria-hidden="true" /> Check receipt
+                  <ExternalLink size={12} aria-hidden="true" /> {t('transactions.checkReceipt')}
                 </a>
               )}
             </div>
 
             <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Resend path</p>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
+                {t('transactions.resendPath')}
+              </p>
               <p className="text-sm font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {recoverySummary.resend.title}
               </p>
@@ -612,7 +570,7 @@ export function VendorTransactions() {
 
             <div className="rounded-2xl p-4" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA' }}>
               <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: '#C2410C' }}>
-                Sponsor diagnostics
+                {t('transactions.sponsorDiagnostics')}
               </p>
               <p className="text-sm font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 {recoverySummary.feeBumpDiagnostic.title}
@@ -626,10 +584,10 @@ export function VendorTransactions() {
 
           <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
             <label htmlFor="receipt-reference-lookup" className="text-xs font-black uppercase tracking-widest text-slate-400">
-              Lookup by hash/reference
+              {t('transactions.lookupByHash')}
             </label>
             <p id="receipt-reference-help" className="mt-1 text-xs text-slate-500">
-              Paste the exact transaction hash, contract payment ID, or local receipt reference from a customer message.
+              {t('transactions.lookupHelp')}
             </p>
             <div className="mt-2 flex items-center gap-2 rounded-2xl px-3 bg-white" style={{ minHeight: 48, border: '1px solid #E2E8F0' }}>
               <Search size={16} aria-hidden="true" style={{ color: '#64748B' }} />
@@ -638,7 +596,7 @@ export function VendorTransactions() {
                 type="search"
                 value={receiptLookupTerm}
                 onChange={(event) => setReceiptLookupTerm(event.target.value)}
-                placeholder="Hash, #42, or proof ref"
+                placeholder={t('transactions.lookupPlaceholder')}
                 aria-describedby="receipt-reference-help receipt-reference-result"
                 autoComplete="off"
                 enterKeyHint="search"
@@ -652,18 +610,18 @@ export function VendorTransactions() {
                   className="min-h-11 rounded-xl px-3 text-xs font-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                   style={{ color: '#008055', backgroundColor: '#ECFDF5' }}
                 >
-                  Use latest
+                  {t('transactions.useLatest')}
                 </button>
               )}
               {receiptLookupTerm && (
                 <button
                   type="button"
-                  aria-label="Clear receipt lookup"
+                  aria-label={t('transactions.clear')}
                   onClick={() => setReceiptLookupTerm('')}
                   className="min-h-11 rounded-xl px-3 text-xs font-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                   style={{ color: '#475569', backgroundColor: '#F8FAFC' }}
                 >
-                  Clear
+                  {t('transactions.clear')}
                   <span className="sr-only"> receipt lookup</span>
                 </button>
               )}
@@ -676,7 +634,7 @@ export function VendorTransactions() {
               style={{ border: '1px solid #E2E8F0' }}
             >
               <p className="text-xs font-black text-slate-700">
-                {receiptLookup.status === 'found' ? `${receiptLookup.reference?.label}: ${receiptLookup.reference?.value}` : 'Receipt lookup'}
+                {receiptLookup.status === 'found' ? `${receiptLookup.reference?.label}: ${receiptLookup.reference?.value}` : t('transactions.receiptLookup')}
               </p>
               <p className="text-xs text-slate-500 mt-1">{receiptLookup.message}</p>
               {receiptLookup.reference?.lookupUrl && (
@@ -688,15 +646,15 @@ export function VendorTransactions() {
                     className="inline-flex min-h-11 items-center gap-1.5 text-xs font-black rounded-xl px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                     style={{ color: '#008055', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}
                   >
-                    <ExternalLink size={12} aria-hidden="true" /> Open matched receipt
+                    <ExternalLink size={12} aria-hidden="true" /> {t('transactions.openMatchedReceipt')}
                   </a>
                   <button
                     type="button"
-                    onClick={() => void copyToClipboard(receiptLookup.reference?.value ?? '', 'Receipt reference')}
+                    onClick={() => void copyToClipboard(receiptLookup.reference?.value ?? '', t('transactions.receiptReference'))}
                     className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-xs font-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                     style={{ color: '#334155', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
                   >
-                    <Copy size={12} aria-hidden="true" /> Copy reference
+                    <Copy size={12} aria-hidden="true" /> {t('transactions.copyReference')}
                   </button>
                 </div>
               )}
@@ -710,7 +668,7 @@ export function VendorTransactions() {
         style={{ border: '1.5px solid #E2E8F0', boxShadow: '0 10px 28px rgba(15,23,42,0.04)' }}
       >
         <label htmlFor="vendor-transaction-search" className="text-xs font-black uppercase tracking-widest text-slate-400">
-          Search receipts
+          {t('transactions.searchReceipts')}
         </label>
         <div className="mt-2 flex items-center gap-2 rounded-2xl px-3" style={{ minHeight: 48, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
           <Search size={16} aria-hidden="true" style={{ color: '#64748B' }} />
@@ -719,7 +677,7 @@ export function VendorTransactions() {
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Hash, memo, source, amount"
+            placeholder={t('transactions.searchPlaceholder')}
             autoComplete="off"
             enterKeyHint="search"
             spellCheck={false}
@@ -727,7 +685,7 @@ export function VendorTransactions() {
           />
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          Showing {searchedTransactions.length} of {transactions.length} receipt rows. Exports use the selected period and current search filter.
+          {t('transactions.searchResultInfo', { shown: searchedTransactions.length, total: transactions.length })}
         </p>
       </section>
 
@@ -761,7 +719,7 @@ export function VendorTransactions() {
               <AlertCircle size={24} aria-hidden="true" style={{ color: '#F43F5E' }} />
             </div>
             <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              {t.failedTitle}
+              {t('transactions.failedTitle')}
             </p>
             <p className="text-xs text-slate-400 mb-5">{error}</p>
             <button
@@ -770,7 +728,7 @@ export function VendorTransactions() {
               className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ backgroundColor: '#008055' }}
             >
-              <RefreshCw size={12} aria-hidden="true" /> {t.retry}
+              <RefreshCw size={12} aria-hidden="true" /> {t('transactions.retry')}
             </button>
           </div>
         )}
@@ -784,16 +742,16 @@ export function VendorTransactions() {
               <TrendingUp size={28} aria-hidden="true" style={{ color: '#008055' }} />
             </div>
             <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              {t.emptyTitle}
+              {t('transactions.emptyTitle')}
             </p>
-            <p className="text-xs text-slate-400 mb-5">{t.emptyDesc}</p>
+            <p className="text-xs text-slate-400 mb-5">{t('transactions.emptyDesc')}</p>
             <button
               type="button"
               onClick={() => navigate('/vendor/qr')}
               className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ backgroundColor: '#008055' }}
             >
-              <QrCode size={12} aria-hidden="true" /> {t.showQr}
+              <QrCode size={12} aria-hidden="true" /> {t('transactions.showQr')}
             </button>
           </div>
         )}
@@ -807,16 +765,16 @@ export function VendorTransactions() {
               <Search size={28} style={{ color: '#64748B' }} />
             </div>
             <p className="text-sm font-bold text-slate-700 mb-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              No matching receipts
+              {t('transactions.noMatching')}
             </p>
-            <p className="text-xs text-slate-400 mb-5">Try a hash, customer wallet, memo, source label, or amount.</p>
+            <p className="text-xs text-slate-400 mb-5">{t('transactions.noMatchingHint')}</p>
             <button
               type="button"
               onClick={() => setSearchTerm('')}
               className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold px-5 rounded-xl active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{ color: '#008055', backgroundColor: '#F0FDFA', border: '1px solid #CCFBF1' }}
             >
-              Clear search
+              {t('transactions.clearSearch')}
             </button>
           </div>
         )}

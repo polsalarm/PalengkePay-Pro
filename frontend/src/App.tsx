@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { WalletProvider } from './components/WalletProvider';
 import { ToastProvider } from './components/Toast';
 import { Layout } from './components/Layout';
+import { LanguageProvider } from './contexts/LanguageContext'; // Add this import
 
 const Landing = lazy(() => import('./pages/Landing').then((module) => ({ default: module.Landing })));
 const Connect = lazy(() => import('./pages/Connect').then((module) => ({ default: module.Connect })));
@@ -50,61 +51,63 @@ function RouteLoading() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <WalletProvider>
-        <ToastProvider>
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              {/* Fullscreen pages - no layout shell */}
-              <Route path="/onboard" element={<Onboard />} />
-              <Route path="/connect" element={<Connect />} />
-              <Route path="/" element={<Landing />} />
+    <LanguageProvider> {/* Wrap everything with LanguageProvider */}
+      <BrowserRouter>
+        <WalletProvider>
+          <ToastProvider>
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+                {/* Fullscreen pages - no layout shell */}
+                <Route path="/onboard" element={<Onboard />} />
+                <Route path="/connect" element={<Connect />} />
+                <Route path="/" element={<Landing />} />
 
-              {/* Layout shell */}
-              <Route element={<Layout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/test-send" element={<TestSend />} />
-                <Route path="/receipt/:txHash" element={<Receipt />} />
+                {/* Layout shell */}
+                <Route element={<Layout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/test-send" element={<TestSend />} />
+                  <Route path="/receipt/:txHash" element={<Receipt />} />
 
-                {/* Vendor */}
-                <Route path="/vendor/home" element={<VendorHome />} />
-                <Route path="/vendor/qr" element={<VendorQR />} />
-                <Route path="/vendor/transactions" element={<VendorTransactions />} />
-                <Route path="/vendor/utang" element={<VendorUtang />} />
-                <Route path="/vendor/profile" element={<VendorProfile />} />
+                  {/* Vendor */}
+                  <Route path="/vendor/home" element={<VendorHome />} />
+                  <Route path="/vendor/qr" element={<VendorQR />} />
+                  <Route path="/vendor/transactions" element={<VendorTransactions />} />
+                  <Route path="/vendor/utang" element={<VendorUtang />} />
+                  <Route path="/vendor/profile" element={<VendorProfile />} />
 
-                {/* Customer */}
-                <Route path="/customer/home" element={<CustomerHome />} />
-                <Route path="/customer/scan" element={<CustomerScan />} />
-                <Route path="/customer/history" element={<CustomerHistory />} />
-                <Route path="/customer/utang" element={<CustomerUtang />} />
-                <Route path="/customer/profile" element={<CustomerProfile />} />
-                <Route path="/customer/cashin" element={<CustomerCashin />} />
-                <Route path="/customer/cashout" element={<CustomerCashout />} />
-                <Route path="/customer/testnet-wallet" element={<CustomerTestnetWallet />} />
+                  {/* Customer */}
+                  <Route path="/customer/home" element={<CustomerHome />} />
+                  <Route path="/customer/scan" element={<CustomerScan />} />
+                  <Route path="/customer/history" element={<CustomerHistory />} />
+                  <Route path="/customer/utang" element={<CustomerUtang />} />
+                  <Route path="/customer/profile" element={<CustomerProfile />} />
+                  <Route path="/customer/cashin" element={<CustomerCashin />} />
+                  <Route path="/customer/cashout" element={<CustomerCashout />} />
+                  <Route path="/customer/testnet-wallet" element={<CustomerTestnetWallet />} />
 
-                {/* Admin */}
-                <Route path="/admin/market" element={<AdminMarket />} />
-                <Route path="/admin/register" element={<AdminRegister />} />
-                <Route path="/admin/metrics" element={<AdminMetrics />} />
-                <Route path="/admin/health" element={<AdminHealth />} />
-                <Route path="/admin/proofs" element={<AdminProofs />} />
-                <Route path="/admin/ramps" element={<AdminRamps />} />
-                <Route path="/admin/utang" element={<AdminUtang />} />
+                  {/* Admin */}
+                  <Route path="/admin/market" element={<AdminMarket />} />
+                  <Route path="/admin/register" element={<AdminRegister />} />
+                  <Route path="/admin/metrics" element={<AdminMetrics />} />
+                  <Route path="/admin/health" element={<AdminHealth />} />
+                  <Route path="/admin/proofs" element={<AdminProofs />} />
+                  <Route path="/admin/ramps" element={<AdminRamps />} />
+                  <Route path="/admin/utang" element={<AdminUtang />} />
 
-                {/* Vendor apply (public) */}
-                <Route path="/vendor/apply" element={<VendorApply />} />
+                  {/* Vendor apply (public) */}
+                  <Route path="/vendor/apply" element={<VendorApply />} />
 
-                {/* Market directory */}
-                <Route path="/market" element={<MarketDirectory />} />
+                  {/* Market directory */}
+                  <Route path="/market" element={<MarketDirectory />} />
 
-                {/* Catch-all */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </ToastProvider>
-      </WalletProvider>
-    </BrowserRouter>
+                  {/* Catch-all */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
+            </Suspense>
+          </ToastProvider>
+        </WalletProvider>
+      </BrowserRouter>
+    </LanguageProvider>
   );
 }
