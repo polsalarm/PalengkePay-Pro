@@ -65,7 +65,7 @@ export function CustomerCashout() {
           setStage(r.status === 'completed' ? 'done' : 'paying-out');
           if (address) notifyWallet(address, {
             title: r.status === 'completed' ? t('cashout.notificationComplete') : t('cashout.notificationPaying'),
-            body: r.status === 'completed' ? t('cashout.notificationBodyComplete', { amount: r.amountOut, rail }) : t('cashout.notificationBodyPaying'),
+            body: r.status === 'completed' ? t('cashout.notificationBodyComplete', { amount: r.amountOut ?? '—', rail }) : t('cashout.notificationBodyPaying'),
             url: '/customer/profile',
           });
         })
@@ -236,7 +236,7 @@ export function CustomerCashout() {
         <div className="rounded-2xl p-6 bg-white border text-center space-y-3" style={{ borderColor: '#F1F5F9' }}>
           <CheckCircle2 size={40} className="mx-auto" style={{ color: '#008055' }} />
           <p className="font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{t('cashout.completeTitle')}</p>
-          <p className="text-sm text-slate-500">{t('cashout.sentToRail', { amount: latest.amountOut ?? '—', rail: latest.rail })}</p>
+          <p className="text-sm text-slate-500">{t('cashout.sentToRail', { amount: latest.amountOut ?? '—', rail: latest.rail ?? '—' })}</p>
           {latest.externalTxId && <p className="text-[11px] font-mono text-slate-400">{t('cashout.reference')}: {latest.externalTxId}</p>}
           <button onClick={() => navigate('/customer/profile')} className="mt-3 px-6 py-2 rounded-xl font-bold text-white" style={{ backgroundColor: '#008055' }}>{t('cashout.done')}</button>
         </div>

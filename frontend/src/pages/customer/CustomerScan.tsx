@@ -24,7 +24,7 @@ const INTERVAL_LABELS: Record<number, { en: string; tl: string }> = {
   1209600: { en: 'biweekly', tl: 'bawat dalawang linggo' },
   2592000: { en: 'monthly', tl: 'buwanan' },
 };
-function intervalLabel(secs: number, t: (key: string, params?: any) => string) {
+function intervalLabel(secs: number, t: (key: string, params?: Record<string, string | number>) => string) {
   const label = INTERVAL_LABELS[secs];
   if (label) return t(`scan.interval.${label.en}`);
   return t('scan.interval.every', { days: Math.round(secs / 86400) });

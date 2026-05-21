@@ -104,7 +104,7 @@ export function CustomerProfile() {
       setTimeout(() => {
         setCopied(false);
       }, 1600);
-    } catch {}
+    } catch { /* clipboard write rejected — no-op */ }
   };
 
   const handleDisconnectConfirm = async () => {

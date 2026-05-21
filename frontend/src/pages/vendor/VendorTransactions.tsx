@@ -30,7 +30,7 @@ import {
 } from '../../lib/vendor-proof';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-function groupByDate(txs: TxRecord[], t: (key: string, params?: any) => string) {
+function groupByDate(txs: TxRecord[], t: (key: string, params?: Record<string, string | number>) => string) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
   const buckets: Record<string, TxRecord[]> = {};
