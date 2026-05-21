@@ -301,14 +301,7 @@ fn test_zero_amount_panics() {
     let (env, client, _) = setup();
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
-    client.create_utang(
-        &vendor,
-        &customer,
-        &0i128,
-        &2u32,
-        &WEEK,
-        &desc(&env, ""),
-    );
+    client.create_utang(&vendor, &customer, &0i128, &2u32, &WEEK, &desc(&env, ""));
 }
 
 // ── New tests: default counters, reserve, late-fee resume, grace period ──
@@ -317,10 +310,9 @@ fn test_zero_amount_panics() {
 #[should_panic(expected = "grace period not elapsed")]
 fn test_mark_default_blocked_before_grace_elapsed() {
     let (env, client, _) = setup();
-    let admin_addr: Address = env
-        .as_contract(&client.address, || {
-            env.storage().instance().get(&DataKey::Admin).unwrap()
-        });
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
 
@@ -361,10 +353,9 @@ fn test_is_overdue_view() {
 #[test]
 fn test_default_counters_increment() {
     let (env, client, _) = setup();
-    let admin_addr: Address = env
-        .as_contract(&client.address, || {
-            env.storage().instance().get(&DataKey::Admin).unwrap()
-        });
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
 
@@ -389,10 +380,9 @@ fn test_default_counters_increment() {
 #[test]
 fn test_reserve_accumulates_and_pays_vendor_on_default() {
     let (env, client, token) = setup();
-    let admin_addr: Address = env
-        .as_contract(&client.address, || {
-            env.storage().instance().get(&DataKey::Admin).unwrap()
-        });
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
     mint_to(&env, &token, &customer, 1_000_000_000i128);
@@ -447,16 +437,18 @@ fn test_reserve_refunds_customer_on_completion() {
     // Reserve cleared.
     assert_eq!(client.utang_reserve(&utang_id), 0);
     // Customer paid exactly 200M total; reserve fees refunded on completion.
-    assert_eq!(token_client.balance(&customer), customer_start - 200_000_000);
+    assert_eq!(
+        token_client.balance(&customer),
+        customer_start - 200_000_000
+    );
 }
 
 #[test]
 fn test_resume_after_late_charges_fee_and_reactivates() {
     let (env, client, token) = setup();
-    let admin_addr: Address = env
-        .as_contract(&client.address, || {
-            env.storage().instance().get(&DataKey::Admin).unwrap()
-        });
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
     mint_to(&env, &token, &customer, 1_000_000_000i128);
@@ -511,10 +503,9 @@ fn test_resume_active_utang_panics() {
 #[should_panic(expected = "not the debtor")]
 fn test_resume_wrong_customer_panics() {
     let (env, client, _) = setup();
-    let admin_addr: Address = env
-        .as_contract(&client.address, || {
-            env.storage().instance().get(&DataKey::Admin).unwrap()
-        });
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
     let attacker = Address::generate(&env);
@@ -534,10 +525,9 @@ fn test_resume_wrong_customer_panics() {
 #[test]
 fn test_grace_period_setter() {
     let (env, client, _) = setup();
-    let admin_addr: Address = env
-        .as_contract(&client.address, || {
-            env.storage().instance().get(&DataKey::Admin).unwrap()
-        });
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
     assert_eq!(client.grace_period(), WEEK);
     client.set_grace_period(&admin_addr, &(DAY * 3));
     assert_eq!(client.grace_period(), DAY * 3);

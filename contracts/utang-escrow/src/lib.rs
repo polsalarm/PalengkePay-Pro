@@ -114,7 +114,9 @@ impl UTangEscrow {
         if admin != stored_admin {
             panic!("not admin");
         }
-        env.storage().instance().set(&DataKey::GracePeriod, &seconds);
+        env.storage()
+            .instance()
+            .set(&DataKey::GracePeriod, &seconds);
     }
 
     pub fn grace_period(env: Env) -> u64 {
