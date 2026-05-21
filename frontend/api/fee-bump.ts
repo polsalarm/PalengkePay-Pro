@@ -1,5 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { Keypair, Networks, Transaction, TransactionBuilder } from '@stellar/stellar-sdk';
+import { Keypair, Transaction, TransactionBuilder } from '@stellar/stellar-sdk';
+import { getLiquidityProfile } from './liquidity-profile.js';
+
+function networkPassphrase(): string {
+  return getLiquidityProfile().networkPassphrase;
+}
 
 const PALENGKEPAY_MEMO_PREFIX = 'PP:';
 const DEFAULT_MAX_INNER_XDR_BYTES = 20_000;
@@ -17,11 +22,6 @@ interface SponsoredOperation {
   asset?: { isNative?: () => boolean };
   amount?: string;
   startingBalance?: string;
-}
-
-interface MemoLike {
-  _type?: string;
-  _value?: unknown;
 }
 
 interface RateLimitBucket {
@@ -209,10 +209,11 @@ export function __resetFeeBumpRateLimitForTests(): void {
 }
 
 function getMemoText(tx: Transaction): string | null {
-  const memo = tx.memo as MemoLike | undefined;
-  if (memo?._type !== 'text') return null;
-  if (typeof memo._value === 'string') return memo._value;
-  if (Buffer.isBuffer(memo._value)) return memo._value.toString('utf8');
+  const memo = tx.memo;
+  if (!memo || memo.type !== 'text') return null;
+  const value = memo.value;
+  if (typeof value === 'string') return value;
+  if (value instanceof Uint8Array) return Buffer.from(value).toString('utf8');
   return null;
 }
 
@@ -301,7 +302,7 @@ export function validateInnerTransaction(innerXdr: string): Transaction {
 
   let parsed;
   try {
-    parsed = TransactionBuilder.fromXDR(innerXdr, Networks.TESTNET);
+    parsed = TransactionBuilder.fromXDR(innerXdr, networkPassphrase());
   } catch {
     throw new FeeBumpValidationError('invalid innerXdr');
   }
@@ -372,7 +373,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sponsorKeypair,
       '10000',
       innerTx,
-      Networks.TESTNET,
+      networkPassphrase(),
     );
     feeBump.sign(sponsorKeypair);
 

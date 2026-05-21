@@ -407,6 +407,14 @@ async function admin(req: VercelRequest, res: VercelResponse) {
   const action = (req.query.action as string | undefined) ?? '';
   const { id, reason } = (req.body ?? {}) as Record<string, string>;
   if (action === 'seed_demo') {
+    const profile = getLiquidityProfile();
+    if (profile.railMode !== 'mock' || profile.network !== 'testnet') {
+      return res.status(403).json({
+        error: 'seed_demo is only allowed in testnet mock mode',
+        railMode: profile.railMode,
+        network: profile.network,
+      });
+    }
     const created = await seedDemoRampData();
     return res.status(200).json({ ok: true, transactions: created });
   }
