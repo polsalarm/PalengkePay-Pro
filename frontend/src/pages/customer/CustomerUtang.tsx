@@ -7,7 +7,8 @@ import { useCustomerUtangs, usePayInstallment, useCreateUtang, useResumeAfterLat
 import type { UtangRecord } from '../../lib/hooks/useUtang';
 import type { UtangOfferPayload } from '../vendor/VendorUtang';
 import { UtangCard } from '../../components/UtangCard';
-import { stellarExpertUrl } from '../../lib/stellar';
+import { RatingPrompt } from '../../components/RatingPrompt';
+import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
 import { ESCROW_CONTRACT_ID } from '../../lib/contracts';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -744,6 +745,13 @@ export function CustomerUtang() {
                     >
                       <ExternalLink size={12} /> {t('customerUtang.viewOnExpert')}
                     </a>
+                  )}
+                  {txHash && paying && paying.installmentsPaid + 1 >= paying.installmentsTotal && (
+                    <RatingPrompt
+                      vendorAddress={paying.vendorWallet}
+                      vendorName={truncateAddress(paying.vendorWallet)}
+                      paymentTxHash={txHash}
+                    />
                   )}
                   <button
                     onClick={handleClosePayModal}
