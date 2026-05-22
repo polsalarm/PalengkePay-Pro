@@ -7,13 +7,13 @@ declare const self: ServiceWorkerGlobalScope & {
 
 precacheAndRoute(self.__WB_MANIFEST);
 
-self.addEventListener('install', () => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
+// Lifecycle: do NOT skipWaiting+claim aggressively. Mid-session takeover
+// caused visible reloads on iOS Safari when the user clicked links right
+// after a new deploy. The new SW becomes active naturally on the next
+// full page load instead.
+//
+// (No install/activate handlers — defaults are correct: install waits
+// for old SW to release, activate fires after the old SW unregisters.)
 
 interface PushPayload {
   title?: string;
