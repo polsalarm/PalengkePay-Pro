@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import {
+  NETWORK_PASSPHRASE,
   addressToScVal,
   buildPaymentTx,
   i128ToScVal,
@@ -14,7 +15,7 @@ import {
   xlmToStroops,
 } from '../payment-routing';
 import { getPaymentFailureDetails } from '../payment-diagnostics';
-import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 
 export type TxStatus = 'idle' | 'building' | 'signing' | 'submitting' | 'confirmed' | 'failed';
 
@@ -54,7 +55,7 @@ export function usePayment() {
 
       setState((s) => ({ ...s, status: 'signing' }));
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address: from,
       });
 

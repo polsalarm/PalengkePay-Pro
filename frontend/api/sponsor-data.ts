@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { TransactionBuilder, Networks, Keypair, Operation, Horizon } from '@stellar/stellar-sdk';
+import { TransactionBuilder, Keypair, Operation, Horizon } from '@stellar/stellar-sdk';
+import { getHorizonUrl, getNetworkPassphrase } from './_network.js';
 
-const HORIZON_URL = 'https://horizon-testnet.stellar.org';
 const BASE_FEE = '100';
 const KEY_OPEN = 'pp_open';
 
@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const sponsor = Keypair.fromSecret(sponsorSecret);
-    const server = new Horizon.Server(HORIZON_URL);
+    const server = new Horizon.Server(getHorizonUrl());
     const vendorAccount = await server.loadAccount(vendor);
     const dataAttr = (vendorAccount.data_attr as Record<string, string> | undefined) ?? {};
     const alreadyExists = Boolean(dataAttr[KEY_OPEN]);
@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const builder = new TransactionBuilder(vendorAccount, {
       fee: BASE_FEE,
-      networkPassphrase: Networks.TESTNET,
+      networkPassphrase: getNetworkPassphrase(),
     });
 
     if (!alreadyExists) {

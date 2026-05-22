@@ -1,12 +1,12 @@
 import {
-  Horizon, TransactionBuilder, Networks, Operation, Asset, Memo,
+  Horizon, TransactionBuilder, Operation, Asset, Memo,
   rpc, Contract, Account, Address, nativeToScVal, scValToNative,
   xdr,
 } from '@stellar/stellar-sdk';
+import { NETWORK_PASSPHRASE, HORIZON_URL, RPC_URL, IS_MAINNET, STELLAR_EXPERT_BASE } from './network';
 
-const HORIZON_URL = 'https://horizon-testnet.stellar.org';
-const RPC_URL = import.meta.env.VITE_SOROBAN_RPC_URL ?? 'https://soroban-testnet.stellar.org';
-const NETWORK_PASSPHRASE = Networks.TESTNET;
+export { NETWORK_PASSPHRASE, HORIZON_URL, RPC_URL, IS_MAINNET };
+
 const BASE_FEE = '100';
 const PALENGKEPAY_MEMO_PREFIX = 'PP:';
 
@@ -223,11 +223,9 @@ export function truncateAddress(address: string): string {
 }
 
 export function stellarExpertUrl(txHash: string): string {
-  return `https://stellar.expert/explorer/testnet/tx/${txHash}`;
+  return `${STELLAR_EXPERT_BASE}/tx/${txHash}`;
 }
 
 export function stellarExpertAccountUrl(address: string): string {
-  return `https://stellar.expert/explorer/testnet/account/${address}`;
+  return `${STELLAR_EXPERT_BASE}/account/${address}`;
 }
-
-export { NETWORK_PASSPHRASE };

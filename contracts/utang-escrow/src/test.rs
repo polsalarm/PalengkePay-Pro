@@ -532,3 +532,205 @@ fn test_grace_period_setter() {
     client.set_grace_period(&admin_addr, &(DAY * 3));
     assert_eq!(client.grace_period(), DAY * 3);
 }
+
+#[test]
+fn test_max_utang_amount_default_is_unlimited() {
+    let (_, client, _) = setup();
+    assert_eq!(client.max_utang_amount(), i128::MAX);
+}
+
+#[test]
+fn test_set_max_utang_amount_admin_only() {
+    let (env, client, _) = setup();
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
+    client.set_max_utang_amount(&admin_addr, &500_000_000i128);
+    assert_eq!(client.max_utang_amount(), 500_000_000);
+}
+
+#[test]
+#[should_panic(expected = "not admin")]
+fn test_set_max_utang_amount_rejects_non_admin() {
+    let (env, client, _) = setup();
+    let attacker = Address::generate(&env);
+    client.set_max_utang_amount(&attacker, &1_000i128);
+}
+
+#[test]
+#[should_panic(expected = "max must be positive")]
+fn test_set_max_utang_amount_rejects_zero() {
+    let (env, client, _) = setup();
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
+    client.set_max_utang_amount(&admin_addr, &0i128);
+}
+
+#[test]
+#[should_panic(expected = "total_amount exceeds max_utang_amount")]
+fn test_create_utang_rejects_above_max() {
+    let (env, client, _) = setup();
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
+    client.set_max_utang_amount(&admin_addr, &100_000_000i128);
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    client.create_utang(
+        &vendor,
+        &customer,
+        &200_000_000i128,
+        &2u32,
+        &WEEK,
+        &desc(&env, "too big"),
+    );
+}
+
+#[test]
+fn test_create_utang_at_max_allowed() {
+    let (env, client, _) = setup();
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
+    client.set_max_utang_amount(&admin_addr, &100_000_000i128);
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    let id = client.create_utang(
+        &vendor,
+        &customer,
+        &100_000_000i128,
+        &2u32,
+        &WEEK,
+        &desc(&env, "exactly cap"),
+    );
+    assert_eq!(id, 1);
+}
+
+#[test]
+fn test_active_count_lifecycle() {
+    let (env, client, token) = setup();
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    mint_to(&env, &token, &customer, 10_000_000_000);
+
+    assert_eq!(client.active_utang_count(), 0);
+
+    let id = client.create_utang(
+        &vendor,
+        &customer,
+        &200_000_000i128,
+        &2u32,
+        &WEEK,
+        &desc(&env, "lifecycle"),
+    );
+    assert_eq!(client.active_utang_count(), 1);
+
+    // Complete via paying both installments.
+    client.pay_installment(&customer, &id);
+    assert_eq!(client.active_utang_count(), 1);
+    client.pay_installment(&customer, &id);
+    assert_eq!(client.active_utang_count(), 0);
+
+    // Second utang, default it.
+    let id2 = client.create_utang(
+        &vendor,
+        &customer,
+        &200_000_000i128,
+        &2u32,
+        &WEEK,
+        &desc(&env, "to default"),
+    );
+    assert_eq!(client.active_utang_count(), 1);
+    advance_time(&env, WEEK + WEEK + DAY);
+    client.mark_default(&admin_addr, &id2);
+    assert_eq!(client.active_utang_count(), 0);
+
+    // Resume bumps active back up.
+    client.resume_after_late(&customer, &id2);
+    assert_eq!(client.active_utang_count(), 1);
+}
+
+#[test]
+fn test_set_token_swaps_when_no_active_utang() {
+    let (env, client, _) = setup();
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
+    let token_admin = Address::generate(&env);
+    let new_asset = env.register_stellar_asset_contract_v2(token_admin);
+    let new_token = new_asset.address();
+
+    client.set_token(&admin_addr, &new_token);
+    assert_eq!(client.token(), new_token);
+}
+
+#[test]
+#[should_panic(expected = "cannot change token while active utangs exist")]
+fn test_set_token_blocked_with_active_utang() {
+    let (env, client, _) = setup();
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    client.create_utang(
+        &vendor,
+        &customer,
+        &100_000_000i128,
+        &2u32,
+        &WEEK,
+        &desc(&env, "active"),
+    );
+    let token_admin = Address::generate(&env);
+    let new_asset = env.register_stellar_asset_contract_v2(token_admin);
+    client.set_token(&admin_addr, &new_asset.address());
+}
+
+#[test]
+#[should_panic(expected = "not admin")]
+fn test_set_token_rejects_non_admin() {
+    let (env, client, _) = setup();
+    let attacker = Address::generate(&env);
+    let token_admin = Address::generate(&env);
+    let new_asset = env.register_stellar_asset_contract_v2(token_admin);
+    client.set_token(&attacker, &new_asset.address());
+}
+
+#[test]
+fn test_token_view_returns_init_token() {
+    let (_, client, token) = setup();
+    assert_eq!(client.token(), token);
+}
+
+#[test]
+fn test_set_token_then_create_uses_new_token() {
+    let (env, client, _) = setup();
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
+    let token_admin = Address::generate(&env);
+    let new_asset = env.register_stellar_asset_contract_v2(token_admin.clone());
+    let new_token = new_asset.address();
+    client.set_token(&admin_addr, &new_token);
+
+    let vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    mint_to(&env, &new_token, &customer, 10_000_000_000);
+
+    let id = client.create_utang(
+        &vendor,
+        &customer,
+        &100_000_000i128,
+        &2u32,
+        &WEEK,
+        &desc(&env, "new token"),
+    );
+    client.pay_installment(&customer, &id);
+
+    let new_token_client = TokenClient::new(&env, &new_token);
+    assert!(new_token_client.balance(&vendor) > 0);
+}

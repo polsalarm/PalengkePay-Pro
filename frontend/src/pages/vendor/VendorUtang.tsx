@@ -6,15 +6,16 @@ import { useWallet } from '../../lib/hooks/useWallet';
 import { useVendorUtangs } from '../../lib/hooks/useUtang';
 import { UtangCard } from '../../components/UtangCard';
 import { QRScanner } from '../../components/QRScanner';
-import { buildPaymentTx, submitTx } from '../../lib/stellar';
-import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { NETWORK_PASSPHRASE, buildPaymentTx, submitTx } from '../../lib/stellar';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
 import { buildCollectionsSummary } from '../../lib/vendor-proof';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const ESCROW_ID = import.meta.env.VITE_UTANG_ESCROW_CONTRACT_ID as string | undefined;
-const FEE_XLM = import.meta.env.VITE_UTANG_FEE_XLM ?? '1';
-const FEE_DEST = 'GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH';
+const FEE_XLM = (import.meta.env.VITE_UTANG_FEE_XLM as string | undefined) ?? '1';
+const FEE_DEST = (import.meta.env.VITE_UTANG_FEE_DEST as string | undefined)
+  ?? 'GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH';
 
 const INTERVAL_OPTIONS = [
   { label: 'Weekly', labelTl: 'Lingguwal', days: 7 },
@@ -125,7 +126,7 @@ export function VendorUtang() {
     try {
       const xdr = await buildPaymentTx(address, FEE_DEST, FEE_XLM, 'PalengkePay utang fee');
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address,
       });
       await submitTx(signedTxXdr);

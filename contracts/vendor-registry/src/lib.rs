@@ -93,6 +93,11 @@ pub struct RatingSubmittedEvent {
     pub tx_hash: BytesN<32>,
 }
 
+#[contracttype]
+pub struct UpgradedEvent {
+    pub new_wasm_hash: BytesN<32>,
+}
+
 // ── Contract ──────────────────────────────────────────────────────────────────
 
 #[contract]
@@ -107,6 +112,26 @@ impl VendorRegistry {
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::VendorCount, &0u64);
+    }
+
+    /// Admin swaps the contract's executable WASM. Preserves storage.
+    /// Mainnet escape hatch for bug fixes — no redeploy = no new contract ID = no state migration.
+    pub fn upgrade(env: Env, admin: Address, new_wasm_hash: BytesN<32>) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
+        if admin != stored_admin {
+            panic!("not admin");
+        }
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
+        env.events().publish(
+            (symbol_short!("registry"), symbol_short!("upgrade")),
+            UpgradedEvent { new_wasm_hash },
+        );
     }
 
     // ── Vendor applies (no admin needed) ─────────────────────────────────────

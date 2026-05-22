@@ -9,7 +9,7 @@ import type { VendorProfile, VendorApplication } from '../../lib/hooks/useVendor
 import { useToast } from '../../lib/hooks/useToast';
 import { useBulkVendorRatings } from '../../lib/hooks/useRating';
 import type { RatingSummary } from '../../lib/rating';
-import { truncateAddress } from '../../lib/stellar';
+import { stellarExpertAccountUrl, truncateAddress } from '../../lib/stellar';
 
 const PRODUCT_META: Record<string, { emoji: string; label: string; accent: string; bg: string; chipBg: string; chipColor: string }> = {
   fish:            { emoji: '🐟', label: 'Fish',          accent: '#2563EB', bg: '#EFF6FF', chipBg: '#DBEAFE', chipColor: '#1D4ED8' },
@@ -244,7 +244,7 @@ function VendorCard({
           </div>
           <a
             onClick={stop}
-            href={`https://stellar.expert/explorer/testnet/account/${vendor.wallet}`}
+            href={stellarExpertAccountUrl(vendor.wallet)}
             target="_blank"
             rel="noopener noreferrer"
             className="pr-2 active:scale-95 transition-all"
@@ -424,7 +424,7 @@ function VendorDetailDrawer({
             label="Wallet"
             value={
               <a
-                href={`https://stellar.expert/explorer/testnet/account/${vendor.wallet}`}
+                href={stellarExpertAccountUrl(vendor.wallet)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-xs underline decoration-dotted"
@@ -547,7 +547,7 @@ function PendingDetailDrawer({
             label="Wallet"
             value={
               <a
-                href={`https://stellar.expert/explorer/testnet/account/${app.wallet}`}
+                href={stellarExpertAccountUrl(app.wallet)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-xs underline decoration-dotted"

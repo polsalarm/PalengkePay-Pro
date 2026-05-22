@@ -22,6 +22,7 @@ import { useVendor } from '../../lib/hooks/useVendor';
 import { useVendorRating } from '../../lib/hooks/useRating';
 import { useToast } from '../../lib/hooks/useToast';
 import {
+  NETWORK_PASSPHRASE,
   truncateAddress,
   prepareContractTx,
   submitSorobanTx,
@@ -30,7 +31,6 @@ import {
 } from '../../lib/stellar';
 import {
   StellarWalletsKit,
-  Networks,
 } from '@creit.tech/stellar-wallets-kit';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
 import { PushPrompt } from '../../components/PushPrompt';
@@ -170,7 +170,7 @@ export function VendorProfile() {
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(
         xdr,
         {
-          networkPassphrase: Networks.TESTNET,
+          networkPassphrase: NETWORK_PASSPHRASE,
           address,
         }
       );

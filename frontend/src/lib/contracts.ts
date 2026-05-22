@@ -1,5 +1,6 @@
-import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import {
+  NETWORK_PASSPHRASE,
   addressToScVal,
   buildPaymentTx,
   i128ToScVal,
@@ -37,7 +38,7 @@ export async function sendPayment(
     ])
     : await buildPaymentTx(from, to, amountXlm, memo);
   const signedXdr = await StellarWalletsKit.signTransaction(xdr, {
-    networkPassphrase: Networks.TESTNET,
+    networkPassphrase: NETWORK_PASSPHRASE,
     address: from,
   });
   const txHash = settlementMode === 'contract'

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
+import { NETWORK_PASSPHRASE } from '../stellar';
 import {
   buildSetStatusXdr, fetchVendorStatus, submitSignedStatus, type VendorStatus,
 } from '../vendorStatus';
@@ -43,7 +44,7 @@ export function useToggleVendorStatus(address: string | null) {
     try {
       const xdr = await buildSetStatusXdr(address, nextIsOpen);
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address,
       });
       await submitSignedStatus(signedTxXdr);

@@ -1,11 +1,12 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Vec,
+    contract, contractimpl, contracttype, symbol_short, token, Address, BytesN, Env, String, Vec,
 };
 
 const RESERVE_BPS: i128 = 100; // 1% of each installment skimmed to per-utang reserve
 const LATE_FEE_BPS: i128 = 500; // 5% of installment_amount charged on resume_after_late
 const DEFAULT_GRACE_SECONDS: u64 = 604_800; // 7 days past next_due before mark_default allowed
+const DEFAULT_MAX_UTANG_AMOUNT: i128 = i128::MAX; // no cap by default; admin sets a real cap post-init
 
 #[contracttype]
 #[derive(Clone, PartialEq, Debug)]
@@ -43,6 +44,8 @@ pub enum DataKey {
     CustomerDefaults(Address),
     VendorDefaults(Address),
     UtangReserve(u64),
+    MaxUtangAmount,
+    ActiveUtangCount,
 }
 
 #[contracttype]
@@ -85,6 +88,23 @@ pub struct UtangResumedEvent {
     pub late_fee: i128,
 }
 
+#[contracttype]
+pub struct TokenChangedEvent {
+    pub old_token: Address,
+    pub new_token: Address,
+}
+
+#[contracttype]
+pub struct MaxUtangAmountChangedEvent {
+    pub old_max: i128,
+    pub new_max: i128,
+}
+
+#[contracttype]
+pub struct UpgradedEvent {
+    pub new_wasm_hash: BytesN<32>,
+}
+
 #[contract]
 pub struct UTangEscrow;
 
@@ -101,6 +121,119 @@ impl UTangEscrow {
         env.storage()
             .instance()
             .set(&DataKey::GracePeriod, &DEFAULT_GRACE_SECONDS);
+        env.storage()
+            .instance()
+            .set(&DataKey::MaxUtangAmount, &DEFAULT_MAX_UTANG_AMOUNT);
+        env.storage()
+            .instance()
+            .set(&DataKey::ActiveUtangCount, &0u64);
+    }
+
+    /// Admin swaps the settlement token. BLOCKED while any utang is Active —
+    /// otherwise in-flight utangs would have stranded reserve funds in the old token.
+    /// Admin must coordinate: freeze new utang creation off-chain, let all active utangs
+    /// complete or be defaulted, then call set_token.
+    pub fn set_token(env: Env, admin: Address, new_token: Address) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
+        if admin != stored_admin {
+            panic!("not admin");
+        }
+        let active: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::ActiveUtangCount)
+            .unwrap_or(0);
+        if active > 0 {
+            panic!("cannot change token while active utangs exist");
+        }
+        let old_token: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Token)
+            .expect("not initialized");
+        env.storage().instance().set(&DataKey::Token, &new_token);
+        env.events().publish(
+            (symbol_short!("utang"), symbol_short!("settoken")),
+            TokenChangedEvent {
+                old_token,
+                new_token,
+            },
+        );
+    }
+
+    pub fn token(env: Env) -> Address {
+        env.storage()
+            .instance()
+            .get(&DataKey::Token)
+            .expect("not initialized")
+    }
+
+    /// Admin sets the cap on total_amount accepted by create_utang.
+    /// Mainnet protection against runaway BNPL principal (e.g., cap at ₱5k worth of token stroops).
+    pub fn set_max_utang_amount(env: Env, admin: Address, new_max: i128) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
+        if admin != stored_admin {
+            panic!("not admin");
+        }
+        if new_max <= 0 {
+            panic!("max must be positive");
+        }
+        let old_max: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::MaxUtangAmount)
+            .unwrap_or(DEFAULT_MAX_UTANG_AMOUNT);
+        env.storage()
+            .instance()
+            .set(&DataKey::MaxUtangAmount, &new_max);
+        env.events().publish(
+            (symbol_short!("utang"), symbol_short!("setmax")),
+            MaxUtangAmountChangedEvent { old_max, new_max },
+        );
+    }
+
+    pub fn max_utang_amount(env: Env) -> i128 {
+        env.storage()
+            .instance()
+            .get(&DataKey::MaxUtangAmount)
+            .unwrap_or(DEFAULT_MAX_UTANG_AMOUNT)
+    }
+
+    pub fn active_utang_count(env: Env) -> u64 {
+        env.storage()
+            .instance()
+            .get(&DataKey::ActiveUtangCount)
+            .unwrap_or(0)
+    }
+
+    /// Admin swaps the contract's executable WASM. Preserves storage.
+    /// Mainnet escape hatch for bug fixes — no redeploy = no new contract ID = no state migration.
+    pub fn upgrade(env: Env, admin: Address, new_wasm_hash: BytesN<32>) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
+        if admin != stored_admin {
+            panic!("not admin");
+        }
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
+        env.events().publish(
+            (symbol_short!("utang"), symbol_short!("upgrade")),
+            UpgradedEvent { new_wasm_hash },
+        );
     }
 
     /// Admin can adjust grace period (seconds past next_due before default allowed).
@@ -148,6 +281,14 @@ impl UTangEscrow {
         if interval_seconds == 0 {
             panic!("interval_seconds must be positive");
         }
+        let max_amount: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::MaxUtangAmount)
+            .unwrap_or(DEFAULT_MAX_UTANG_AMOUNT);
+        if total_amount > max_amount {
+            panic!("total_amount exceeds max_utang_amount");
+        }
 
         // installment_amount = ceil(total / installments_total)
         let installment_amount =
@@ -181,6 +322,15 @@ impl UTangEscrow {
         env.storage()
             .persistent()
             .set(&DataKey::UtangReserve(count), &0i128);
+
+        let active: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::ActiveUtangCount)
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&DataKey::ActiveUtangCount, &(active + 1));
 
         let mut customer_list: Vec<u64> = env
             .storage()
@@ -295,6 +445,16 @@ impl UTangEscrow {
                     .persistent()
                     .set(&DataKey::UtangReserve(utang_id), &0i128);
             }
+            let active: u64 = env
+                .storage()
+                .instance()
+                .get(&DataKey::ActiveUtangCount)
+                .unwrap_or(0);
+            if active > 0 {
+                env.storage()
+                    .instance()
+                    .set(&DataKey::ActiveUtangCount, &(active - 1));
+            }
             env.events().publish(
                 (symbol_short!("utang"), symbol_short!("done")),
                 UtangCompletedEvent {
@@ -408,6 +568,17 @@ impl UTangEscrow {
             .persistent()
             .set(&DataKey::Utang(utang_id), &utang);
 
+        let active: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::ActiveUtangCount)
+            .unwrap_or(0);
+        if active > 0 {
+            env.storage()
+                .instance()
+                .set(&DataKey::ActiveUtangCount, &(active - 1));
+        }
+
         env.events().publish(
             (symbol_short!("utang"), symbol_short!("default")),
             UtangDefaultedEvent {
@@ -453,6 +624,15 @@ impl UTangEscrow {
         env.storage()
             .persistent()
             .set(&DataKey::Utang(utang_id), &utang);
+
+        let active: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::ActiveUtangCount)
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&DataKey::ActiveUtangCount, &(active + 1));
 
         env.events().publish(
             (symbol_short!("utang"), symbol_short!("resumed")),

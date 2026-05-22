@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
+  NETWORK_PASSPHRASE,
   simulateViewCall, prepareContractTx, submitSorobanTx,
   buildPaymentTx, submitTx,
   addressToScVal, u64ToScVal, u32ToScVal, i128ToScVal, stringToScVal,
 } from '../stellar';
-import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import { notifyWallet } from '../notify';
 
 const ESCROW_ID = import.meta.env.VITE_UTANG_ESCROW_CONTRACT_ID as string | undefined;
@@ -179,7 +180,7 @@ export function useCreateUtang() {
       ]);
 
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdrStr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address: signerAddress,
       });
 
@@ -223,7 +224,7 @@ export function usePayInstallment() {
 
         setStatus('signing');
         const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdrStr, {
-          networkPassphrase: Networks.TESTNET,
+          networkPassphrase: NETWORK_PASSPHRASE,
           address: fromAddress,
         });
 
@@ -258,7 +259,7 @@ export function usePayInstallment() {
 
         setStatus('signing');
         const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdrStr, {
-          networkPassphrase: Networks.TESTNET,
+          networkPassphrase: NETWORK_PASSPHRASE,
           address: fromAddress,
         });
 
@@ -428,7 +429,7 @@ export function useMarkDefault() {
         u64ToScVal(utangId),
       ]);
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdrStr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address: adminAddress,
       });
       const hash = await submitSorobanTx(signedTxXdr);
@@ -469,7 +470,7 @@ export function useResumeAfterLate() {
         u64ToScVal(utangId),
       ]);
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdrStr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address: customerAddress,
       });
       const hash = await submitSorobanTx(signedTxXdr);

@@ -1,4 +1,5 @@
 import type { PaymentProofRecord } from './payment-proof';
+import { stellarExpertUrl } from './stellar';
 
 type SmokeStepStatus = 'todo' | 'blocked' | 'done';
 type SmokeGuideStatus = 'needs_hash' | 'ready';
@@ -22,8 +23,6 @@ interface TestnetPaymentSmokeGuide {
   surfaces: SmokeSurface[];
   steps: SmokeStep[];
 }
-
-const STELLAR_EXPERT_TESTNET_TX = 'https://stellar.expert/explorer/testnet/tx';
 
 export function buildTestnetPaymentSmokeGuide(proofs: PaymentProofRecord[]): TestnetPaymentSmokeGuide {
   const latestProof = [...proofs]
@@ -65,7 +64,7 @@ export function buildTestnetPaymentSmokeGuide(proofs: PaymentProofRecord[]): Tes
   return {
     status: 'ready',
     capturedHash: latestProof.txHash,
-    stellarExpertUrl: `${STELLAR_EXPERT_TESTNET_TX}/${latestProof.txHash}`,
+    stellarExpertUrl: stellarExpertUrl(latestProof.txHash),
     surfaces: [
       {
         label: 'Customer history',

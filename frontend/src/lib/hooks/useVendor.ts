@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
+  NETWORK_PASSPHRASE,
   simulateViewCall, prepareContractTx, submitSorobanTx,
   addressToScVal, stringToScVal, u32ToScVal,
 } from '../stellar';
-import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 
 // Module-level cache so repeated renders don't re-fetch same address
 const vendorNameCache = new Map<string, string>();
@@ -212,7 +213,7 @@ export function useApplyVendor() {
         stringToScVal(productType),
       ]);
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address: wallet,
       });
       const hash = await submitSorobanTx(signedTxXdr);
@@ -245,7 +246,7 @@ export function useAdminActions() {
         addressToScVal(vendorWallet),
       ]);
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address: adminAddress,
       });
       await submitSorobanTx(signedTxXdr);
@@ -268,7 +269,7 @@ export function useAdminActions() {
         addressToScVal(vendorWallet),
       ]);
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address: adminAddress,
       });
       await submitSorobanTx(signedTxXdr);
@@ -291,7 +292,7 @@ export function useAdminActions() {
         addressToScVal(vendorWallet),
       ]);
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address: adminAddress,
       });
       await submitSorobanTx(signedTxXdr);

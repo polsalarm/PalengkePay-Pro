@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { UserPlus, CheckCircle, Loader2, AlertTriangle, ExternalLink, Wallet, ShieldCheck } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useToast } from '../../lib/hooks/useToast';
-import { truncateAddress, prepareContractTx, submitSorobanTx, addressToScVal, stringToScVal } from '../../lib/stellar';
-import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { NETWORK_PASSPHRASE, stellarExpertUrl, truncateAddress, prepareContractTx, submitSorobanTx, addressToScVal, stringToScVal } from '../../lib/stellar';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 
 const REGISTRY_ID = import.meta.env.VITE_VENDOR_REGISTRY_CONTRACT_ID as string | undefined;
 const PRODUCT_TYPES = ['fish', 'meat', 'vegetables', 'fruits', 'rice & grains', 'spices', 'other'];
@@ -51,7 +51,7 @@ export function AdminRegister() {
         stringToScVal(form.phone),
         stringToScVal(form.productType),
       ]);
-      const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, { networkPassphrase: Networks.TESTNET, address });
+      const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, { networkPassphrase: NETWORK_PASSPHRASE, address });
       const hash = await submitSorobanTx(signedTxXdr);
       setTxHash(hash);
       showToast(`${form.name} registered on-chain!`, 'success');
@@ -118,7 +118,7 @@ export function AdminRegister() {
           <div className="bg-white p-5 space-y-3">
             {txHash && (
               <a
-                href={`https://stellar.expert/explorer/testnet/tx/${txHash}`}
+                href={stellarExpertUrl(txHash)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full active:scale-95"

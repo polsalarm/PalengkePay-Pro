@@ -112,3 +112,60 @@ fn test_zero_amount_panics() {
     let memo = String::from_str(&env, "test");
     client.pay(&customer, &vendor, &0i128, &memo);
 }
+
+#[test]
+fn test_token_view_returns_init_token() {
+    let (_, client, token) = setup_initialized();
+    assert_eq!(client.token(), token);
+}
+
+#[test]
+fn test_set_token_admin_swaps() {
+    let (env, client, _) = setup_initialized();
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage()
+            .instance()
+            .get(&soroban_sdk::symbol_short!("ADMIN"))
+            .unwrap()
+    });
+    let token_admin = Address::generate(&env);
+    let new_asset = env.register_stellar_asset_contract_v2(token_admin);
+    let new_token = new_asset.address();
+    client.set_token(&admin_addr, &new_token);
+    assert_eq!(client.token(), new_token);
+}
+
+#[test]
+#[should_panic(expected = "not admin")]
+fn test_set_token_rejects_non_admin() {
+    let (env, client, _) = setup_initialized();
+    let attacker = Address::generate(&env);
+    let token_admin = Address::generate(&env);
+    let new_asset = env.register_stellar_asset_contract_v2(token_admin);
+    client.set_token(&attacker, &new_asset.address());
+}
+
+#[test]
+fn test_pay_uses_new_token_after_set_token() {
+    let (env, client, _) = setup_initialized();
+    let admin_addr: Address = env.as_contract(&client.address, || {
+        env.storage()
+            .instance()
+            .get(&soroban_sdk::symbol_short!("ADMIN"))
+            .unwrap()
+    });
+    let token_admin = Address::generate(&env);
+    let new_asset = env.register_stellar_asset_contract_v2(token_admin);
+    let new_token = new_asset.address();
+    client.set_token(&admin_addr, &new_token);
+
+    let customer = Address::generate(&env);
+    let vendor = Address::generate(&env);
+    mint_to(&env, &new_token, &customer, 1_000_000_000i128);
+    let memo = String::from_str(&env, "stablecoin payment");
+    let id = client.pay(&customer, &vendor, &10_000_000i128, &memo);
+    assert_eq!(id, 1);
+
+    let new_token_client = soroban_sdk::token::TokenClient::new(&env, &new_token);
+    assert_eq!(new_token_client.balance(&vendor), 10_000_000i128);
+}

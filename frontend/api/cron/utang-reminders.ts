@@ -1,11 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
-  rpc, Contract, Account, TransactionBuilder, Networks,
+  rpc, Contract, Account, TransactionBuilder,
   Address, nativeToScVal, scValToNative,
 } from '@stellar/stellar-sdk';
 import { listAllWallets } from '../_pushStore.js';
 import { fanout } from '../_pushFanout.js';
 import { isValidWallet } from '../_pushValidation.js';
+import { getRpcUrl, getNetworkPassphrase } from '../_network.js';
 
 /**
  * Daily cron — scans every subscribed wallet for active utangs, sends push
@@ -15,7 +16,6 @@ import { isValidWallet } from '../_pushValidation.js';
  * day don't re-notify (Web Push tags collapse on the device).
  */
 
-const RPC_URL = process.env.VITE_SOROBAN_RPC_URL ?? 'https://soroban-testnet.stellar.org';
 const ESCROW_ID = process.env.VITE_UTANG_ESCROW_CONTRACT_ID;
 const SIM_SOURCE = 'GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH';
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -35,13 +35,13 @@ interface RawUtang {
 
 async function getCustomerUtangs(wallet: string): Promise<RawUtang[]> {
   if (!ESCROW_ID) return [];
-  const server = new rpc.Server(RPC_URL);
+  const server = new rpc.Server(getRpcUrl());
   const contract = new Contract(ESCROW_ID);
   const account = new Account(SIM_SOURCE, '0');
 
   const tx = new TransactionBuilder(account, {
     fee: '100',
-    networkPassphrase: Networks.TESTNET,
+    networkPassphrase: getNetworkPassphrase(),
   })
     .addOperation(contract.call(
       'get_customer_utangs',

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import {
-  simulateViewCall, prepareContractTx, submitSorobanTx,
+  NETWORK_PASSPHRASE, simulateViewCall, prepareContractTx, submitSorobanTx,
   addressToScVal, bytes32ToScVal, u32ToScVal,
 } from '../stellar';
 import { summarize, type RatingSummary } from '../rating';
@@ -132,7 +132,7 @@ export function useSubmitRating() {
         bytes32ToScVal(commentHashHex),
       ]);
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase: Networks.TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
         address: customer,
       });
       const hash = await submitSorobanTx(signedTxXdr);

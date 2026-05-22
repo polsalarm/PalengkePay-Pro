@@ -1,6 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Vec,
+    contract, contractimpl, contracttype, symbol_short, token, Address, BytesN, Env, String, Vec,
 };
 
 #[contracttype]
@@ -28,6 +28,17 @@ pub struct PaymentCompletedEvent {
     pub vendor: Address,
     pub amount: i128,
     pub timestamp: u64,
+}
+
+#[contracttype]
+pub struct TokenChangedEvent {
+    pub old_token: Address,
+    pub new_token: Address,
+}
+
+#[contracttype]
+pub struct UpgradedEvent {
+    pub new_wasm_hash: BytesN<32>,
 }
 
 #[contract]
@@ -185,6 +196,61 @@ impl PalengkePayment {
             .instance()
             .get(&symbol_short!("PAYCNT"))
             .unwrap_or(0)
+    }
+
+    pub fn token(env: Env) -> Address {
+        env.storage()
+            .instance()
+            .get(&symbol_short!("TOKEN"))
+            .expect("not initialized")
+    }
+
+    /// Admin swaps the settlement token. Stateless w.r.t. in-flight payments
+    /// (each `pay` is atomic; no escrow held). Safe to swap any time.
+    pub fn set_token(env: Env, admin: Address, new_token: Address) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("ADMIN"))
+            .expect("not initialized");
+        if admin != stored_admin {
+            panic!("not admin");
+        }
+        let old_token: Address = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("TOKEN"))
+            .expect("not initialized");
+        env.storage()
+            .instance()
+            .set(&symbol_short!("TOKEN"), &new_token);
+        env.events().publish(
+            (symbol_short!("payment"), symbol_short!("settoken")),
+            TokenChangedEvent {
+                old_token,
+                new_token,
+            },
+        );
+    }
+
+    /// Admin swaps the contract's executable WASM. Preserves storage.
+    pub fn upgrade(env: Env, admin: Address, new_wasm_hash: BytesN<32>) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("ADMIN"))
+            .expect("not initialized");
+        if admin != stored_admin {
+            panic!("not admin");
+        }
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
+        env.events().publish(
+            (symbol_short!("payment"), symbol_short!("upgrade")),
+            UpgradedEvent { new_wasm_hash },
+        );
     }
 }
 

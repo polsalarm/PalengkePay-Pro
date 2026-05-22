@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { WalletContext } from '../lib/wallet-context';
+import { IS_MAINNET, NETWORK_PASSPHRASE } from '../lib/stellar';
 
 // Inline SVG data URIs — no external image fetch, never broken
 const ICONS: Record<string, string> = {
@@ -62,7 +63,7 @@ function initKit(): Promise<void> {
             url: origin,
             icons: [`${origin}/icon-192.svg`],
           },
-          allowedChains: [WalletConnectTargetChain.TESTNET],
+          allowedChains: [IS_MAINNET ? WalletConnectTargetChain.PUBLIC : WalletConnectTargetChain.TESTNET],
         });
         const freighterMod = new FreighterModule();
         const lobstrMod    = new LobstrModule();
@@ -72,7 +73,7 @@ function initKit(): Promise<void> {
         [wcMod, freighterMod, lobstrMod, xbullMod, albedoMod].forEach(patchIcon);
 
         StellarWalletsKit.init({
-          network: Networks.TESTNET,
+          network: IS_MAINNET ? Networks.PUBLIC : Networks.TESTNET,
           modules: [wcMod, freighterMod, lobstrMod, xbullMod, albedoMod],
         });
       }
@@ -148,9 +149,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const signTransaction = useCallback(async (xdr: string): Promise<string> => {
     if (!address) throw new Error('Wallet not connected');
     await initKit();
-    const { StellarWalletsKit, Networks } = await loadWalletKit();
+    const { StellarWalletsKit } = await loadWalletKit();
     const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-      networkPassphrase: Networks.TESTNET,
+      networkPassphrase: NETWORK_PASSPHRASE,
       address,
     });
     return signedTxXdr;

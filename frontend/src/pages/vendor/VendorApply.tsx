@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle, Loader2, QrCode, ExternalLink, MapPin, Phon
 import { useWallet } from '../../lib/hooks/useWallet';
 import { useApplyVendor } from '../../lib/hooks/useVendor';
 import { useToast } from '../../lib/hooks/useToast';
-import { truncateAddress } from '../../lib/stellar';
+import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const PRODUCT_TYPES = ['fish', 'meat', 'vegetables', 'fruits', 'rice & grains', 'spices', 'other'];
@@ -219,7 +219,7 @@ export function VendorApply() {
 
             {txHash && (
               <a
-                href={`https://stellar.expert/explorer/testnet/tx/${txHash}`}
+                href={stellarExpertUrl(txHash)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl w-full active:scale-95"
