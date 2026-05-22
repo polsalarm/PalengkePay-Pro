@@ -112,11 +112,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const result = await StellarWalletsKit.authModal() as { address: string; name?: string };
       const addr = result.address;
       const name = result.name ?? null;
-      await StellarWalletsKit.signMessage('Sign in to PalengkePay', { address: addr });
+      // Persist address BEFORE the optional sign-in challenge so a flaky
+      // second signature on mobile (iOS Safari Albedo, WalletConnect deeplink
+      // return) does not block the connect flow. authModal itself already
+      // proves wallet ownership.
       setAddress(addr);
       setWalletName(name);
       localStorage.setItem('palengkepay_address', addr);
       if (name) localStorage.setItem('palengkepay_wallet_name', name);
+      try {
+        await StellarWalletsKit.signMessage('Sign in to PalengkePay', { address: addr });
+      } catch (signErr) {
+        // Non-fatal: some wallets/contexts (mobile WalletConnect round-trip,
+        // Albedo iOS) reject or silently fail the second prompt. The user is
+        // already authenticated via authModal; keep them connected.
+        console.warn('[wallet] sign-in challenge skipped:', signErr);
+      }
       await refreshBalance(addr);
       return addr;
     } catch (err: unknown) {
