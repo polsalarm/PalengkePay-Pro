@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import { NETWORK_PASSPHRASE } from '../stellar';
 import {
-  buildSetStatusXdr, fetchVendorStatus, submitSignedStatus, type VendorStatus,
+  buildSetStatusXdr, fetchVendorStatus, fetchVendorStatuses, submitSignedStatus, type VendorStatus,
 } from '../vendorStatus';
 
 // Module cache so cards in MarketDirectory don't refetch repeatedly
@@ -42,13 +42,13 @@ export function useToggleVendorStatus(address: string | null) {
     setIsPending(true);
     setError(null);
     try {
-      const xdr = await buildSetStatusXdr(address, nextIsOpen);
+      const xdr = buildSetStatusXdr(address, nextIsOpen);
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
         networkPassphrase: NETWORK_PASSPHRASE,
         address,
       });
       await submitSignedStatus(signedTxXdr);
-      cache.set(address, { isOpen: nextIsOpen, defaulted: false });
+      cache.set(address, { isOpen: nextIsOpen, defaulted: false, updatedAt: Date.now() });
       return true;
     } catch (err: unknown) {
       setError((err as { message?: string }).message ?? 'Toggle failed');
@@ -81,19 +81,18 @@ export function useBulkVendorStatuses(addresses: string[]) {
     if (addresses.length === 0) return;
     let cancelled = false;
     setIsLoading(true);
-    Promise.all(
-      addresses.map((a) =>
-        fetchVendorStatus(a).then((s) => [a, s] as const).catch(() => [a, { isOpen: true, defaulted: true } as VendorStatus] as const),
-      ),
-    ).then((entries) => {
-      if (cancelled) return;
-      const m = new Map<string, VendorStatus>();
-      for (const [a, s] of entries) {
-        cache.set(a, s);
-        m.set(a, s);
-      }
-      setStatuses(m);
-    }).finally(() => { if (!cancelled) setIsLoading(false); });
+    fetchVendorStatuses(addresses)
+      .then((map) => {
+        if (cancelled) return;
+        const m = new Map<string, VendorStatus>();
+        for (const [a, s] of map.entries()) {
+          cache.set(a, s);
+          m.set(a, s);
+        }
+        for (const a of addresses) if (!m.has(a)) m.set(a, { isOpen: true, defaulted: true });
+        setStatuses(m);
+      })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addresses.join('|')]);

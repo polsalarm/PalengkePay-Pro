@@ -1,83 +1,92 @@
-import { TransactionBuilder, Operation } from '@stellar/stellar-sdk';
-import { getServer, submitWithFeeBump, NETWORK_PASSPHRASE } from './stellar';
+import {
+  Account, Memo, Operation, TransactionBuilder,
+} from '@stellar/stellar-sdk';
+import { NETWORK_PASSPHRASE } from './stellar';
 
-const KEY_OPEN = 'pp_open';
-const BASE_FEE = '100';
+const STATUS_ENDPOINT = (import.meta.env.VITE_VENDOR_STATUS_URL as string | undefined) ?? '/api/vendor-status';
+const MEMO_PREFIX = 'PPSTAT:';
+const CHALLENGE_TTL_SECONDS = 300;
 
 export interface VendorStatus {
   isOpen: boolean;
-  /** True when no `pp_open` data entry exists — vendor never toggled. */
+  /** True when no off-chain status record exists — vendor never toggled. */
   defaulted: boolean;
+  updatedAt?: number;
 }
 
-function decodeBase64(value: string): string {
-  try {
-    return atob(value);
-  } catch {
-    return '';
-  }
+function randomNonce(): string {
+  const bytes = new Uint8Array(9);
+  globalThis.crypto.getRandomValues(bytes);
+  // base64url, 12 chars
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 export async function fetchVendorStatus(address: string): Promise<VendorStatus> {
   try {
-    const server = getServer();
-    const account = await server.loadAccount(address);
-    const data = (account.data_attr as Record<string, string> | undefined) ?? {};
-    const raw = data[KEY_OPEN];
-    if (!raw) return { isOpen: true, defaulted: true };
-    return { isOpen: decodeBase64(raw) === '1', defaulted: false };
+    const res = await fetch(`${STATUS_ENDPOINT}?vendor=${encodeURIComponent(address)}`);
+    if (!res.ok) return { isOpen: true, defaulted: true };
+    const body = await res.json() as VendorStatus;
+    return body;
   } catch {
     return { isOpen: true, defaulted: true };
   }
 }
 
-export function parseVendorStatusFromDataAttr(
-  data: Record<string, string> | undefined,
-): VendorStatus {
-  const raw = data?.[KEY_OPEN];
-  if (!raw) return { isOpen: true, defaulted: true };
-  return { isOpen: decodeBase64(raw) === '1', defaulted: false };
+export async function fetchVendorStatuses(addresses: string[]): Promise<Map<string, VendorStatus>> {
+  const out = new Map<string, VendorStatus>();
+  if (addresses.length === 0) return out;
+  try {
+    const qs = encodeURIComponent(addresses.join(','));
+    const res = await fetch(`${STATUS_ENDPOINT}?vendors=${qs}`);
+    if (!res.ok) {
+      for (const a of addresses) out.set(a, { isOpen: true, defaulted: true });
+      return out;
+    }
+    const body = await res.json() as { statuses?: Record<string, VendorStatus>; isOpen?: boolean; defaulted?: boolean };
+    if (body.statuses) {
+      for (const [a, s] of Object.entries(body.statuses)) out.set(a, s);
+    } else if (typeof body.isOpen === 'boolean') {
+      // Single-vendor response shape (when only one address was sent)
+      out.set(addresses[0], { isOpen: body.isOpen, defaulted: Boolean(body.defaulted) });
+    }
+    for (const a of addresses) if (!out.has(a)) out.set(a, { isOpen: true, defaulted: true });
+    return out;
+  } catch {
+    for (const a of addresses) out.set(a, { isOpen: true, defaulted: true });
+    return out;
+  }
 }
 
-export async function buildSetStatusXdr(vendorAddress: string, isOpen: boolean): Promise<string> {
-  // Preferred path: server endpoint signs the sponsorship sandwich so the vendor
-  // never pays the 0.5 XLM base reserve for the new data entry.
-  const endpoint = import.meta.env.VITE_SPONSOR_DATA_URL ?? '/api/sponsor-data';
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vendor: vendorAddress, isOpen }),
-    });
-    if (res.ok) {
-      const { innerXdr } = await res.json() as { innerXdr: string };
-      return innerXdr;
-    }
-    if (res.status !== 404) {
-      const body = await res.json().catch(() => ({ error: 'Sponsor build failed' })) as { error?: string };
-      throw new Error(body.error ?? 'Sponsor build failed');
-    }
-    // 404 means endpoint not deployed (local vite dev without vercel dev) — fall through
-  } catch (err) {
-    const msg = (err as { message?: string }).message ?? '';
-    // Only swallow network errors here; explicit server errors already threw
-    if (!msg.toLowerCase().includes('fetch')) throw err;
-  }
-
-  // Fallback: build locally. Vendor pays the 0.5 XLM reserve on first toggle.
-  const server = getServer();
-  const account = await server.loadAccount(vendorAddress);
+/**
+ * Build a challenge transaction the vendor will sign to prove ownership of
+ * their G-address. The transaction is NEVER submitted to Horizon — the server
+ * only verifies the signature and reads the memo to determine the desired
+ * status. Sequence number is set to "0" so any accidental submission would
+ * fail with tx_bad_seq.
+ */
+export function buildSetStatusXdr(vendorAddress: string, isOpen: boolean): string {
+  const nonce = randomNonce();
+  const memoText = `${MEMO_PREFIX}${isOpen ? '1' : '0'}:${nonce}`.slice(0, 28);
+  const account = new Account(vendorAddress, '0');
   const tx = new TransactionBuilder(account, {
-    fee: BASE_FEE,
+    fee: '100',
     networkPassphrase: NETWORK_PASSPHRASE,
   })
-    .addOperation(Operation.manageData({ name: KEY_OPEN, value: isOpen ? '1' : '0' }))
-    .setTimeout(180)
+    .addOperation(Operation.manageData({ name: 'pp_status_challenge', value: nonce }))
+    .addMemo(Memo.text(memoText))
+    .setTimeout(CHALLENGE_TTL_SECONDS)
     .build();
   return tx.toXDR();
 }
 
-export async function submitSignedStatus(signedInnerXdr: string): Promise<string> {
-  const res = await submitWithFeeBump(signedInnerXdr);
-  return res.hash;
+export async function submitSignedStatus(signedXdr: string): Promise<void> {
+  const res = await fetch(STATUS_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ signedXdr }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: 'Status update failed' })) as { error?: string };
+    throw new Error(body.error ?? 'Status update failed');
+  }
 }
