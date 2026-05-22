@@ -15,7 +15,7 @@
 ![License](https://img.shields.io/badge/License-MIT-22C55E?style=flat)
 
 **Live:** [Testnet →](https://palengkepay-pro.vercel.app) · [Mainnet →](https://palengkepay-mainnet.vercel.app)
-**Demo:** [Testnet walkthrough →](https://youtu.be/hOiuXBG5A3Q?si=lLhgmeAsGQVen8e1) · Mainnet walkthrough _pending_
+**Demo:** [Product Walkthrough →](https://drive.google.com/drive/folders/1ozQ1dlHwINO-gHuYgv4AVmQYGAj3KFC_?usp=sharing) · [Testnet Demo →](https://drive.google.com/drive/folders/1tZpDFF0VBAGEYmEI9eK6iWa6_AorDFTu?usp=drive_link) · [Mainnet Demo →](https://drive.google.com/drive/folders/1J2fLbQJx17tleVHExptrrOdg7IsB9gGL?usp=drive_link)
 **Docs:** [📖 Full Detail README →](FULL_DETAIL_README.md)
 
 </div>
@@ -205,15 +205,15 @@ Deployed 2026-05-22.
 | Testnet | [palengkepay-pro.vercel.app](https://palengkepay-pro.vercel.app) |
 | Mainnet | [palengkepay-mainnet.vercel.app](https://palengkepay-mainnet.vercel.app) |
 
-### 🎥 Demo Videos
-| Network | Video |
-|---------|-------|
-| Testnet — 60s intro | [YouTube Shorts →](https://www.youtube.com/shorts/WmEz41GHeng?feature=share) |
-| Testnet — full MVP walkthrough | [YouTube →](https://youtu.be/hOiuXBG5A3Q?si=lLhgmeAsGQVen8e1) |
-| Mainnet walkthrough | _pending_ |
+### 🎥 Demo Videos (3–5 Minutes)
+| Type | Link |
+|------|------|
+| 🎬 MVP Walkthrough | [Google Drive →](https://drive.google.com/drive/folders/1ozQ1dlHwINO-gHuYgv4AVmQYGAj3KFC_?usp=sharing) |
+| 🧪 Testnet Demo | [Google Drive →](https://drive.google.com/drive/folders/1tZpDFF0VBAGEYmEI9eK6iWa6_AorDFTu?usp=drive_link) |
+| 🚀 Mainnet Demo | [Google Drive →](https://drive.google.com/drive/folders/1J2fLbQJx17tleVHExptrrOdg7IsB9gGL?usp=drive_link) |
 
 - 📊 **User Feedback (Google Sheets):** [View responses →](https://docs.google.com/spreadsheets/d/1g0AYRCwqc1-zcxy2q5UnIGHtllJHsXSaUvTCD7POI-g/edit?usp=sharing)
-- 🖼️ **Pitch Deck:** _coming soon_
+- 🖼️ **Pitch Deck:** [Google Drive →](https://drive.google.com/drive/folders/1tGru6SEu5bsqhAks1nQDXdXJmVCl75LX?usp=drive_link)
 
 ## 👤 Team
 | Name | Role | GitHub |
