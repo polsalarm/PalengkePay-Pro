@@ -26,16 +26,29 @@ export function Connect() {
   const [fundError, setFundError] = useState<string | null>(null);
   const attempted = useRef(false);
 
-  // Only redirect after explicit user click — not on mount
+  // Redirect after explicit user click OR on mount if a wallet was already connected
+  // via mobile WalletConnect round-trip (which may have remounted the React tree).
   useEffect(() => {
-    if (isConnected && attempted.current) navigate('/onboard');
+    if (isConnected && (attempted.current || sessionStorage.getItem('pp_connect_pending') === '1')) {
+      sessionStorage.removeItem('pp_connect_pending');
+      navigate('/onboard');
+    }
   }, [isConnected, navigate]);
 
   const handleWalletClick = async (id: string) => {
     attempted.current = true;
+    // Survives a mobile deeplink round-trip that may unmount/remount this page.
+    sessionStorage.setItem('pp_connect_pending', '1');
     setConnecting(id);
-    await connect();
+    const addr = await connect();
     setConnecting(null);
+    // Fast-path: connect resolved while we are still mounted — navigate directly
+    // without waiting for the useEffect tick. The sessionStorage guard handles
+    // the remount case (mobile WalletConnect).
+    if (addr) {
+      sessionStorage.removeItem('pp_connect_pending');
+      navigate('/onboard');
+    }
   };
 
   const handleFriendbot = async () => {
