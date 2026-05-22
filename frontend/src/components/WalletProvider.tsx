@@ -36,11 +36,6 @@ function getWalletConnectOrigin(): string {
   return window.location.origin;
 }
 
-function isMobileUA(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
-}
-
 export function initKit(): Promise<void> {
   if (!kitInitPromise) {
     kitInitPromise = Promise.all([
@@ -70,23 +65,16 @@ export function initKit(): Promise<void> {
           },
           allowedChains: [IS_MAINNET ? WalletConnectTargetChain.PUBLIC : WalletConnectTargetChain.TESTNET],
         });
+        const freighterMod = new FreighterModule();
         const lobstrMod    = new LobstrModule();
         const xbullMod     = new xBullModule();
         const albedoMod    = new AlbedoModule();
 
-        // Freighter has no mobile app/extension — listing it on mobile leaves
-        // users stuck on "Confirm in wallet" forever. WalletConnect (LOBSTR) +
-        // Albedo handle mobile; xBull has a mobile companion.
-        const mobile = isMobileUA();
-        const baseMods: Array<{ productId?: string; productIcon?: string }> = mobile
-          ? [wcMod, lobstrMod, albedoMod, xbullMod]
-          : [wcMod, new FreighterModule(), lobstrMod, xbullMod, albedoMod];
-
-        baseMods.forEach(patchIcon);
+        [wcMod, freighterMod, lobstrMod, xbullMod, albedoMod].forEach(patchIcon);
 
         StellarWalletsKit.init({
           network: IS_MAINNET ? Networks.PUBLIC : Networks.TESTNET,
-          modules: baseMods as unknown as Parameters<typeof StellarWalletsKit.init>[0]['modules'],
+          modules: [wcMod, freighterMod, lobstrMod, xbullMod, albedoMod],
         });
       }
     );
