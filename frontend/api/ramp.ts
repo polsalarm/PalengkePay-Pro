@@ -4,6 +4,7 @@ import { getDepositAddress, placeOrder, requestCashout, quoteCashin, withdrawCry
 import { verifyIncomingPayment, isAnchorConfigured } from './_anchor.js';
 import { fanout } from './_pushFanout.js';
 import { getLiquidityProfile, quoteWithLiquidityMetadata } from './liquidity-profile.js';
+import { isMainnet } from './_network.js';
 
 /**
  * Consolidated ramp dispatcher.
@@ -134,6 +135,13 @@ export async function seedDemoRampData(): Promise<RampTxn[]> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Mainnet has no licensed PHP↔XLM ramp. PDAX integration is mocked + operator
+  // settlement is testnet-only. Refuse all ramp ops in production mainnet env.
+  if (isMainnet()) {
+    return res.status(503).json({
+      error: 'Cash-in / cash-out is not available on mainnet. Use the testnet build.',
+    });
+  }
   const op = (req.query._op as string | undefined) ?? '';
   try {
     if (op === 'cashout') return await cashout(req, res);

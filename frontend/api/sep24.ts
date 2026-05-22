@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { bearer, toSepShape } from './_sep24Common.js';
 import { createTxn, getTxn, listForWallet } from './_rampStore.js';
 import { getDepositAddress, isMock } from './_pdax.js';
+import { isMainnet } from './_network.js';
 
 /**
  * Consolidated SEP-24 dispatcher.
@@ -17,6 +18,11 @@ import { getDepositAddress, isMock } from './_pdax.js';
  *   /api/sep24/transactions                          → _op=transactions
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (isMainnet()) {
+    return res.status(503).json({
+      error: 'SEP-24 anchor is not available on mainnet (PDAX integration is mocked, testnet-only).',
+    });
+  }
   const op = (req.query._op as string | undefined) ?? '';
 
   if (op === 'info') return info(res);

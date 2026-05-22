@@ -4,6 +4,7 @@ import { WalletProvider } from './components/WalletProvider';
 import { ToastProvider } from './components/Toast';
 import { Layout } from './components/Layout';
 import { LanguageProvider } from './contexts/LanguageContext'; // Add this import
+import { IS_MAINNET } from './lib/stellar';
 
 const Landing = lazy(() => import('./pages/Landing').then((module) => ({ default: module.Landing })));
 const Connect = lazy(() => import('./pages/Connect').then((module) => ({ default: module.Connect })));
@@ -81,9 +82,21 @@ export default function App() {
                   <Route path="/customer/history" element={<CustomerHistory />} />
                   <Route path="/customer/utang" element={<CustomerUtang />} />
                   <Route path="/customer/profile" element={<CustomerProfile />} />
-                  <Route path="/customer/cashin" element={<CustomerCashin />} />
-                  <Route path="/customer/cashout" element={<CustomerCashout />} />
-                  <Route path="/customer/testnet-wallet" element={<CustomerTestnetWallet />} />
+                  {/* Cash-in/cash-out + testnet-wallet are testnet-only (PDAX is mocked, mainnet ramps blocked on CAAS+KMS) */}
+                  {!IS_MAINNET && (
+                    <>
+                      <Route path="/customer/cashin" element={<CustomerCashin />} />
+                      <Route path="/customer/cashout" element={<CustomerCashout />} />
+                      <Route path="/customer/testnet-wallet" element={<CustomerTestnetWallet />} />
+                    </>
+                  )}
+                  {IS_MAINNET && (
+                    <>
+                      <Route path="/customer/cashin" element={<Navigate to="/customer/profile" replace />} />
+                      <Route path="/customer/cashout" element={<Navigate to="/customer/profile" replace />} />
+                      <Route path="/customer/testnet-wallet" element={<Navigate to="/customer/profile" replace />} />
+                    </>
+                  )}
 
                   {/* Admin */}
                   <Route path="/admin/market" element={<AdminMarket />} />
@@ -91,7 +104,9 @@ export default function App() {
                   <Route path="/admin/metrics" element={<AdminMetrics />} />
                   <Route path="/admin/health" element={<AdminHealth />} />
                   <Route path="/admin/proofs" element={<AdminProofs />} />
-                  <Route path="/admin/ramps" element={<AdminRamps />} />
+                  {/* Admin ramps console is testnet-only (operator manual settlement is not legal on mainnet) */}
+                  {!IS_MAINNET && <Route path="/admin/ramps" element={<AdminRamps />} />}
+                  {IS_MAINNET && <Route path="/admin/ramps" element={<Navigate to="/admin/market" replace />} />}
                   <Route path="/admin/utang" element={<AdminUtang />} />
 
                   {/* Vendor apply (public) */}

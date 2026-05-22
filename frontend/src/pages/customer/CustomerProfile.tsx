@@ -24,7 +24,7 @@ import { UnitToggle } from '../../components/UnitToggle';
 import { PrivacyToggle } from '../../components/PrivacyToggle';
 import { PushPrompt } from '../../components/PushPrompt';
 
-import { truncateAddress, stellarExpertUrl } from '../../lib/stellar';
+import { truncateAddress, stellarExpertUrl, IS_MAINNET } from '../../lib/stellar';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useToast } from '../../lib/hooks/useToast';
 
@@ -256,7 +256,8 @@ export function CustomerProfile() {
                 </div>
               </div>
 
-              {/* QUICK ACTIONS */}
+              {/* QUICK ACTIONS — hidden on mainnet (cash-in/cash-out is testnet-only) */}
+              {!IS_MAINNET && (
               <div className="grid grid-cols-2 gap-3">
                 <NavLink
                   to="/customer/cashin"
@@ -316,6 +317,7 @@ export function CustomerProfile() {
                   </p>
                 </NavLink>
               </div>
+              )}
             </div>
           )}
         </div>
