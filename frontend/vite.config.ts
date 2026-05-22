@@ -133,7 +133,6 @@ function vercelApiDevPlugin(): Plugin {
           }
           await (handler as (req: unknown, res: unknown) => unknown)(shimReq, shimRes)
         } catch (err) {
-          // eslint-disable-next-line no-console
           console.error('[vercel-api-dev]', moduleName, (err as Error)?.stack ?? err)
           if (!res.headersSent) {
             res.statusCode = 500
