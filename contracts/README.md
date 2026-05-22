@@ -1,8 +1,42 @@
 # PalengkePay — Smart Contracts
 
-Three Soroban contracts on Stellar Testnet.
+Three Soroban contracts deployed to **Stellar Mainnet (2026-05-22)** and **Stellar Testnet**.
 
-## Default-Handling Upgrade (deployed 2026-05-21)
+## Mainnet Deploy (2026-05-22)
+
+First mainnet deployment includes all default-handling + Phase 0 contract hardening
+(`set_token`, `set_max_utang_amount`, `upgrade` admin escape hatches). Settlement
+token is native XLM; BNPL principal capped at 230,000,000 stroops (≈₱500 at 22 PHP/XLM).
+
+| Contract | Mainnet Contract ID |
+|----------|---------------------|
+| `vendor-registry` | `CCTB5OMKU6DITCWOFM7LVZENSJXR3VSABAWG3GRXTFPXDPBH2FKATOLX` |
+| `palengke-payment` | `CCP6WOKMHH7AEX2JTP22EEAUTQ5EAPAECX4SMJ2P442QLD4J36277GBV` |
+| `utang-escrow` | `CDW5HJWCXIAUI27F3WZRSFU4LETD7KIDOGTP4LEKFACETQVIFWV7XKIG` |
+
+Admin keypair (mainnet + testnet, same `stellar keys` identity `palengkepay`):
+`GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH`
+
+Native XLM SAC on mainnet: `CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA`
+
+### Deployed Mainnet WASM (optimized)
+
+| WASM | Bytes | SHA-256 |
+|------|------:|---------|
+| `vendor_registry.optimized.wasm` | 13 892 | `d5a656f1cee86ccbb94729638f158711680e29611f1a4171115e0dd2cb93c818` |
+| `palengke_payment.optimized.wasm` | 5 751 | `7360813fbb625d0a1566053dc9deb8c3bbdfc1272b5e46ac1f129aef0215e0cf` |
+| `utang_escrow.optimized.wasm` | 15 356 | `6c83fa459352917c32ba2877a4f2e9c887ff866ec10b4a68c968d0aefd5dc8b3` |
+
+Deploy cost: ~43 XLM. All 3 contracts can be upgraded via admin `upgrade(new_wasm_hash)` —
+no redeploy, state preserved.
+
+[VendorRegistry](https://stellar.expert/explorer/public/contract/CCTB5OMKU6DITCWOFM7LVZENSJXR3VSABAWG3GRXTFPXDPBH2FKATOLX) ·
+[PalengkePayment](https://stellar.expert/explorer/public/contract/CCP6WOKMHH7AEX2JTP22EEAUTQ5EAPAECX4SMJ2P442QLD4J36277GBV) ·
+[UTangEscrow](https://stellar.expert/explorer/public/contract/CDW5HJWCXIAUI27F3WZRSFU4LETD7KIDOGTP4LEKFACETQVIFWV7XKIG)
+
+---
+
+## Default-Handling Upgrade (testnet, deployed 2026-05-21)
 
 Second redeploy on 2026-05-21 added utang default management — grace period,
 reserve pool, late-fee resume, and per-vendor / per-customer default counters.

@@ -347,9 +347,14 @@ PalengkePay runs on **both Stellar Testnet (live now) and Stellar Mainnet (Phase
 
 | Contract | Purpose | Testnet ID | Mainnet ID |
 |----------|---------|------------|------------|
-| `VendorRegistry` | Vendor registration, apply/approve/reject/deactivate, profiles, ratings, default reputation | `CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR` | _Pending — Phase 2_ |
-| `PalengkePayment` | QR-based payments with fee support and stat tracking | `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` | _Pending — Phase 2_ |
-| `UTangEscrow` | BNPL installments — create, pay, default (with 7-day grace + 1% reserve pool), resume after late fee | `CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53` | _Pending — Phase 2_ |
+| `VendorRegistry` | Vendor registration, apply/approve/reject/deactivate, profiles, ratings, default reputation | `CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR` | `CCTB5OMKU6DITCWOFM7LVZENSJXR3VSABAWG3GRXTFPXDPBH2FKATOLX` |
+| `PalengkePayment` | QR-based payments with fee support and stat tracking | `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` | `CCP6WOKMHH7AEX2JTP22EEAUTQ5EAPAECX4SMJ2P442QLD4J36277GBV` |
+| `UTangEscrow` | BNPL installments — create, pay, default (with 7-day grace + 1% reserve pool), resume after late fee | `CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53` | `CDW5HJWCXIAUI27F3WZRSFU4LETD7KIDOGTP4LEKFACETQVIFWV7XKIG` |
+
+**Mainnet deployed 2026-05-22.** Settlement token: native XLM
+(SAC `CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA`). BNPL principal cap
+on mainnet: 230 000 000 stroops (≈ ₱500 at 22 PHP/XLM). Admin keypair:
+`GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH`.
 
 See [`docs/CONTRACTS.md`](docs/CONTRACTS.md) for contract interfaces, [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for deployment guidance, and [`plan.md`](plan.md) for the dual-network rollout checklist when present.
 
@@ -358,21 +363,21 @@ See [`docs/CONTRACTS.md`](docs/CONTRACTS.md) for contract interfaces, [`docs/DEP
 ### VendorRegistry
 
 - **Testnet:** `CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR)
-- **Mainnet:** _Pending — Phase 2 (post-audit)_
+- **Mainnet:** `CCTB5OMKU6DITCWOFM7LVZENSJXR3VSABAWG3GRXTFPXDPBH2FKATOLX` · [View on Stellar Expert →](https://stellar.expert/explorer/public/contract/CCTB5OMKU6DITCWOFM7LVZENSJXR3VSABAWG3GRXTFPXDPBH2FKATOLX)
 
 <img src="UI/CONTRACT/VendorRegistry.png" alt="VendorRegistry contract on Stellar Expert" width="100%" />
 
 ### PalengkePayment
 
 - **Testnet:** `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY)
-- **Mainnet:** _Pending — Phase 2 (post-audit)_
+- **Mainnet:** `CCP6WOKMHH7AEX2JTP22EEAUTQ5EAPAECX4SMJ2P442QLD4J36277GBV` · [View on Stellar Expert →](https://stellar.expert/explorer/public/contract/CCP6WOKMHH7AEX2JTP22EEAUTQ5EAPAECX4SMJ2P442QLD4J36277GBV)
 
 <img src="UI/CONTRACT/PalengkeyPayment.png" alt="PalengkePayment contract on Stellar Expert" width="100%" />
 
 ### UTangEscrow
 
 - **Testnet:** `CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53` · [View on Stellar Expert →](https://stellar.expert/explorer/testnet/contract/CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53)
-- **Mainnet:** _Pending — Phase 2 (post-audit)_
+- **Mainnet:** `CDW5HJWCXIAUI27F3WZRSFU4LETD7KIDOGTP4LEKFACETQVIFWV7XKIG` · [View on Stellar Expert →](https://stellar.expert/explorer/public/contract/CDW5HJWCXIAUI27F3WZRSFU4LETD7KIDOGTP4LEKFACETQVIFWV7XKIG)
 
 <img src="UI/CONTRACT/UtangEscrow.png" alt="UTangEscrow contract on Stellar Expert" width="100%" />
 
@@ -578,12 +583,20 @@ stellar contract build        # build WASM for deployment
 Create `frontend/.env.local`:
 
 ```env
+# Testnet (current palengkepay-pro.vercel.app)
 VITE_STELLAR_NETWORK=testnet
 VITE_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
 VITE_VENDOR_REGISTRY_CONTRACT_ID=CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR
 VITE_PALENGKE_PAYMENT_CONTRACT_ID=CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY
 VITE_UTANG_ESCROW_CONTRACT_ID=CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53
 VITE_UTANG_FEE_XLM=1
+
+# Mainnet (palengkepay-mainnet.vercel.app) — swap on the mainnet Vercel project
+# VITE_STELLAR_NETWORK=mainnet
+# VITE_SOROBAN_RPC_URL=https://mainnet.sorobanrpc.com
+# VITE_VENDOR_REGISTRY_CONTRACT_ID=CCTB5OMKU6DITCWOFM7LVZENSJXR3VSABAWG3GRXTFPXDPBH2FKATOLX
+# VITE_PALENGKE_PAYMENT_CONTRACT_ID=CCP6WOKMHH7AEX2JTP22EEAUTQ5EAPAECX4SMJ2P442QLD4J36277GBV
+# VITE_UTANG_ESCROW_CONTRACT_ID=CDW5HJWCXIAUI27F3WZRSFU4LETD7KIDOGTP4LEKFACETQVIFWV7XKIG
 <<
 # Web Push (VAPID) — generate via `npx web-push generate-vapid-keys`
 VITE_VAPID_PUBLIC_KEY=<base64-url public key, exposed to client>
