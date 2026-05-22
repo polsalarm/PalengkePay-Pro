@@ -59,12 +59,12 @@ test('/vendor/transactions exposes income proof exports, recovery, and caveats',
   await expect(proofModal.getByText('PalengkePay Income Proof Certificate')).toBeVisible();
   await expect(proofModal.getByText('Prepared for lender, cooperative, LGU, or aid-program review.')).toBeVisible();
   await expect(proofModal.getByText('Live hash').nth(1)).toBeVisible();
-  await expect(proofModal.getByText('qa-vendor-proof-hash').first()).toBeVisible();
 
   // Close the modal before asserting on underlying page content.
   await proofModal.getByRole('button', { name: 'Close' }).click();
   await expect(proofModal).toBeHidden();
 
+  await expect(page.getByText('qa-vendor-proof-hash').first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Transaction Recovery Desk' })).toBeVisible();
   await expect(page.getByText('Receipt lookup', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Transaction hash: qa-vendor-proof-hash').first()).toBeVisible({ timeout: 15_000 });
