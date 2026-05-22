@@ -589,7 +589,7 @@ VITE_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
 VITE_VENDOR_REGISTRY_CONTRACT_ID=CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR
 VITE_PALENGKE_PAYMENT_CONTRACT_ID=CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY
 VITE_UTANG_ESCROW_CONTRACT_ID=CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53
-VITE_UTANG_FEE_XLM=1
+VITE_UTANG_FEE_XLM=0.1
 
 # Mainnet (palengkepay-mainnet.vercel.app) — swap on the mainnet Vercel project
 # VITE_STELLAR_NETWORK=mainnet
@@ -626,7 +626,7 @@ RAMP_RATE_FALLBACK=7.85          # PHP per XLM when PDAX is mocked
 RAMP_ADMIN_KEY=
 ```
 
-`VITE_UTANG_FEE_XLM` — XLM fee charged to vendors per utang QR creation (default: `1`).
+`VITE_UTANG_FEE_XLM` — XLM fee charged to vendors per utang QR creation (default: `0.1`).
 
 Server-only fee sponsorship variables:
 

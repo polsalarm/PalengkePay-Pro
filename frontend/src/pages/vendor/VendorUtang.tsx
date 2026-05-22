@@ -13,7 +13,7 @@ import { buildCollectionsSummary } from '../../lib/vendor-proof';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const ESCROW_ID = import.meta.env.VITE_UTANG_ESCROW_CONTRACT_ID as string | undefined;
-const FEE_XLM = (import.meta.env.VITE_UTANG_FEE_XLM as string | undefined) ?? '1';
+const FEE_XLM = (import.meta.env.VITE_UTANG_FEE_XLM as string | undefined) ?? '0.1';
 const FEE_DEST = (import.meta.env.VITE_UTANG_FEE_DEST as string | undefined)
   ?? 'GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH';
 
