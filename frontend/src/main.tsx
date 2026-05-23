@@ -4,6 +4,9 @@ import * as Sentry from '@sentry/react'
 import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
+import { installExtensionNoiseFilter, isExtensionNoise } from './lib/suppressExtensionNoise'
+
+installExtensionNoiseFilter();
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN as string | undefined,
@@ -11,6 +14,10 @@ Sentry.init({
   environment: import.meta.env.VITE_STELLAR_NETWORK ?? 'testnet',
   tracesSampleRate: 0.2,
   release: 'palengkepay@1.0.0',
+  beforeSend(event, hint) {
+    if (isExtensionNoise(hint?.originalException)) return null;
+    return event;
+  },
 });
 
 if (typeof window !== 'undefined') {
