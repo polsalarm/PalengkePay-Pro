@@ -53,7 +53,7 @@ export function CustomerCashout() {
     if (!order || !address) return;
     reset();
     setStage('sending');
-    await sendPayment(address, order.depositAddress, order.amountXlm, order.memo);
+    await sendPayment(address, order.depositAddress, order.amountXlm, order.memo, { forceClassic: true });
   };
 
   useEffect(() => {

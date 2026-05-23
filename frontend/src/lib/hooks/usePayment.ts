@@ -40,12 +40,18 @@ export function usePayment() {
     from: string,
     to: string,
     amount: string,
-    memo?: string
+    memo?: string,
+    opts?: { forceClassic?: boolean }
   ) => {
     try {
       setState({ status: 'building', txHash: null, error: null, diagnostic: null });
-      const xdr = settlementMode === 'contract' && paymentContractId
-        ? await prepareContractTx(from, paymentContractId, 'pay', [
+      // Anchor deposits (cashout) need a classic XLM payment op so the server-side
+      // Horizon verifier in /api/ramp/cashout?action=settle can confirm the
+      // transfer landed on the anchor account. Soroban contract invocations
+      // produce invoke_host_function ops which the verifier cannot detect.
+      const useContract = !opts?.forceClassic && settlementMode === 'contract' && paymentContractId;
+      const xdr = useContract
+        ? await prepareContractTx(from, paymentContractId!, 'pay', [
           addressToScVal(from),
           addressToScVal(to),
           i128ToScVal(xlmToStroops(amount)),
@@ -60,7 +66,7 @@ export function usePayment() {
       });
 
       setState((s) => ({ ...s, status: 'submitting' }));
-      const txHash = settlementMode === 'contract'
+      const txHash = useContract
         ? await submitSorobanTx(signedTxXdr)
         : (await submitWithFeeBump(signedTxXdr)).hash;
 
