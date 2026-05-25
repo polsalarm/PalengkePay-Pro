@@ -62,16 +62,10 @@ scripts/seed/seed-vendors-output.json
 scripts/seed/seed-defaults-output.json
 scripts/seed/seed-overdue-output.json
 
-# Internal docs and planning files
+# Internal docs, spec, and assets — hidden from the public repo
 docs/
-!docs/
-!docs/FEATURE_INVENTORY.md
-!docs/USER_FLOWS.md
-!docs/ARCHITECTURE.md
-!docs/CONTRACTS.md
-!docs/DEPLOYMENT.md
-!docs/VERIFICATION.md
-!docs/contract-deployment.md
+spec/
+assets/
 UI_UX_IMPROVEMENTS.md
 frontend/README.md
 ROADMAP.md
