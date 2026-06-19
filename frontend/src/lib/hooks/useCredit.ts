@@ -1,0 +1,125 @@
+import { useState, useEffect, useCallback } from 'react';
+import {
+  NETWORK_PASSPHRASE,
+  simulateViewCall, prepareContractTx, submitSorobanTx,
+  addressToScVal, i128ToScVal,
+} from '../stellar';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
+
+// Credit RWA layer points at the v2 registry (which exposes get_credit_score) and
+// the two score-gated lending pools. Kept separate from the app's primary registry
+// env so the rest of the app is undisturbed.
+const REGISTRY_V2 = import.meta.env.VITE_VENDOR_REGISTRY_V2_CONTRACT_ID as string | undefined;
+const POOL_USDC = import.meta.env.VITE_CREDIT_POOL_USDC_CONTRACT_ID as string | undefined;
+const POOL_XLM = import.meta.env.VITE_CREDIT_POOL_XLM_CONTRACT_ID as string | undefined;
+
+export const creditLayerConfigured = !!(REGISTRY_V2 && (POOL_USDC || POOL_XLM));
+
+export type PoolAsset = 'USDC' | 'XLM';
+
+export function poolId(asset: PoolAsset): string | undefined {
+  return asset === 'USDC' ? POOL_USDC : POOL_XLM;
+}
+
+const STROOP_FACTOR = 10_000_000;
+
+/** i128 stroops (7-decimal) → human units. */
+export function toUnits(stroops: bigint): number {
+  return Number(stroops) / STROOP_FACTOR;
+}
+
+/** human units → i128 stroops (7-decimal), rounded. */
+export function toStroops(units: number): bigint {
+  return BigInt(Math.round(units * STROOP_FACTOR));
+}
+
+export interface ScoreTier {
+  label: string;
+  color: string;
+}
+
+/** Maps a 300–850 score to a FICO-style band label + accent colour. */
+export function scoreTier(score: number): ScoreTier {
+  if (score >= 750) return { label: 'Excellent', color: '#059669' };
+  if (score >= 670) return { label: 'Good', color: '#14B8A6' };
+  if (score >= 580) return { label: 'Fair', color: '#D97706' };
+  if (score > 300) return { label: 'Building', color: '#F59E0B' };
+  return { label: 'No credit yet', color: '#94A3B8' };
+}
+
+// ── On-chain credit score ─────────────────────────────────────────────────────
+
+export function useCreditScore(address: string | null) {
+  const [score, setScore] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!address || !REGISTRY_V2) { setScore(null); return; }
+    setIsLoading(true);
+    simulateViewCall(REGISTRY_V2, 'get_credit_score', [addressToScVal(address)])
+      .then((raw) => setScore(raw == null ? 300 : Number(raw)))
+      .catch(() => setScore(null))
+      .finally(() => setIsLoading(false));
+  }, [address, tick]);
+
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+  return { score, isLoading, refetch };
+}
+
+// ── Score-gated lending pool ──────────────────────────────────────────────────
+
+export interface CreditPoolState {
+  limit: bigint;       // total credit line (stroops)
+  available: bigint;   // drawable right now (stroops)
+  debt: bigint;        // outstanding principal (stroops)
+  poolBalance: bigint; // free liquidity in the pool (stroops)
+}
+
+export function useCreditPool(address: string | null, asset: PoolAsset) {
+  const pid = poolId(asset);
+  const [state, setState] = useState<CreditPoolState>({
+    limit: 0n, available: 0n, debt: 0n, poolBalance: 0n,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!address || !pid) return;
+    setIsLoading(true);
+    Promise.all([
+      simulateViewCall(pid, 'credit_limit', [addressToScVal(address)]),
+      simulateViewCall(pid, 'available_to', [addressToScVal(address)]),
+      simulateViewCall(pid, 'debt', [addressToScVal(address)]),
+      simulateViewCall(pid, 'pool_balance', []),
+    ])
+      .then(([l, a, d, p]) => setState({
+        limit: BigInt(String(l ?? 0)),
+        available: BigInt(String(a ?? 0)),
+        debt: BigInt(String(d ?? 0)),
+        poolBalance: BigInt(String(p ?? 0)),
+      }))
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [address, pid, tick]);
+
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+
+  const submit = useCallback(async (method: 'draw' | 'repay', units: number): Promise<string> => {
+    if (!address || !pid) throw new Error('Credit pool not configured');
+    const xdr = await prepareContractTx(address, pid, method, [
+      addressToScVal(address),
+      i128ToScVal(toStroops(units)),
+    ]);
+    const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
+      networkPassphrase: NETWORK_PASSPHRASE,
+      address,
+    });
+    return submitSorobanTx(signedTxXdr);
+  }, [address, pid]);
+
+  const draw = useCallback((units: number) => submit('draw', units), [submit]);
+  const repay = useCallback((units: number) => submit('repay', units), [submit]);
+
+  return { ...state, isLoading, refetch, draw, repay };
+}
