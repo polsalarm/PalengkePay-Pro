@@ -10,6 +10,7 @@ import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, stellarExpertUrl, getServer } from '../../lib/stellar';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { CreditCard } from '../../components/CreditCard';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 function groupByDate(txs: TxRecord[], _lang: 'en' | 'tl', t: (key: string, params?: Record<string, string | number>) => string) {
@@ -333,6 +334,9 @@ export function VendorHome() {
           <ArrowRight size={20} style={{ color: 'rgba(255,255,255,0.5)' }} className="shrink-0" />
         </button>
       </div>
+
+      {/* ── WORKING CAPITAL (credit RWA) ── */}
+      <CreditCard address={address} />
 
       {/* ── UTANG SECONDARY CTA ── */}
       <div className="px-4 mt-3">
