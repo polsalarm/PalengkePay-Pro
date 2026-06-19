@@ -424,3 +424,81 @@ fn test_report_default_requires_admin_auth() {
     let customer = Address::generate(&env);
     client.report_default(&admin, &vendor, &customer);
 }
+
+// ── Credit scoring ──────────────────────────────────────────────────────────
+
+#[test]
+fn test_credit_score_unknown_vendor_is_floor() {
+    let (env, _admin, client) = setup();
+    let stranger = Address::generate(&env);
+    // No record at all → 300 floor, no panic.
+    assert_eq!(client.get_credit_score(&stranger), 300);
+}
+
+#[test]
+fn test_credit_score_fresh_vendor_is_floor() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+    // Registered but zero volume / txns / ratings → 300 floor.
+    assert_eq!(client.get_credit_score(&vendor), 300);
+}
+
+#[test]
+fn test_credit_score_builds_from_cashflow_and_ratings() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    // 12 txns, 120 XLM cumulative volume → +200 volume, +50 txns.
+    for _ in 0..12 {
+        client.increment_stats(&admin, &vendor, &100_000_000i128); // 10 XLM each
+    }
+
+    // Three 5-star ratings → avg 5.00 → +200.
+    for i in 0..3u8 {
+        let customer = Address::generate(&env);
+        client.submit_rating(&customer, &vendor, &tx_hash(&env, i + 1), &5u32, &zero_hash(&env));
+    }
+
+    // 300 + 200 + 50 + 200 = 750.
+    assert_eq!(client.get_credit_score(&vendor), 750);
+}
+
+#[test]
+fn test_credit_score_caps_at_850() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    // 500 txns at 10 XLM = 5000 XLM volume → +200 vol, +150 txns.
+    for _ in 0..500 {
+        client.increment_stats(&admin, &vendor, &100_000_000i128);
+    }
+    for i in 0..5u8 {
+        let customer = Address::generate(&env);
+        client.submit_rating(&customer, &vendor, &tx_hash(&env, i + 1), &5u32, &zero_hash(&env));
+    }
+    // 300 + 200 + 150 + 200 = 850, clamped at ceiling.
+    assert_eq!(client.get_credit_score(&vendor), 850);
+}
+
+#[test]
+fn test_credit_score_default_penalty_floors_at_300() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    // Modest profile: 10 txns + 100 XLM → 300 + 200 + 50 = 550.
+    for _ in 0..10 {
+        client.increment_stats(&admin, &vendor, &100_000_000i128);
+    }
+    assert_eq!(client.get_credit_score(&vendor), 550);
+
+    // Six defaults × 100 penalty = 600 > 250 of headroom → clamped to 300 floor.
+    for _ in 0..6 {
+        let customer = Address::generate(&env);
+        client.report_default(&admin, &vendor, &customer);
+    }
+    assert_eq!(client.get_credit_score(&vendor), 300);
+}
