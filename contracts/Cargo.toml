@@ -3,6 +3,7 @@ members = [
     "palengke-payment",
     "vendor-registry",
     "utang-escrow",
+    "credit-pool",
 ]
 resolver = "2"
 
