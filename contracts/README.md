@@ -5,7 +5,7 @@ plus a fourth (`credit-pool`) built for the **Credit RWA layer** (see below, dep
 
 ---
 
-## Credit RWA Layer (hackathon pivot, 2026-06-20) — built & tested, deploy pending
+## Credit RWA Layer (hackathon pivot, 2026-06-20) — deployed to testnet
 
 Reframes PalengkePay for **Track 1 (Local Finance & RWA)**: a vendor's on-chain cashflow
 history becomes a verifiable credit profile that underwrites score-gated working capital.
@@ -43,12 +43,29 @@ vendor's `get_credit_score` (read cross-contract). This is the composability pri
 `CREDIT_PER_POINT = 10_000_000` (1 USDC, 7-decimal) per point above MIN_SCORE 500 →
 score 850 = 350 USDC ceiling. Covered by 8 unit tests (mock registry + real SAC), wasm ~7 KB.
 
-### Deploy caveat — registry needs a FRESH deploy
+### Deployed (testnet, 2026-06-20)
 
-The **deployed** testnet `vendor-registry` (`CDEQVKKR…`) does **not** expose an `upgrade`
-entrypoint, so `get_credit_score` cannot be added in place. Path: deploy a fresh
-VendorRegistry (current source has both `upgrade` + `get_credit_score`) and re-seed demo
-vendors, then deploy `credit-pool` pointed at the new registry + a testnet USDC SAC.
+The previously deployed testnet `vendor-registry` (`CDEQVKKR…`) lacked an `upgrade`
+entrypoint, so a **fresh** VendorRegistry was deployed (current source — has both
+`upgrade` + `get_credit_score`). Two `credit-pool` instances share the same registry as
+their credit oracle: one settles in **USDC**, one in native **XLM** (vendors pick their
+rail). Admin/oracle is the `palengkepay` identity.
+
+| Component | Testnet Contract ID |
+|-----------|---------------------|
+| `vendor-registry` (v2, with credit score) | `CDDDOUWUWGHSBEJDFK5ACA6CQH235UQ252VBPGX7O74G3EYUZZEBYKJR` |
+| `credit-pool` (USDC) | `CA2IUTQJBTKWWJYJJZH6E7YL42Q7DRXZWRY5LEVAE2GVY3NAX6V6NXBA` |
+| `credit-pool` (XLM) | `CCGEJGE3J65BQRULSJ4ZS5Q3GWWTSEQPMALDFHXSJETVLD2J5T3TWV33` |
+| `USDC` SAC (issuer = `palengkepay`) | `CDY4LM3FP2R7FBITPY6RW7HJDKOLZICDVVMAQVQYMH3DOYKC3VEWIXCZ` |
+| native XLM SAC | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` |
+
+**Verified end-to-end on-chain:** seeded a vendor to score 520 (100 XLM volume + 2 txns) →
+`credit_limit` 20 XLM → funded XLM pool 100 XLM → vendor drew 20 XLM → `debt` 20, pool
+balance 80. The fresh registry has no migrated history; demo vendors are re-seeded.
+
+> **Note:** the v2 registry is a separate contract from the app's existing
+> `VITE_VENDOR_REGISTRY_CONTRACT_ID` (`CDEQVKKR…`). Wire the credit-layer UI to the v2 IDs
+> via new env vars; do not repoint the existing registry/payment/escrow without re-seeding.
 
 ---
 
@@ -125,7 +142,8 @@ Admin keypair: `GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH`
 | `vendor-registry` | `CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR` | On-chain vendor identity — register, apply, approve, deactivate, stats, ratings, default reputation |
 | `palengke-payment` | `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` | QR-based XLM payment settlement with fee support |
 | `utang-escrow` | `CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53` | BNPL installments — create, pay, default with grace + reserve, resume after late fee |
-| `credit-pool` | _not deployed (see Credit RWA Layer)_ | Score-gated USDC working-capital lending pool reading `get_credit_score` |
+| `credit-pool` (USDC) | `CA2IUTQJBTKWWJYJJZH6E7YL42Q7DRXZWRY5LEVAE2GVY3NAX6V6NXBA` | Score-gated USDC working-capital pool reading `get_credit_score` (see Credit RWA Layer) |
+| `credit-pool` (XLM) | `CCGEJGE3J65BQRULSJ4ZS5Q3GWWTSEQPMALDFHXSJETVLD2J5T3TWV33` | Same pool, settles in native XLM |
 
 ### VendorRegistry
 
