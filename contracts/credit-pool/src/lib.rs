@@ -19,9 +19,9 @@ const DEFAULT_MIN_SCORE: u32 = 500;
 #[contracttype]
 pub enum DataKey {
     Admin,
-    Token,    // USDC SAC address (settlement asset)
-    Registry, // VendorRegistry address (credit oracle)
-    MinScore, // u32 — minimum score to qualify for a line
+    Token,         // USDC SAC address (settlement asset)
+    Registry,      // VendorRegistry address (credit oracle)
+    MinScore,      // u32 — minimum score to qualify for a line
     Debt(Address), // vendor → outstanding principal owed
 }
 
