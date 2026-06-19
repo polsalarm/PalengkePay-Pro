@@ -458,7 +458,13 @@ fn test_credit_score_builds_from_cashflow_and_ratings() {
     // Three 5-star ratings → avg 5.00 → +200.
     for i in 0..3u8 {
         let customer = Address::generate(&env);
-        client.submit_rating(&customer, &vendor, &tx_hash(&env, i + 1), &5u32, &zero_hash(&env));
+        client.submit_rating(
+            &customer,
+            &vendor,
+            &tx_hash(&env, i + 1),
+            &5u32,
+            &zero_hash(&env),
+        );
     }
 
     // 300 + 200 + 50 + 200 = 750.
@@ -477,7 +483,13 @@ fn test_credit_score_caps_at_850() {
     }
     for i in 0..5u8 {
         let customer = Address::generate(&env);
-        client.submit_rating(&customer, &vendor, &tx_hash(&env, i + 1), &5u32, &zero_hash(&env));
+        client.submit_rating(
+            &customer,
+            &vendor,
+            &tx_hash(&env, i + 1),
+            &5u32,
+            &zero_hash(&env),
+        );
     }
     // 300 + 200 + 150 + 200 = 850, clamped at ceiling.
     assert_eq!(client.get_credit_score(&vendor), 850);
