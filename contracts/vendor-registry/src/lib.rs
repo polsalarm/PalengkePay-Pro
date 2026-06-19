@@ -673,6 +673,100 @@ impl VendorRegistry {
             .unwrap_or(0)
     }
 
+    // ── Credit scoring (RWA primitive) ────────────────────────────────────────
+
+    /// Computes a FICO-style on-chain credit score (300–850) for a vendor from
+    /// their settled cashflow, transaction count, customer ratings, and default
+    /// history. Deterministic and side-effect free — this is the RWA primitive:
+    /// the informal economy's creditworthiness derived purely from on-chain
+    /// state. Returns the 300 floor for unknown/inactive vendors. Consumed by
+    /// CreditPool to gate score-based working-capital draws.
+    pub fn get_credit_score(env: Env, vendor: Address) -> u32 {
+        let record: VendorRecord = match env
+            .storage()
+            .persistent()
+            .get(&DataKey::Vendor(vendor.clone()))
+        {
+            Some(r) => r,
+            None => return 300,
+        };
+
+        let mut score: i128 = 300;
+
+        // Cashflow volume — settled value moved through the vendor.
+        // total_volume accrues in XLM stroops (1 XLM = 10_000_000 stroops).
+        let vol = record.total_volume;
+        score += if vol >= 1_000_000_000 {
+            200
+        } else if vol >= 500_000_000 {
+            150
+        } else if vol >= 100_000_000 {
+            100
+        } else if vol >= 10_000_000 {
+            50
+        } else {
+            0
+        };
+
+        // Transaction count — consistency / frequency of activity.
+        let txns = record.total_transactions;
+        score += if txns >= 500 {
+            150
+        } else if txns >= 100 {
+            120
+        } else if txns >= 50 {
+            90
+        } else if txns >= 10 {
+            50
+        } else if txns >= 1 {
+            20
+        } else {
+            0
+        };
+
+        // Customer ratings — average stars (×100 to stay integer; guard div-by-0).
+        let sum: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RatingSum(vendor.clone()))
+            .unwrap_or(0);
+        let count: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RatingCount(vendor.clone()))
+            .unwrap_or(0);
+        if count > 0 {
+            let avg_x100 = (sum as i128 * 100) / count as i128;
+            score += if avg_x100 >= 450 {
+                200
+            } else if avg_x100 >= 400 {
+                160
+            } else if avg_x100 >= 350 {
+                120
+            } else if avg_x100 >= 300 {
+                80
+            } else {
+                40
+            };
+        }
+
+        // Defaults — each defaulted utang is a hard penalty against the score.
+        let defaults: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::VendorDefaultsReceived(vendor))
+            .unwrap_or(0);
+        score -= defaults as i128 * 100;
+
+        // Clamp to the FICO band.
+        if score < 300 {
+            score = 300;
+        } else if score > 850 {
+            score = 850;
+        }
+        score as u32
+    }
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
     fn remove_from_pending(env: &Env, wallet: &Address) {
