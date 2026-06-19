@@ -1,6 +1,56 @@
 # PalengkePay — Smart Contracts
 
-Three Soroban contracts deployed to **Stellar Mainnet (2026-05-22)** and **Stellar Testnet**.
+Three Soroban contracts deployed to **Stellar Mainnet (2026-05-22)** and **Stellar Testnet**,
+plus a fourth (`credit-pool`) built for the **Credit RWA layer** (see below, deploy pending).
+
+---
+
+## Credit RWA Layer (hackathon pivot, 2026-06-20) — built & tested, deploy pending
+
+Reframes PalengkePay for **Track 1 (Local Finance & RWA)**: a vendor's on-chain cashflow
+history becomes a verifiable credit profile that underwrites score-gated working capital.
+
+### `VendorRegistry::get_credit_score(vendor) -> u32`
+
+FICO-style **300–850** score, deterministic and side-effect free. Derived purely from
+state the registry already stores — no new writes, no new admin surface:
+
+| Factor | Source | Contribution |
+|--------|--------|-------------:|
+| Cashflow volume | `total_volume` (XLM stroops, tiered ≥1/10/50/100 XLM) | up to +200 |
+| Activity | `total_transactions` (tiered ≥1/10/50/100/500) | up to +150 |
+| Reputation | `RatingSum`/`RatingCount` avg stars (×100) | up to +200 |
+| Defaults | `VendorDefaultsReceived` × −100 each | penalty, floored at 300 |
+
+Unknown / inactive vendor → 300 floor (no panic). Covered by 5 unit tests (registry suite 32/32).
+
+### `credit-pool` — score-gated USDC lending pool
+
+A USDC liquidity pool that lends working capital to vendors, with each draw gated by the
+vendor's `get_credit_score` (read cross-contract). This is the composability primitive.
+
+| Fn | Auth | Behavior |
+|----|------|----------|
+| `initialize(admin, token, registry)` | admin | sets USDC SAC + VendorRegistry oracle, MIN_SCORE 500 |
+| `deposit(lp, amount)` | lp | LP funds pool liquidity (USDC into contract custody) |
+| `draw(vendor, amount)` | vendor | borrow, gated by `available_to`; records debt; emits score |
+| `repay(vendor, amount)` | vendor | repay principal; overpay clamped to outstanding debt |
+| `credit_limit(vendor)` | view | `(score − MIN_SCORE) × 1 USDC`; 0 below floor |
+| `available_to(vendor)` | view | `min(credit_limit − debt, pool_balance)` |
+| `debt` / `pool_balance` / `min_score` / `registry` / `token` | view | getters |
+| `set_min_score(admin, n)` | admin | tune qualification floor |
+
+`CREDIT_PER_POINT = 10_000_000` (1 USDC, 7-decimal) per point above MIN_SCORE 500 →
+score 850 = 350 USDC ceiling. Covered by 8 unit tests (mock registry + real SAC), wasm ~7 KB.
+
+### Deploy caveat — registry needs a FRESH deploy
+
+The **deployed** testnet `vendor-registry` (`CDEQVKKR…`) does **not** expose an `upgrade`
+entrypoint, so `get_credit_score` cannot be added in place. Path: deploy a fresh
+VendorRegistry (current source has both `upgrade` + `get_credit_score`) and re-seed demo
+vendors, then deploy `credit-pool` pointed at the new registry + a testnet USDC SAC.
+
+---
 
 ## Mainnet Deploy (2026-05-22)
 
@@ -75,6 +125,7 @@ Admin keypair: `GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH`
 | `vendor-registry` | `CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR` | On-chain vendor identity — register, apply, approve, deactivate, stats, ratings, default reputation |
 | `palengke-payment` | `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` | QR-based XLM payment settlement with fee support |
 | `utang-escrow` | `CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53` | BNPL installments — create, pay, default with grace + reserve, resume after late fee |
+| `credit-pool` | _not deployed (see Credit RWA Layer)_ | Score-gated USDC working-capital lending pool reading `get_credit_score` |
 
 ### VendorRegistry
 
