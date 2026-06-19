@@ -759,11 +759,7 @@ impl VendorRegistry {
         score -= defaults as i128 * 100;
 
         // Clamp to the FICO band.
-        if score < 300 {
-            score = 300;
-        } else if score > 850 {
-            score = 850;
-        }
+        score = score.clamp(300, 850);
         score as u32
     }
 
