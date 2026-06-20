@@ -180,6 +180,7 @@ export default defineConfig({
   ],
   test: {
     exclude: [...configDefaults.exclude, 'tests/**'],
+    setupFiles: ['./api/vitest.setup.ts'],
   },
   build: {
     chunkSizeWarningLimit: 1000,
