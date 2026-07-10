@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getLiquidityProfile, getMainnetReadiness } from './liquidity-profile.js';
+import { getLiquidityProfile, getMainnetReadiness } from './_liquidityProfile.js';
 
 const liquidityProfile = getLiquidityProfile();
 const HORIZON_URL = liquidityProfile.horizonUrl;

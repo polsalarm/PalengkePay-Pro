@@ -3,7 +3,7 @@ import { createTxn, updateTxn, getTxn, listForWallet, listPending, listAllForNet
 import { getDepositAddress, placeOrder, requestCashout, quoteCashin, withdrawCrypto } from './_pdax.js';
 import { verifyIncomingPayment, isAnchorConfigured } from './_anchor.js';
 import { fanout } from './_pushFanout.js';
-import { getLiquidityProfile, quoteWithLiquidityMetadata } from './liquidity-profile.js';
+import { getLiquidityProfile, quoteWithLiquidityMetadata } from './_liquidityProfile.js';
 import { isMainnet } from './_network.js';
 
 /**

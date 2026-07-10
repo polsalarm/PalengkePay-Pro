@@ -11,7 +11,7 @@
  *   - pp:ramp:pending         -> set of ids that need polling/finalization
  */
 
-import { getLiquidityProfile, type LiquidityNetwork, type RailMode, type RailProvider } from './liquidity-profile.js';
+import { getLiquidityProfile, type LiquidityNetwork, type RailMode, type RailProvider } from './_liquidityProfile.js';
 
 const REDIS_URL = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
