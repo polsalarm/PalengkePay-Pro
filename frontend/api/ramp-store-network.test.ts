@@ -100,7 +100,8 @@ describe('ramp store network metadata', () => {
       message: 'PHP proof accepted',
     });
 
-    expect(updated?.settlementEvents?.at(-1)).toMatchObject({
+    const latestSettlement = updated?.settlementEvents?.[updated.settlementEvents.length - 1];
+    expect(latestSettlement).toMatchObject({
       status: 'completed',
       label: 'Completed',
       operatorNote: 'Reference confirmed in demo console',
