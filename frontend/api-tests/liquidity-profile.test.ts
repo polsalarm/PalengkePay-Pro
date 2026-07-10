@@ -4,7 +4,7 @@ import {
   getMainnetReadiness,
   quoteWithLiquidityMetadata,
   resetLiquidityProfileForTests,
-} from './liquidity-profile.js';
+} from '../api/liquidity-profile.js';
 
 afterEach(() => {
   resetLiquidityProfileForTests();

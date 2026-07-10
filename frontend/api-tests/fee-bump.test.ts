@@ -4,7 +4,7 @@ import {
   __resetFeeBumpRateLimitForTests,
   checkFeeBumpRateLimit,
   validateInnerTransaction,
-} from './fee-bump.js';
+} from '../api/fee-bump.js';
 
 const defaultDestination = Keypair.random().publicKey();
 

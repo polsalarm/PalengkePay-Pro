@@ -39,7 +39,7 @@ describe('ramp admin API', () => {
   });
 
   it('rejects export requests without the admin key', async () => {
-    const { default: handler } = await import('./ramp.js');
+    const { default: handler } = await import('../api/ramp.js');
     const res = createRes();
 
     await handler({
@@ -54,8 +54,8 @@ describe('ramp admin API', () => {
 
   it('returns active-network JSON exports for authorized operators', async () => {
     const [{ default: handler }, store] = await Promise.all([
-      import('./ramp.js'),
-      import('./_rampStore.js'),
+      import('../api/ramp.js'),
+      import('../api/_rampStore.js'),
     ]);
     store.resetRampStoreForTests();
     const testnet = await store.createTxn({
@@ -89,8 +89,8 @@ describe('ramp admin API', () => {
 
   it('returns CSV exports with the expected content type', async () => {
     const [{ default: handler }, store] = await Promise.all([
-      import('./ramp.js'),
-      import('./_rampStore.js'),
+      import('../api/ramp.js'),
+      import('../api/_rampStore.js'),
     ]);
     store.resetRampStoreForTests();
     await store.createTxn({
@@ -114,7 +114,7 @@ describe('ramp admin API', () => {
   });
 
   it('appends demo seed records for authorized operators', async () => {
-    const { default: handler } = await import('./ramp.js');
+    const { default: handler } = await import('../api/ramp.js');
     const res = createRes();
 
     await handler({

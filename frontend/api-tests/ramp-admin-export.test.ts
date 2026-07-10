@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createTxn, listAllForNetwork, resetRampStoreForTests } from './_rampStore.js';
-import { rampTxnsToCsv, seedDemoRampData } from './ramp.js';
+import { createTxn, listAllForNetwork, resetRampStoreForTests } from '../api/_rampStore.js';
+import { rampTxnsToCsv, seedDemoRampData } from '../api/ramp.js';
 
 const wallet = 'GBI5UQFUKSZYC7VKPUG7SCDQGZ3ZQV2KRPX73EP7SV73L5ZP5U4AGWPI';
 

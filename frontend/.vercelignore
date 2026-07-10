@@ -4,3 +4,8 @@ dist
 .env*
 .DS_Store
 *.log
+api-tests
+coverage
+playwright-report
+qa-artifacts
+test-results
