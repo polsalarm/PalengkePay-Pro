@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Keypair, Transaction, TransactionBuilder } from '@stellar/stellar-sdk';
-import { getLiquidityProfile } from './liquidity-profile.js';
+import { getLiquidityProfile } from './_liquidityProfile.js';
 
 function networkPassphrase(): string {
   return getLiquidityProfile().networkPassphrase;

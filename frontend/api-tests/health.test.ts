@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { getSponsorRateLimitReadiness } from './health.js';
+import { getSponsorRateLimitReadiness } from '../api/health.js';
 
 afterEach(() => {
   delete process.env.FEE_BUMP_REQUIRE_DURABLE_RATE_LIMIT;

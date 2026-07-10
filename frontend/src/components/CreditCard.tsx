@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { TrendingUp, Landmark, Loader2, ArrowDownToLine, ArrowUpFromLine, ShieldCheck } from 'lucide-react';
 import {
   useCreditScore, useCreditPool, scoreTier, toUnits,
@@ -98,12 +99,17 @@ export function CreditCard({ address }: Props) {
                 Working Capital
               </span>
             </div>
-            <span
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-              style={{ backgroundColor: 'rgba(94,234,212,0.15)', color: '#5EEAD4' }}
-            >
-              <ShieldCheck size={10} /> On-chain credit
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                style={{ backgroundColor: 'rgba(94,234,212,0.15)', color: '#5EEAD4' }}
+              >
+                <ShieldCheck size={10} /> On-chain credit
+              </span>
+              <Link to="/vendor/vault" className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white hover:bg-white/20">
+                Open Vault
+              </Link>
+            </div>
           </div>
 
           {/* Score */}

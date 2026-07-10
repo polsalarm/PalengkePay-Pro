@@ -26,6 +26,7 @@ const VendorHome = lazy(() => import('./pages/vendor/VendorHome').then((module) 
 const VendorQR = lazy(() => import('./pages/vendor/VendorQR').then((module) => ({ default: module.VendorQR })));
 const VendorTransactions = lazy(() => import('./pages/vendor/VendorTransactions').then((module) => ({ default: module.VendorTransactions })));
 const VendorUtang = lazy(() => import('./pages/vendor/VendorUtang').then((module) => ({ default: module.VendorUtang })));
+const VendorVault = lazy(() => import('./pages/vendor/VendorVault').then((module) => ({ default: module.VendorVault })));
 const VendorProfile = lazy(() => import('./pages/vendor/VendorProfile').then((module) => ({ default: module.VendorProfile })));
 const AdminMarket = lazy(() => import('./pages/admin/AdminMarket').then((module) => ({ default: module.AdminMarket })));
 const AdminRegister = lazy(() => import('./pages/admin/AdminRegister').then((module) => ({ default: module.AdminRegister })));
@@ -74,6 +75,8 @@ export default function App() {
                   <Route path="/vendor/qr" element={<VendorQR />} />
                   <Route path="/vendor/transactions" element={<VendorTransactions />} />
                   <Route path="/vendor/utang" element={<VendorUtang />} />
+                  {!IS_MAINNET && <Route path="/vendor/vault" element={<VendorVault />} />}
+                  {IS_MAINNET && <Route path="/vendor/vault" element={<Navigate to="/vendor/home" replace />} />}
                   <Route path="/vendor/profile" element={<VendorProfile />} />
 
                   {/* Customer */}

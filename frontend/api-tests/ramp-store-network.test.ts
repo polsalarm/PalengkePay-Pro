@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createTxn, listAllForNetwork, listPending, listPendingForNetwork, resetRampStoreForTests, updateTxn } from './_rampStore.js';
+import { createTxn, listAllForNetwork, listPending, listPendingForNetwork, resetRampStoreForTests, updateTxn } from '../api/_rampStore.js';
 
 const walletA = 'GA7QYNF7SOWQ3O6W4YMX57Z5T5B2NM4D7BPT57C6K2ZLGV27MNSYTEST';
 const walletB = 'GB7QYNF7SOWQ3O6W4YMX57Z5T5B2NM4D7BPT57C6K2ZLGV27MNSYTEST';
@@ -100,7 +100,8 @@ describe('ramp store network metadata', () => {
       message: 'PHP proof accepted',
     });
 
-    expect(updated?.settlementEvents?.at(-1)).toMatchObject({
+    const latestSettlement = updated?.settlementEvents?.[updated.settlementEvents.length - 1];
+    expect(latestSettlement).toMatchObject({
       status: 'completed',
       label: 'Completed',
       operatorNote: 'Reference confirmed in demo console',

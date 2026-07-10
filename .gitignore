@@ -44,6 +44,7 @@ frontend/dist/workbox-*.js
 **/target/
 **/*.wasm
 Cargo.lock
+!contracts/Cargo.lock
 
 # Firebase
 .firebase/

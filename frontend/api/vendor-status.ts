@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Keypair, Transaction, TransactionBuilder } from '@stellar/stellar-sdk';
 import { getStatus, getStatuses, setStatus } from './_statusStore.js';
-import { getLiquidityProfile } from './liquidity-profile.js';
+import { getLiquidityProfile } from './_liquidityProfile.js';
 
 const MEMO_PREFIX = 'PPSTAT:';
 const REPLAY_WINDOW_SECONDS = 300;

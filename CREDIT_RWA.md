@@ -42,6 +42,8 @@ Score 850 ⇒ 350-unit line. `available_to = min(credit_limit − debt, pool_bal
 | `useCredit.ts` | `src/lib/hooks/` | `useCreditScore`, `useCreditPool` (limit/available/debt/poolBalance + `draw`/`repay`), `scoreTier` helper. |
 | `CreditCard.tsx` | `src/components/` | Working-capital card: score gauge, USDC/XLM toggle, credit line / available / owed, draw + repay. Renders only when the credit env vars are set. |
 | VendorHome wiring | `src/pages/vendor/VendorHome.tsx` | `<CreditCard>` surfaced between the QR CTA and Utang CTA. |
+| `VendorVault.tsx` | `src/pages/vendor/` | Testnet-only `/vendor/vault` dashboard with Borrow and Provide Liquidity tabs. Vendors can draw/repay; liquidity providers can deposit into the selected XLM/USDC pool from their wallet. |
+| Vault navigation | `src/App.tsx`, `src/components/Layout.tsx` | Vault is available from the vendor navigation and home preview on Testnet only; Mainnet builds hide the entry and route back to vendor home. |
 | Env vars | `.env.local` (local) / `.env.example` | `VITE_VENDOR_REGISTRY_V2_CONTRACT_ID`, `VITE_CREDIT_POOL_USDC_CONTRACT_ID`, `VITE_CREDIT_POOL_XLM_CONTRACT_ID`, `VITE_USDC_SAC_CONTRACT_ID`. |
 
 ### CI fixes (`.github/workflows/ci.yml`)
@@ -74,6 +76,10 @@ Score 850 ⇒ 350-unit line. `available_to = min(credit_limit − debt, pool_bal
 
 Not deployed. Same fresh-deploy + USDC-anchor path applies; gated on the same
 mainnet blockers as the rest of the project.
+
+The Vault UI and credit hooks intentionally stay disabled on Mainnet while this
+Testnet workflow is validated. The current pool contract exposes deposits and
+vendor lending, but not LP withdrawal or yield accounting; use Testnet funds only.
 
 ---
 
