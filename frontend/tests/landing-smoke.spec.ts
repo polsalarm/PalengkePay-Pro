@@ -17,6 +17,7 @@ const smokeRoutes = [
   { path: '/vendor/qr', text: /qr|payment|wallet|connect/i },
   { path: '/vendor/transactions', text: /transaction|history|wallet|connect/i },
   { path: '/vendor/utang', text: /utang|credit|wallet|connect/i },
+  { path: '/vendor/vault', text: /vault|wallet|connect/i },
   { path: '/vendor/profile', text: /profile|vendor|wallet|connect/i },
   { path: '/admin/market', text: /wallet|connect|admin|market/i },
   { path: '/admin/register', text: /register|admin|vendor|wallet|connect/i },

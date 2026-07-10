@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   NETWORK_PASSPHRASE,
+  IS_MAINNET,
   simulateViewCall, prepareContractTx, submitSorobanTx,
   addressToScVal, i128ToScVal,
 } from '../stellar';
@@ -13,7 +14,9 @@ const REGISTRY_V2 = import.meta.env.VITE_VENDOR_REGISTRY_V2_CONTRACT_ID as strin
 const POOL_USDC = import.meta.env.VITE_CREDIT_POOL_USDC_CONTRACT_ID as string | undefined;
 const POOL_XLM = import.meta.env.VITE_CREDIT_POOL_XLM_CONTRACT_ID as string | undefined;
 
-export const creditLayerConfigured = !!(REGISTRY_V2 && (POOL_USDC || POOL_XLM));
+// The credit RWA layer is deliberately Testnet-only while the pool economics,
+// repayment UX, and liquidity-provider workflow are being validated.
+export const creditLayerConfigured = !IS_MAINNET && !!(REGISTRY_V2 && (POOL_USDC || POOL_XLM));
 
 export type PoolAsset = 'USDC' | 'XLM';
 
@@ -105,7 +108,7 @@ export function useCreditPool(address: string | null, asset: PoolAsset) {
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
-  const submit = useCallback(async (method: 'draw' | 'repay', units: number): Promise<string> => {
+  const submit = useCallback(async (method: 'deposit' | 'draw' | 'repay', units: number): Promise<string> => {
     if (!address || !pid) throw new Error('Credit pool not configured');
     const xdr = await prepareContractTx(address, pid, method, [
       addressToScVal(address),
@@ -120,6 +123,7 @@ export function useCreditPool(address: string | null, asset: PoolAsset) {
 
   const draw = useCallback((units: number) => submit('draw', units), [submit]);
   const repay = useCallback((units: number) => submit('repay', units), [submit]);
+  const deposit = useCallback((units: number) => submit('deposit', units), [submit]);
 
-  return { ...state, isLoading, refetch, draw, repay };
+  return { ...state, isLoading, refetch, draw, repay, deposit };
 }

@@ -10,6 +10,7 @@ const protectedRoutes = [
   '/vendor/qr',
   '/vendor/transactions',
   '/vendor/utang',
+  '/vendor/vault',
   '/vendor/profile',
 ];
 
@@ -80,6 +81,7 @@ const configuredWalletScreenshots = [
   { name: 'customer-utang-config-state', route: '/customer/utang', text: /utang|credit/i },
   { name: 'vendor-apply-config-state', route: '/vendor/apply', text: /apply as vendor/i },
   { name: 'vendor-qr-config-state', route: '/vendor/qr', text: /qr|payment/i },
+  { name: 'vendor-vault-config-state', route: '/vendor/vault', text: /vault|testnet|credit/i },
 ];
 
 for (const state of configuredWalletScreenshots) {
