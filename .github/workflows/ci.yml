@@ -32,7 +32,7 @@ jobs:
 
       - name: Run contract tests
         working-directory: contracts
-        run: cargo test --workspace
+        run: cargo test --workspace --locked
 
       - name: Check contract formatting
         working-directory: contracts
@@ -40,7 +40,7 @@ jobs:
 
       - name: Contract clippy
         working-directory: contracts
-        run: cargo clippy --workspace -- -D warnings
+        run: cargo clippy --workspace --locked -- -D warnings
 
   frontend:
     name: Frontend Build
