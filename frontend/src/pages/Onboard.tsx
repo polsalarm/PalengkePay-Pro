@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
 import { useBalance } from '../lib/hooks/useBalance';
+import { isRegisteredVendor } from '../lib/hooks/useVendor';
 import logoImg from '../assets/logo.png';
 
 const STEPS = ['Get wallet', 'Connect', 'Fund', "Let's go!"];
@@ -61,6 +62,12 @@ export function Onboard() {
     } finally {
       setFunding(false);
     }
+  };
+
+  const goVendor = async () => {
+    if (!address) return;
+    const registered = await isRegisteredVendor(address);
+    navigate(registered ? '/vendor/home' : '/vendor/apply');
   };
 
   const hasBalance = funded || (balance !== null && parseFloat(balance) > 0);
@@ -478,7 +485,7 @@ export function Onboard() {
                 {/* Role cards */}
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => navigate('/vendor/apply')}
+                    onClick={goVendor}
                     className="flex flex-col items-start gap-3 p-5 rounded-2xl border-2 bg-white transition-all hover:shadow-md active:scale-95 text-left"
                     style={{ borderColor: '#CCFBF1' }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#008055'; }}
