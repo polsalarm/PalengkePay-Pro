@@ -2,7 +2,7 @@
 use super::*;
 use soroban_sdk::{
     contract, contractimpl,
-    testutils::Address as _,
+    testutils::{Address as _, Ledger as _},
     token::{Client as TokenClient, StellarAssetClient},
     Address, Env,
 };
@@ -56,6 +56,12 @@ fn setup<'a>() -> Harness<'a> {
 }
 
 const USDC: i128 = 10_000_000; // 1 USDC at 7 decimals
+
+fn advance_time(env: &Env, seconds: u64) {
+    env.ledger().with_mut(|li| {
+        li.timestamp += seconds;
+    });
+}
 
 #[test]
 fn test_deposit_funds_pool() {
@@ -165,4 +171,136 @@ fn test_repay_reduces_debt_and_clamps_overpay() {
     // Drew 100, repaid 100 → vendor net zero from borrowing.
     assert_eq!(h.usdc.balance(&vendor), 0);
     assert_eq!(h.pool.pool_balance(), 500 * USDC);
+}
+
+// ── Scheduled auto-repay ─────────────────────────────────────────────────────
+
+const DAY: u64 = 86_400;
+
+#[test]
+fn test_set_schedule_stores_config() {
+    let h = setup();
+    let vendor = Address::generate(&h.env);
+
+    h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
+
+    let sched = h.pool.schedule(&vendor).unwrap();
+    assert_eq!(sched.interval_seconds, DAY);
+    assert_eq!(sched.amount_per_period, 10 * USDC);
+    assert_eq!(sched.next_due, h.env.ledger().timestamp() + DAY);
+}
+
+#[test]
+#[should_panic(expected = "invalid schedule")]
+fn test_set_schedule_rejects_zero_interval() {
+    let h = setup();
+    let vendor = Address::generate(&h.env);
+    h.pool.set_schedule(&vendor, &0u64, &(10 * USDC));
+}
+
+#[test]
+#[should_panic(expected = "not due yet")]
+fn test_collect_before_due_panics() {
+    let h = setup();
+    let lp = Address::generate(&h.env);
+    let vendor = Address::generate(&h.env);
+    h.usdc_admin.mint(&lp, &(1_000 * USDC));
+    h.pool.deposit(&lp, &(500 * USDC));
+    h.registry.set_score(&vendor, &800u32);
+    h.pool.draw(&vendor, &(100 * USDC));
+
+    let exp = h.env.ledger().sequence() + 1_000;
+    h.usdc.approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
+    h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
+
+    h.pool.collect(&vendor); // period hasn't elapsed yet
+}
+
+#[test]
+fn test_collect_pulls_installment_and_advances_next_due() {
+    let h = setup();
+    let lp = Address::generate(&h.env);
+    let vendor = Address::generate(&h.env);
+    h.usdc_admin.mint(&lp, &(1_000 * USDC));
+    h.pool.deposit(&lp, &(500 * USDC));
+    h.registry.set_score(&vendor, &800u32);
+    h.pool.draw(&vendor, &(100 * USDC)); // vendor holds 100 USDC, owes 100
+
+    let exp = h.env.ledger().sequence() + 1_000;
+    h.usdc.approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
+    h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
+
+    advance_time(&h.env, DAY);
+    h.pool.collect(&vendor);
+
+    assert_eq!(h.pool.debt(&vendor), 90 * USDC);
+    assert_eq!(h.usdc.balance(&vendor), 90 * USDC);
+    let sched = h.pool.schedule(&vendor).unwrap();
+    assert_eq!(sched.next_due, h.env.ledger().timestamp() + DAY);
+}
+
+#[test]
+fn test_collect_clamps_to_remaining_debt_on_final_period() {
+    let h = setup();
+    let lp = Address::generate(&h.env);
+    let vendor = Address::generate(&h.env);
+    h.usdc_admin.mint(&lp, &(1_000 * USDC));
+    h.pool.deposit(&lp, &(500 * USDC));
+    h.registry.set_score(&vendor, &800u32);
+    h.pool.draw(&vendor, &(15 * USDC)); // small draw, won't divide evenly by 10
+
+    let exp = h.env.ledger().sequence() + 1_000;
+    h.usdc.approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
+    h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
+
+    advance_time(&h.env, DAY);
+    h.pool.collect(&vendor); // pulls 10, debt -> 5
+
+    advance_time(&h.env, DAY);
+    h.pool.collect(&vendor); // wants 10, only 5 owed -> clamps
+
+    assert_eq!(h.pool.debt(&vendor), 0);
+    assert_eq!(h.usdc.balance(&vendor), 0);
+}
+
+#[test]
+#[should_panic(expected = "no outstanding debt")]
+fn test_collect_zero_debt_panics() {
+    let h = setup();
+    let vendor = Address::generate(&h.env);
+    h.usdc_admin.mint(&vendor, &(100 * USDC));
+
+    let exp = h.env.ledger().sequence() + 1_000;
+    h.usdc.approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
+    h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
+
+    advance_time(&h.env, DAY);
+    h.pool.collect(&vendor); // never drew anything, no debt
+}
+
+#[test]
+#[should_panic]
+fn test_collect_without_allowance_panics() {
+    let h = setup();
+    let lp = Address::generate(&h.env);
+    let vendor = Address::generate(&h.env);
+    h.usdc_admin.mint(&lp, &(1_000 * USDC));
+    h.pool.deposit(&lp, &(500 * USDC));
+    h.registry.set_score(&vendor, &800u32);
+    h.pool.draw(&vendor, &(100 * USDC));
+
+    // no token.approve() call — pool has no pull rights.
+    h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
+    advance_time(&h.env, DAY);
+    h.pool.collect(&vendor); // SAC rejects: insufficient allowance
+}
+
+#[test]
+#[should_panic(expected = "no schedule set")]
+fn test_cancel_schedule_then_collect_panics() {
+    let h = setup();
+    let vendor = Address::generate(&h.env);
+    h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
+    h.pool.cancel_schedule(&vendor);
+    h.pool.collect(&vendor);
 }

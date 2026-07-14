@@ -19,10 +19,22 @@ const DEFAULT_MIN_SCORE: u32 = 500;
 #[contracttype]
 pub enum DataKey {
     Admin,
-    Token,         // USDC SAC address (settlement asset)
-    Registry,      // VendorRegistry address (credit oracle)
-    MinScore,      // u32 — minimum score to qualify for a line
-    Debt(Address), // vendor → outstanding principal owed
+    Token,           // USDC SAC address (settlement asset)
+    Registry,        // VendorRegistry address (credit oracle)
+    MinScore,        // u32 — minimum score to qualify for a line
+    Debt(Address),   // vendor → outstanding principal owed
+    Schedule(Address), // vendor → auto-repay cadence config
+}
+
+/// Vendor-configured auto-repay cadence. Actual fund movement on `collect`
+/// relies on a standing `token.approve(vendor, pool, cap, expiration_ledger)`
+/// set up separately by the vendor — this struct only tracks *when* and
+/// *how much*, never custodies an allowance itself.
+#[contracttype]
+pub struct ScheduleConfig {
+    pub interval_seconds: u64,
+    pub amount_per_period: i128,
+    pub next_due: u64,
 }
 
 #[contracttype]
@@ -45,6 +57,14 @@ pub struct RepayEvent {
     pub vendor: Address,
     pub amount: i128,
     pub new_debt: i128,
+}
+
+#[contracttype]
+pub struct CollectEvent {
+    pub vendor: Address,
+    pub amount: i128,
+    pub new_debt: i128,
+    pub next_due: u64,
 }
 
 #[contract]
@@ -160,6 +180,87 @@ impl CreditPool {
         );
     }
 
+    /// Vendor opts in to scheduled auto-repay. Requires a matching
+    /// `token.approve(vendor, pool, cap, expiration_ledger)` set up
+    /// separately (frontend calls the token contract directly) — this call
+    /// only sets cadence/amount, it never touches the allowance.
+    pub fn set_schedule(env: Env, vendor: Address, interval_seconds: u64, amount_per_period: i128) {
+        vendor.require_auth();
+        if interval_seconds == 0 || amount_per_period <= 0 {
+            panic!("invalid schedule");
+        }
+        env.storage().persistent().set(
+            &DataKey::Schedule(vendor.clone()),
+            &ScheduleConfig {
+                interval_seconds,
+                amount_per_period,
+                next_due: env.ledger().timestamp() + interval_seconds,
+            },
+        );
+    }
+
+    /// Vendor cancels auto-repay. Does NOT revoke the token allowance —
+    /// vendor should also `token.approve(vendor, pool, 0, ledger)` to kill
+    /// the pull right entirely (works even if this app is unreachable).
+    pub fn cancel_schedule(env: Env, vendor: Address) {
+        vendor.require_auth();
+        env.storage()
+            .persistent()
+            .remove(&DataKey::Schedule(vendor));
+    }
+
+    /// Permissionless — anyone (our cron relayer) can trigger this. No vendor
+    /// auth is required: funds only move up to what the vendor already
+    /// approved on the token contract, and the on-chain cadence gate below
+    /// stops it being called early to drain the whole allowance at once.
+    pub fn collect(env: Env, vendor: Address) {
+        let key = DataKey::Schedule(vendor.clone());
+        let mut sched: ScheduleConfig = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .expect("no schedule set");
+
+        if env.ledger().timestamp() < sched.next_due {
+            panic!("not due yet");
+        }
+
+        let debt = Self::debt(env.clone(), vendor.clone());
+        if debt == 0 {
+            panic!("no outstanding debt");
+        }
+        let amount = if sched.amount_per_period < debt {
+            sched.amount_per_period
+        } else {
+            debt
+        };
+
+        let token_addr = Self::token(env.clone());
+        let pool_addr = env.current_contract_address();
+        // Spender == this contract's own address, so this call self-authorizes
+        // without needing vendor's signature — only the vendor's standing
+        // token allowance gates how much can actually move.
+        token::Client::new(&env, &token_addr).transfer_from(&pool_addr, &vendor, &pool_addr, &amount);
+
+        let new_debt = debt - amount;
+        env.storage()
+            .persistent()
+            .set(&DataKey::Debt(vendor.clone()), &new_debt);
+
+        sched.next_due += sched.interval_seconds;
+        env.storage().persistent().set(&key, &sched);
+
+        env.events().publish(
+            (symbol_short!("credit"), symbol_short!("collect")),
+            CollectEvent {
+                vendor,
+                amount,
+                new_debt,
+                next_due: sched.next_due,
+            },
+        );
+    }
+
     // ── Views ──────────────────────────────────────────────────────────────
 
     /// Total credit line a vendor qualifies for, from their on-chain score.
@@ -196,6 +297,10 @@ impl CreditPool {
             .persistent()
             .get(&DataKey::Debt(vendor))
             .unwrap_or(0)
+    }
+
+    pub fn schedule(env: Env, vendor: Address) -> Option<ScheduleConfig> {
+        env.storage().persistent().get(&DataKey::Schedule(vendor))
     }
 
     pub fn pool_balance(env: Env) -> i128 {
