@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
 import { isRegisteredVendor } from '../lib/hooks/useVendor';
+import { getCachedRole, setCachedRole } from '../lib/role';
 import phoneImg from '../assets/phone.png';
 import logoImg from '../assets/logo.png';
 import ctaBgImg from '../assets/cta-bg.png';
@@ -22,8 +23,15 @@ export function Landing() {
       addr = await connect();
       if (!addr) return;
     }
-    const registered = await isRegisteredVendor(addr);
-    navigate(registered ? '/vendor/home' : '/vendor/apply');
+    try {
+      const registered = await isRegisteredVendor(addr);
+      setCachedRole(addr, registered ? 'vendor' : 'customer');
+      navigate(registered ? '/vendor/home' : '/vendor/apply');
+    } catch {
+      // RPC hiccup — trust the last known role rather than dumping a vendor
+      // into the apply form.
+      navigate(getCachedRole(addr) === 'vendor' ? '/vendor/home' : '/vendor/apply');
+    }
   };
 
   const handleCustomerClick = async () => {

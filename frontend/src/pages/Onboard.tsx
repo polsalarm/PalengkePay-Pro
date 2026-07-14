@@ -7,6 +7,7 @@ import {
 import { useWallet } from '../lib/hooks/useWallet';
 import { useBalance } from '../lib/hooks/useBalance';
 import { isRegisteredVendor } from '../lib/hooks/useVendor';
+import { getCachedRole, setCachedRole } from '../lib/role';
 import logoImg from '../assets/logo.png';
 
 const STEPS = ['Get wallet', 'Connect', 'Fund', "Let's go!"];
@@ -66,8 +67,13 @@ export function Onboard() {
 
   const goVendor = async () => {
     if (!address) return;
-    const registered = await isRegisteredVendor(address);
-    navigate(registered ? '/vendor/home' : '/vendor/apply');
+    try {
+      const registered = await isRegisteredVendor(address);
+      setCachedRole(address, registered ? 'vendor' : 'customer');
+      navigate(registered ? '/vendor/home' : '/vendor/apply');
+    } catch {
+      navigate(getCachedRole(address) === 'vendor' ? '/vendor/home' : '/vendor/apply');
+    }
   };
 
   const hasBalance = funded || (balance !== null && parseFloat(balance) > 0);

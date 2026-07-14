@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
 import { isRegisteredVendor } from '../lib/hooks/useVendor';
+import { getCachedRole, setCachedRole } from '../lib/role';
 
 export function Dashboard() {
   const { address, isConnected } = useWallet();
@@ -18,9 +19,15 @@ export function Dashboard() {
 
     isRegisteredVendor(address)
       .then((isVendor) => {
+        setCachedRole(address, isVendor ? 'vendor' : 'customer');
         navigate(isVendor ? '/vendor/home' : '/customer/home', { replace: true });
       })
-      .catch(() => navigate('/customer/home', { replace: true }))
+      .catch(() => {
+        // RPC hiccup — fall back to the last known role for this wallet
+        // instead of silently demoting a vendor to the customer UI.
+        const cached = getCachedRole(address);
+        navigate(cached === 'vendor' ? '/vendor/home' : '/customer/home', { replace: true });
+      })
       .finally(() => setChecking(false));
   }, [address, isConnected, navigate]);
 
