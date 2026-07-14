@@ -114,7 +114,10 @@ export function useVendor(walletAddress: string | null) {
         if (!raw) { setNotFound(true); setVendor(null); return; }
         setVendor(mapVendor(raw as Record<string, unknown>));
       })
-      .catch(() => { setNotFound(true); setVendor(null); })
+      // simulateViewCall only throws on transport errors (contract "not found"
+      // panics resolve to null above) — don't treat a network blip as
+      // "not registered" or VendorHome will bounce a real vendor to /vendor/apply.
+      .catch(() => { setVendor(null); })
       .finally(() => setIsLoading(false));
   }, [walletAddress]);
 
@@ -177,6 +180,32 @@ export function usePendingVendors() {
   return { applications, isLoading, error, refetch };
 }
 
+// ── Own application lookup ────────────────────────────────────────────────────
+
+export async function fetchVendorApplication(wallet: string): Promise<VendorApplication | null> {
+  if (!CONTRACT_ID) return null;
+  const raw = await simulateViewCall(CONTRACT_ID, 'get_application', [addressToScVal(wallet)]);
+  return raw ? mapApplication(raw as Record<string, unknown>) : null;
+}
+
+export function useVendorApplication(wallet: string | null) {
+  const [application, setApplication] = useState<VendorApplication | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!wallet) { setApplication(null); return; }
+    let cancelled = false;
+    setIsLoading(true);
+    fetchVendorApplication(wallet)
+      .then((app) => { if (!cancelled) setApplication(app); })
+      .catch(() => { if (!cancelled) setApplication(null); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, [wallet]);
+
+  return { application, isLoading };
+}
+
 // ── Apply as vendor (self-service) ────────────────────────────────────────────
 
 export function useApplyVendor() {
@@ -201,6 +230,14 @@ export function useApplyVendor() {
       const existing = await simulateViewCall(CONTRACT_ID, 'get_vendor', [addressToScVal(wallet)]).catch(() => null);
       if (existing) {
         setError('Already registered as vendor. Go to your vendor dashboard.');
+        return false;
+      }
+
+      // Pre-check: pending application? (apply_vendor panics on resubmit,
+      // which otherwise surfaces as an opaque simulation error)
+      const pendingApp = await fetchVendorApplication(wallet).catch(() => null);
+      if (pendingApp?.status === 'pending') {
+        setError('Application already submitted — waiting for admin approval.');
         return false;
       }
 
@@ -314,10 +351,9 @@ export function useAdminActions() {
 
 export async function isRegisteredVendor(walletAddress: string): Promise<boolean> {
   if (!CONTRACT_ID) return false;
-  try {
-    const result = await simulateViewCall(CONTRACT_ID, 'get_vendor', [addressToScVal(walletAddress)]);
-    return result !== null;
-  } catch {
-    return false;
-  }
+  // simulateViewCall resolves null when the contract panics ("vendor not
+  // found") and throws only on transport errors. Let those propagate so
+  // callers can fall back to the cached role instead of assuming customer.
+  const result = await simulateViewCall(CONTRACT_ID, 'get_vendor', [addressToScVal(walletAddress)]);
+  return result !== null;
 }
