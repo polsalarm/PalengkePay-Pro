@@ -132,6 +132,13 @@ export async function prepareContractTx(
   return rpc.assembleTransaction(tx, simResult).build().toXDR();
 }
 
+/** Current ledger sequence — used to compute a SEP-41 `approve` expiration_ledger. */
+export async function getLatestLedgerSequence(): Promise<number> {
+  const server = getRpcServer();
+  const { sequence } = await server.getLatestLedger();
+  return sequence;
+}
+
 /** Submit a signed Soroban tx and poll until confirmed. Returns tx hash. */
 export async function submitSorobanTx(signedXdr: string): Promise<string> {
   const server = getRpcServer();
