@@ -436,9 +436,10 @@ export function VendorProfile() {
         )}
 
         {/* ── WITHDRAW ── */}
-        <a
-          href="/customer/cashout"
-          className="rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-[0.98] transition-all block"
+        <button
+          type="button"
+          onClick={() => navigate('/customer/cashout')}
+          className="rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-[0.98] transition-all block w-full text-left"
           style={{
             backgroundColor: 'white',
             border: '1px solid #F1F5F9',
@@ -468,13 +469,14 @@ export function VendorProfile() {
             size={14}
             style={{ color: '#CBD5E1' }}
           />
-        </a>
+        </button>
 
         {/* ── VENDOR VAULT ── */}
         {!IS_MAINNET && (
-          <a
-            href="/vendor/vault"
-            className="rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-[0.98] transition-all block"
+          <button
+            type="button"
+            onClick={() => navigate('/vendor/vault')}
+            className="rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-[0.98] transition-all block w-full text-left"
             style={{
               backgroundColor: 'white',
               border: '1px solid #F1F5F9',
@@ -504,7 +506,7 @@ export function VendorProfile() {
               size={14}
               style={{ color: '#CBD5E1' }}
             />
-          </a>
+          </button>
         )}
 
         {/* ── STALL DETAILS ── */}
