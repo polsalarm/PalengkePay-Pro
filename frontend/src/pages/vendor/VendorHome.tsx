@@ -10,6 +10,7 @@ import type { TxRecord } from '../../lib/hooks/useTransactions';
 import { useToast } from '../../lib/hooks/useToast';
 import { truncateAddress, stellarExpertUrl, getServer } from '../../lib/stellar';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
+import { getCachedRole, setCachedRole } from '../../lib/role';
 import { CreditCard } from '../../components/CreditCard';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -56,7 +57,15 @@ export function VendorHome() {
   };
 
   useEffect(() => {
-    if (address && notFound) navigate('/vendor/apply', { replace: true });
+    if (address && vendor) setCachedRole(address, 'vendor');
+  }, [address, vendor]);
+
+  useEffect(() => {
+    // Only bounce to the apply form on a confirmed "not registered" — a wallet
+    // we've previously seen as a vendor stays here through RPC blips.
+    if (address && notFound && getCachedRole(address) !== 'vendor') {
+      navigate('/vendor/apply', { replace: true });
+    }
   }, [address, notFound, navigate]);
 
   useEffect(() => {
@@ -172,51 +181,45 @@ export function VendorHome() {
         >₱</div>
 
         <div className="relative p-5 pb-6">
-          {/* Top row: greeting only (language toggle removed - now in navbar) */}
-          <div className="flex items-center justify-between mb-4">
+          {/* Top row: greeting + compact open/closed toggle */}
+          <div className="flex items-center justify-between gap-2 mb-4">
             {/* Live greeting pill */}
             <div
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold min-w-0"
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' }}
             >
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#4ADE80' }} />
-              {greetingText}
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ backgroundColor: '#4ADE80' }} />
+              <span className="truncate">{greetingText}</span>
             </div>
-          </div>
 
-          {/* Open / Closed status toggle */}
-          <button
-            onClick={handleToggleStatus}
-            disabled={statusPending}
-            className="w-full mb-4 rounded-2xl px-4 py-3 flex items-center justify-between active:scale-[0.98] transition-all disabled:opacity-60"
-            style={{
-              backgroundColor: isOpen ? 'rgba(34,197,94,0.12)' : 'rgba(244,63,94,0.12)',
-              border: `1.5px solid ${isOpen ? 'rgba(34,197,94,0.35)' : 'rgba(244,63,94,0.35)'}`,
-            }}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
+            {/* Open / Closed status pill */}
+            <button
+              onClick={handleToggleStatus}
+              disabled={statusPending}
+              title={isOpen ? t('vendor.tapToClose') : t('vendor.tapToOpen')}
+              aria-label={isOpen ? t('vendor.tapToClose') : t('vendor.tapToOpen')}
+              className="inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 py-1.5 text-xs font-black shrink-0 active:scale-95 transition-all disabled:opacity-60"
+              style={{
+                backgroundColor: isOpen ? 'rgba(34,197,94,0.14)' : 'rgba(244,63,94,0.14)',
+                border: `1.5px solid ${isOpen ? 'rgba(34,197,94,0.4)' : 'rgba(244,63,94,0.4)'}`,
+                color: isOpen ? '#4ADE80' : '#FB7185',
+              }}
+            >
               <span
-                className="w-2.5 h-2.5 rounded-full shrink-0"
+                className="w-2 h-2 rounded-full shrink-0"
                 style={{
                   backgroundColor: isOpen ? '#22C55E' : '#F43F5E',
                   boxShadow: `0 0 8px ${isOpen ? '#22C55E' : '#F43F5E'}`,
                   animation: isOpen ? 'pulse 2s infinite' : undefined,
                 }}
               />
-              <div className="text-left min-w-0">
-                <p className="text-sm font-black text-white truncate" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                  {isOpen ? t('vendor.stallOpen') : t('vendor.stallClosed')}
-                </p>
-                <p className="text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  {isOpen ? t('vendor.tapToClose') : t('vendor.tapToOpen')}
-                </p>
-              </div>
-            </div>
-            {statusPending
-              ? <Loader2 size={16} className="animate-spin shrink-0" style={{ color: 'rgba(255,255,255,0.6)' }} />
-              : <Power size={16} className="shrink-0" style={{ color: isOpen ? '#22C55E' : '#F43F5E' }} />
-            }
-          </button>
+              {isOpen ? t('vendor.openShort') : t('vendor.closedShort')}
+              {statusPending
+                ? <Loader2 size={12} className="animate-spin shrink-0" />
+                : <Power size={12} className="shrink-0" />
+              }
+            </button>
+          </div>
 
           {/* Earnings */}
           <div className="mb-1">

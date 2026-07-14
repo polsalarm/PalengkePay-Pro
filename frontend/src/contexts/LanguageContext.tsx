@@ -47,6 +47,9 @@ const translations = {
     'vendor.statusToastOpen': 'Stall set to OPEN. Customers can see you live.',
     'vendor.statusToastClosed': 'Stall set to CLOSED. You won\'t appear in the live directory.',
     'vendor.statusError': 'Could not update status',
+    'vendor.wallet': 'Wallet',
+    'vendor.openShort': 'Open',
+    'vendor.closedShort': 'Closed',
     
     // Vendor Apply
     'apply.title': 'Apply as Vendor',
@@ -59,6 +62,8 @@ const translations = {
     'apply.successToast': 'Application submitted! Waiting for admin approval.',
     'apply.successTitle': 'Application Submitted!',
     'apply.successDesc': 'Admin will review and approve your registration.',
+    'apply.pendingTitle': 'Application Pending',
+    'apply.pendingDesc': 'Your application is waiting for admin approval.',
     'apply.yourDetails': 'Your Details',
     'apply.stallName': 'Stall Name',
     'apply.stall': 'Stall',
@@ -542,6 +547,9 @@ const translations = {
     'vendor.statusToastOpen': 'Bukas na ang stall. Makikita ka ng mga kustomer.',
     'vendor.statusToastClosed': 'Sarado na. Hindi ka mapapakita sa live directory.',
     'vendor.statusError': 'Hindi na-update ang status',
+    'vendor.wallet': 'Wallet',
+    'vendor.openShort': 'Bukas',
+    'vendor.closedShort': 'Sarado',
     
     // Vendor Apply
     'apply.title': 'Mag-apply bilang Vendor',
@@ -554,6 +562,8 @@ const translations = {
     'apply.successToast': 'Na-submit ang application! Naghihintay ng admin approval.',
     'apply.successTitle': 'Na-submit ang Application!',
     'apply.successDesc': 'Susuriin at aaprubahan ng admin ang iyong registration.',
+    'apply.pendingTitle': 'Naghihintay ang Application',
+    'apply.pendingDesc': 'Hinihintay pa ang approval ng admin sa iyong application.',
     'apply.yourDetails': 'Iyong Detalye',
     'apply.stallName': 'Pangalan ng Stall',
     'apply.stall': 'Stall',
