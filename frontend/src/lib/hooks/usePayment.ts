@@ -57,7 +57,7 @@ export function usePayment() {
           i128ToScVal(xlmToStroops(amount)),
           stringToScVal(memo?.trim() ?? ''),
         ])
-        : await buildPaymentTx(from, to, amount, memo);
+        : await buildPaymentTx(from, to, amount, memo, opts?.forceClassic);
 
       setState((s) => ({ ...s, status: 'signing' }));
       const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {

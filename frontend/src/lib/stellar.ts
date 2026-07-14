@@ -27,7 +27,8 @@ export async function buildPaymentTx(
   from: string,
   to: string,
   amount: string,
-  memo?: string
+  memo?: string,
+  rawMemo?: boolean
 ): Promise<string> {
   const server = getServer();
   const [account, destExists] = await Promise.all([
@@ -55,7 +56,11 @@ export async function buildPaymentTx(
     }));
   }
 
-  const memoText = `${PALENGKEPAY_MEMO_PREFIX}${memo?.trim() || 'PalengkePay'}`.slice(0, 28);
+  // Anchor deposits (cashout) need the memo verbatim — the anchor matches it
+  // literally against the txn id it handed out, so no branding prefix here.
+  const memoText = rawMemo
+    ? (memo?.trim() ?? '').slice(0, 28)
+    : `${PALENGKEPAY_MEMO_PREFIX}${memo?.trim() || 'PalengkePay'}`.slice(0, 28);
   builder.addMemo(Memo.text(memoText));
 
   return builder.setTimeout(300).build().toXDR();
