@@ -77,6 +77,8 @@ export default function App() {
                   <Route path="/vendor/utang" element={<VendorUtang />} />
                   {!IS_MAINNET && <Route path="/vendor/vault" element={<VendorVault />} />}
                   {IS_MAINNET && <Route path="/vendor/vault" element={<Navigate to="/vendor/home" replace />} />}
+                  {!IS_MAINNET && <Route path="/vendor/cashout" element={<CustomerCashout />} />}
+                  {IS_MAINNET && <Route path="/vendor/cashout" element={<Navigate to="/vendor/profile" replace />} />}
                   <Route path="/vendor/profile" element={<VendorProfile />} />
 
                   {/* Customer */}

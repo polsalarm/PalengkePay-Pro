@@ -438,7 +438,7 @@ export function VendorProfile() {
         {/* ── WITHDRAW ── */}
         <button
           type="button"
-          onClick={() => navigate('/customer/cashout')}
+          onClick={() => navigate('/vendor/cashout')}
           className="rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-[0.98] transition-all block w-full text-left"
           style={{
             backgroundColor: 'white',
