@@ -13,19 +13,16 @@ import {
   BarChart2,
   ShieldOff,
   ArrowLeftRight,
-  Landmark,
 } from 'lucide-react';
 import { WalletButton } from './WalletButton';
 import logoImg from '../assets/logo.png';
 import { useLanguage } from '../contexts/LanguageContext';
-import { IS_MAINNET } from '../lib/stellar';
 
 const vendorNav = [
   { to: '/vendor/home', icon: Home, label: 'Home', center: false },
   { to: '/vendor/transactions', icon: List, label: 'History', center: false },
   { to: '/vendor/qr', icon: QrCode, label: 'My QR', center: true },
   { to: '/vendor/utang', icon: HandCoins, label: 'Utang', center: false },
-  { to: '/vendor/vault', icon: Landmark, label: 'Vault', center: false },
   { to: '/vendor/profile', icon: User, label: 'Profile', center: false },
 ];
 
@@ -73,7 +70,7 @@ const fullWidthPages = ['/vendor/qr', '/customer/scan'];
 function useNavItems() {
   const { pathname } = useLocation();
 
-  if (pathname.startsWith('/vendor')) return IS_MAINNET ? vendorNav.filter((item) => item.to !== '/vendor/vault') : vendorNav;
+  if (pathname.startsWith('/vendor')) return vendorNav;
   if (pathname.startsWith('/customer') || pathname === '/market') return customerNav;
   if (pathname.startsWith('/admin')) return adminNav;
 
