@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   NETWORK_PASSPHRASE,
   IS_MAINNET,
-  simulateViewCall, prepareContractTx, submitSorobanTx,
-  addressToScVal, i128ToScVal,
+  simulateViewCall, prepareContractTx, submitSorobanTx, getLatestLedgerSequence,
+  addressToScVal, i128ToScVal, u32ToScVal, u64ToScVal,
 } from '../stellar';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 
@@ -13,6 +13,8 @@ import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 const REGISTRY_V2 = import.meta.env.VITE_VENDOR_REGISTRY_V2_CONTRACT_ID as string | undefined;
 const POOL_USDC = import.meta.env.VITE_CREDIT_POOL_USDC_CONTRACT_ID as string | undefined;
 const POOL_XLM = import.meta.env.VITE_CREDIT_POOL_XLM_CONTRACT_ID as string | undefined;
+const USDC_SAC = import.meta.env.VITE_USDC_SAC_CONTRACT_ID as string | undefined;
+const XLM_SAC = import.meta.env.VITE_XLM_SAC_CONTRACT_ID as string | undefined;
 
 // The credit RWA layer is deliberately Testnet-only while the pool economics,
 // repayment UX, and liquidity-provider workflow are being validated.
@@ -23,6 +25,21 @@ export type PoolAsset = 'USDC' | 'XLM';
 export function poolId(asset: PoolAsset): string | undefined {
   return asset === 'USDC' ? POOL_USDC : POOL_XLM;
 }
+
+export function tokenId(asset: PoolAsset): string | undefined {
+  return asset === 'USDC' ? USDC_SAC : XLM_SAC;
+}
+
+/** Auto-repay cadence presets shown in the Vault UI. */
+export const SCHEDULE_PRESETS = [
+  { label: 'Daily', seconds: 86_400 },
+  { label: 'Weekly', seconds: 7 * 86_400 },
+  { label: 'Monthly', seconds: 30 * 86_400 },
+] as const;
+
+/** ~90 days of ledgers (protocol close time ~5s) — how long an auto-repay
+ *  allowance stays valid before the vendor needs to re-approve. */
+const APPROVAL_LEDGER_WINDOW = 1_555_200;
 
 const STROOP_FACTOR = 10_000_000;
 
@@ -126,4 +143,97 @@ export function useCreditPool(address: string | null, asset: PoolAsset) {
   const deposit = useCallback((units: number) => submit('deposit', units), [submit]);
 
   return { ...state, isLoading, refetch, draw, repay, deposit };
+}
+
+// ── Scheduled auto-repay ───────────────────────────────────────────────────────
+
+export interface ScheduleConfig {
+  interval_seconds: bigint;
+  amount_per_period: bigint;
+  next_due: bigint;
+}
+
+/** Best-effort — tells the cron relayer which vendors to check. Never blocks
+ *  the on-chain flow: the contract's own cadence gate is the real guard. */
+function notifyAutoRepayRegistry(vendor: string, asset: PoolAsset, action: 'register' | 'unregister') {
+  fetch('/api/credit-autorepay', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vendor, asset, action }),
+  }).catch(() => {});
+}
+
+export function useAutoRepay(address: string | null, asset: PoolAsset) {
+  const pid = poolId(asset);
+  const tid = tokenId(asset);
+  const [schedule, setSchedule] = useState<ScheduleConfig | null>(null);
+  const [allowance, setAllowance] = useState<bigint>(0n);
+  const [isLoading, setIsLoading] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!address || !pid || !tid) { setSchedule(null); setAllowance(0n); return; }
+    setIsLoading(true);
+    Promise.all([
+      simulateViewCall(pid, 'schedule', [addressToScVal(address)]),
+      simulateViewCall(tid, 'allowance', [addressToScVal(address), addressToScVal(pid)]),
+    ])
+      .then(([s, a]) => {
+        setSchedule(s ? (s as ScheduleConfig) : null);
+        setAllowance(BigInt(String(a ?? 0)));
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [address, pid, tid, tick]);
+
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+
+  /** Two sequential vendor-signed txs — Soroban allows only one contract
+   *  invocation per transaction, so `approve` + `set_schedule` can't be
+   *  merged into a single signature. */
+  const enable = useCallback(async (intervalSeconds: number, amountUnits: number, capUnits: number): Promise<void> => {
+    if (!address || !pid || !tid) throw new Error('Credit pool not configured');
+
+    const expirationLedger = (await getLatestLedgerSequence()) + APPROVAL_LEDGER_WINDOW;
+    const approveXdr = await prepareContractTx(address, tid, 'approve', [
+      addressToScVal(address),
+      addressToScVal(pid),
+      i128ToScVal(toStroops(capUnits)),
+      u32ToScVal(expirationLedger),
+    ]);
+    const { signedTxXdr: signedApprove } = await StellarWalletsKit.signTransaction(approveXdr, {
+      networkPassphrase: NETWORK_PASSPHRASE,
+      address,
+    });
+    await submitSorobanTx(signedApprove);
+
+    const scheduleXdr = await prepareContractTx(address, pid, 'set_schedule', [
+      addressToScVal(address),
+      u64ToScVal(intervalSeconds),
+      i128ToScVal(toStroops(amountUnits)),
+    ]);
+    const { signedTxXdr: signedSchedule } = await StellarWalletsKit.signTransaction(scheduleXdr, {
+      networkPassphrase: NETWORK_PASSPHRASE,
+      address,
+    });
+    await submitSorobanTx(signedSchedule);
+
+    notifyAutoRepayRegistry(address, asset, 'register');
+    refetch();
+  }, [address, pid, tid, asset, refetch]);
+
+  const cancel = useCallback(async (): Promise<void> => {
+    if (!address || !pid) throw new Error('Credit pool not configured');
+    const xdr = await prepareContractTx(address, pid, 'cancel_schedule', [addressToScVal(address)]);
+    const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
+      networkPassphrase: NETWORK_PASSPHRASE,
+      address,
+    });
+    await submitSorobanTx(signedTxXdr);
+
+    notifyAutoRepayRegistry(address, asset, 'unregister');
+    refetch();
+  }, [address, pid, asset, refetch]);
+
+  return { schedule, allowance, isLoading, refetch, enable, cancel };
 }
