@@ -210,7 +210,8 @@ fn test_collect_before_due_panics() {
     h.pool.draw(&vendor, &(100 * USDC));
 
     let exp = h.env.ledger().sequence() + 1_000;
-    h.usdc.approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
+    h.usdc
+        .approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
     h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
 
     h.pool.collect(&vendor); // period hasn't elapsed yet
@@ -227,7 +228,8 @@ fn test_collect_pulls_installment_and_advances_next_due() {
     h.pool.draw(&vendor, &(100 * USDC)); // vendor holds 100 USDC, owes 100
 
     let exp = h.env.ledger().sequence() + 1_000;
-    h.usdc.approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
+    h.usdc
+        .approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
     h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
 
     advance_time(&h.env, DAY);
@@ -250,7 +252,8 @@ fn test_collect_clamps_to_remaining_debt_on_final_period() {
     h.pool.draw(&vendor, &(15 * USDC)); // small draw, won't divide evenly by 10
 
     let exp = h.env.ledger().sequence() + 1_000;
-    h.usdc.approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
+    h.usdc
+        .approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
     h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
 
     advance_time(&h.env, DAY);
@@ -271,7 +274,8 @@ fn test_collect_zero_debt_panics() {
     h.usdc_admin.mint(&vendor, &(100 * USDC));
 
     let exp = h.env.ledger().sequence() + 1_000;
-    h.usdc.approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
+    h.usdc
+        .approve(&vendor, &h.pool.address, &(100 * USDC), &exp);
     h.pool.set_schedule(&vendor, &DAY, &(10 * USDC));
 
     advance_time(&h.env, DAY);

@@ -19,10 +19,10 @@ const DEFAULT_MIN_SCORE: u32 = 500;
 #[contracttype]
 pub enum DataKey {
     Admin,
-    Token,           // USDC SAC address (settlement asset)
-    Registry,        // VendorRegistry address (credit oracle)
-    MinScore,        // u32 — minimum score to qualify for a line
-    Debt(Address),   // vendor → outstanding principal owed
+    Token,             // USDC SAC address (settlement asset)
+    Registry,          // VendorRegistry address (credit oracle)
+    MinScore,          // u32 — minimum score to qualify for a line
+    Debt(Address),     // vendor → outstanding principal owed
     Schedule(Address), // vendor → auto-repay cadence config
 }
 
@@ -240,7 +240,8 @@ impl CreditPool {
         // Spender == this contract's own address, so this call self-authorizes
         // without needing vendor's signature — only the vendor's standing
         // token allowance gates how much can actually move.
-        token::Client::new(&env, &token_addr).transfer_from(&pool_addr, &vendor, &pool_addr, &amount);
+        token::Client::new(&env, &token_addr)
+            .transfer_from(&pool_addr, &vendor, &pool_addr, &amount);
 
         let new_debt = debt - amount;
         env.storage()
