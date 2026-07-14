@@ -11,6 +11,7 @@ import {
 } from '../../lib/ramp';
 import { notifyWallet } from '../../lib/notify';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { getCachedRole } from '../../lib/role';
 
 type Stage = 'form' | 'send-xlm' | 'sending' | 'swapping' | 'paying-out' | 'done' | 'failed';
 
@@ -31,6 +32,8 @@ export function CustomerCashout() {
   const [latest, setLatest] = useState<RampTxn | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const profilePath = address && getCachedRole(address) === 'vendor' ? '/vendor/profile' : '/customer/profile';
 
   const xlmNum = Number(amountXlm) || 0;
   const estPhp = phpPerXlm ? (xlmNum * phpPerXlm).toFixed(2) : null;
@@ -66,7 +69,7 @@ export function CustomerCashout() {
           if (address) notifyWallet(address, {
             title: r.status === 'completed' ? t('cashout.notificationComplete') : t('cashout.notificationPaying'),
             body: r.status === 'completed' ? t('cashout.notificationBodyComplete', { amount: r.amountOut ?? '—', rail }) : t('cashout.notificationBodyPaying'),
-            url: '/customer/profile',
+            url: profilePath,
           });
         })
         .catch((err: Error) => {
@@ -100,7 +103,7 @@ export function CustomerCashout() {
 
   return (
     <div className="space-y-4 animate-page-in max-w-md">
-      <button onClick={() => navigate('/customer/profile')} className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
+      <button onClick={() => navigate(profilePath)} className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
         <ArrowLeft size={14} /> {t('common.back')}
       </button>
 
@@ -238,7 +241,7 @@ export function CustomerCashout() {
           <p className="font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>{t('cashout.completeTitle')}</p>
           <p className="text-sm text-slate-500">{t('cashout.sentToRail', { amount: latest.amountOut ?? '—', rail: latest.rail ?? '—' })}</p>
           {latest.externalTxId && <p className="text-[11px] font-mono text-slate-400">{t('cashout.reference')}: {latest.externalTxId}</p>}
-          <button onClick={() => navigate('/customer/profile')} className="mt-3 px-6 py-2 rounded-xl font-bold text-white" style={{ backgroundColor: '#008055' }}>{t('cashout.done')}</button>
+          <button onClick={() => navigate(profilePath)} className="mt-3 px-6 py-2 rounded-xl font-bold text-white" style={{ backgroundColor: '#008055' }}>{t('cashout.done')}</button>
         </div>
       )}
 
