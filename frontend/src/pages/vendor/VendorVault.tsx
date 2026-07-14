@@ -11,6 +11,7 @@ import {
   Landmark,
   Loader2,
   RefreshCw,
+  Repeat,
   ShieldCheck,
   WalletCards,
 } from 'lucide-react';
@@ -19,8 +20,10 @@ import {
   creditLayerConfigured,
   poolId,
   scoreTier,
+  SCHEDULE_PRESETS,
   toUnits,
   type PoolAsset,
+  useAutoRepay,
   useCreditPool,
   useCreditScore,
 } from '../../lib/hooks/useCredit';
@@ -46,6 +49,22 @@ function formatError(error: unknown): string {
   return message.length > 140 ? `${message.slice(0, 137)}...` : message;
 }
 
+function intervalLabel(seconds: bigint): string {
+  const preset = SCHEDULE_PRESETS.find((p) => BigInt(p.seconds) === seconds);
+  if (preset) return preset.label;
+  const days = Number(seconds) / 86_400;
+  return `Every ${days % 1 === 0 ? days : days.toFixed(1)}d`;
+}
+
+function formatNextDue(nextDue: bigint): string {
+  const diffMs = Number(nextDue) * 1000 - Date.now();
+  if (diffMs <= 0) return 'Due now';
+  const days = Math.floor(diffMs / 86_400_000);
+  if (days >= 1) return `in ${days}d`;
+  const hours = Math.max(1, Math.floor(diffMs / 3_600_000));
+  return `in ${hours}h`;
+}
+
 function Stat({ label, value, asset, accent }: { label: string; value: string; asset?: PoolAsset; accent?: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-3">
@@ -69,8 +88,14 @@ export function VendorVault() {
   const [submitting, setSubmitting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
 
+  const [showAutoRepayForm, setShowAutoRepayForm] = useState(false);
+  const [intervalSeconds, setIntervalSeconds] = useState<number>(SCHEDULE_PRESETS[0].seconds);
+  const [perPeriodAmount, setPerPeriodAmount] = useState('');
+  const [autoRepaySubmitting, setAutoRepaySubmitting] = useState(false);
+
   const { score, isLoading: scoreLoading, refetch: refetchScore } = useCreditScore(address);
   const pool = useCreditPool(address, asset);
+  const autoRepay = useAutoRepay(address, asset);
 
   if (!address) {
     return <WalletRequiredState detail="Connect your Testnet wallet to open the Vendor Vault." />;
@@ -162,6 +187,45 @@ export function VendorVault() {
     setAmount('');
     setBorrowAction(null);
     setTxHash(null);
+    setShowAutoRepayForm(false);
+    setPerPeriodAmount('');
+  };
+
+  const allowanceLow = Boolean(
+    autoRepay.schedule && autoRepay.allowance < autoRepay.schedule.amount_per_period,
+  );
+
+  const submitEnableAutoRepay = async () => {
+    const perPeriodUnits = Number(perPeriodAmount);
+    if (!Number.isFinite(perPeriodUnits) || perPeriodUnits <= 0) {
+      showToast('Enter an amount greater than zero', 'error');
+      return;
+    }
+    setAutoRepaySubmitting(true);
+    try {
+      // Cap covers ~12 periods so a few missed cron ticks don't strand it
+      // needing renewal right away.
+      await autoRepay.enable(intervalSeconds, perPeriodUnits, perPeriodUnits * 12);
+      setShowAutoRepayForm(false);
+      setPerPeriodAmount('');
+      showToast('Auto-repay enabled', 'success');
+    } catch (error) {
+      showToast(formatError(error), 'error');
+    } finally {
+      setAutoRepaySubmitting(false);
+    }
+  };
+
+  const submitCancelAutoRepay = async () => {
+    setAutoRepaySubmitting(true);
+    try {
+      await autoRepay.cancel();
+      showToast('Auto-repay cancelled', 'success');
+    } catch (error) {
+      showToast(formatError(error), 'error');
+    } finally {
+      setAutoRepaySubmitting(false);
+    }
   };
 
   return (
@@ -274,6 +338,103 @@ export function VendorVault() {
                   {submitting ? <Loader2 size={17} className="animate-spin" /> : <ShieldCheck size={17} />}
                   {submitting ? 'Waiting for wallet...' : 'Confirm in wallet'}
                 </button>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-teal-50 p-3 text-teal-700"><Repeat size={20} /></div>
+              <div>
+                <h2 className="font-black text-slate-900">Auto-repay</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  Skim a fixed amount from your wallet on a schedule instead of repaying by hand.
+                  You approve a capped allowance once — the pool can never pull more than that.
+                </p>
+              </div>
+            </div>
+
+            {autoRepay.schedule ? (
+              <div className="mt-5 space-y-3">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Stat label="Cadence" value={intervalLabel(autoRepay.schedule.interval_seconds)} />
+                  <Stat label="Per period" value={formatUnits(autoRepay.schedule.amount_per_period)} asset={asset} />
+                  <Stat label="Next pull" value={formatNextDue(autoRepay.schedule.next_due)} />
+                </div>
+                {allowanceLow && (
+                  <div className="flex gap-2 rounded-2xl bg-amber-50 p-3 text-xs leading-5 text-amber-800">
+                    <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-600" />
+                    <p>
+                      Remaining allowance ({formatUnits(autoRepay.allowance)} {asset}) is below your next
+                      pull amount — the next auto-repay may fail. Set up again below to top it up.
+                    </p>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={submitCancelAutoRepay}
+                  disabled={autoRepaySubmitting}
+                  className="w-full rounded-2xl bg-red-50 px-4 py-3 text-sm font-black text-red-700 disabled:opacity-60"
+                >
+                  {autoRepaySubmitting ? 'Cancelling…' : 'Cancel auto-repay'}
+                </button>
+              </div>
+            ) : !showAutoRepayForm ? (
+              <button
+                type="button"
+                onClick={() => setShowAutoRepayForm(true)}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-teal-50 px-4 py-3.5 text-sm font-black text-teal-700"
+              >
+                <Repeat size={17} /> Set up auto-repay
+              </button>
+            ) : (
+              <div className="mt-5 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
+                <div className="flex gap-2">
+                  {SCHEDULE_PRESETS.map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => setIntervalSeconds(preset.seconds)}
+                      className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${intervalSeconds === preset.seconds ? 'bg-[#0D5C4A] text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200'}`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-center gap-2 rounded-2xl bg-white p-3 ring-1 ring-slate-200">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={perPeriodAmount}
+                    onChange={(event) => setPerPeriodAmount(event.target.value)}
+                    placeholder="0.00"
+                    className="min-w-0 flex-1 bg-transparent text-2xl font-black text-slate-900 outline-none"
+                    style={{ fontFamily: "'Montserrat', sans-serif" }}
+                  />
+                  <span className="text-sm font-black text-slate-400">{asset} / period</span>
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  Needs 2 signatures: one to approve the pull allowance, one to set the schedule.
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAutoRepayForm(false)}
+                    className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-500 ring-1 ring-slate-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={submitEnableAutoRepay}
+                    disabled={autoRepaySubmitting}
+                    className="rounded-2xl bg-[#0D5C4A] px-4 py-3 text-sm font-black text-white disabled:opacity-60"
+                  >
+                    {autoRepaySubmitting ? 'Confirm in wallet…' : 'Enable'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
