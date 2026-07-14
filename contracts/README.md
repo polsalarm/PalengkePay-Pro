@@ -35,13 +35,19 @@ vendor's `get_credit_score` (read cross-contract). This is the composability pri
 | `deposit(lp, amount)` | lp | LP funds pool liquidity (USDC into contract custody) |
 | `draw(vendor, amount)` | vendor | borrow, gated by `available_to`; records debt; emits score |
 | `repay(vendor, amount)` | vendor | repay principal; overpay clamped to outstanding debt |
+| `set_schedule(vendor, interval_seconds, amount_per_period)` | vendor | opt in to scheduled auto-repay cadence |
+| `cancel_schedule(vendor)` | vendor | opt out; kill-switch (also revoke the token allowance separately) |
+| `collect(vendor)` | **permissionless** | pulls `min(amount_per_period, debt)` via SEP-41 `transfer_from` against the vendor's standing token allowance; gated on-chain by `next_due` so it can't be called early to drain the whole allowance at once |
 | `credit_limit(vendor)` | view | `(score − MIN_SCORE) × 1 USDC`; 0 below floor |
 | `available_to(vendor)` | view | `min(credit_limit − debt, pool_balance)` |
-| `debt` / `pool_balance` / `min_score` / `registry` / `token` | view | getters |
+| `debt` / `pool_balance` / `min_score` / `registry` / `token` / `schedule` | view | getters |
 | `set_min_score(admin, n)` | admin | tune qualification floor |
 
 `CREDIT_PER_POINT = 10_000_000` (1 USDC, 7-decimal) per point above MIN_SCORE 500 →
-score 850 = 350 USDC ceiling. Covered by 8 unit tests (mock registry + real SAC), wasm ~7 KB.
+score 850 = 350 USDC ceiling. Auto-repay requires the vendor to separately
+`token.approve(vendor, pool, cap, expiration_ledger)` — `collect` never moves more than
+that standing allowance permits. Covered by 16 unit tests (mock registry + real SAC),
+wasm ~7 KB.
 
 ### Deployed (testnet, 2026-06-20)
 
@@ -54,8 +60,8 @@ rail). Admin/oracle is the `palengkepay` identity.
 | Component | Testnet Contract ID |
 |-----------|---------------------|
 | `vendor-registry` (v2, with credit score) | `CDDDOUWUWGHSBEJDFK5ACA6CQH235UQ252VBPGX7O74G3EYUZZEBYKJR` |
-| `credit-pool` (USDC) | `CA2IUTQJBTKWWJYJJZH6E7YL42Q7DRXZWRY5LEVAE2GVY3NAX6V6NXBA` |
-| `credit-pool` (XLM) | `CCGEJGE3J65BQRULSJ4ZS5Q3GWWTSEQPMALDFHXSJETVLD2J5T3TWV33` |
+| `credit-pool` (USDC) | `CCJ63ODUQXWRGWGKOOSPQQRHZJYZWGAZ2RK5J4G2T6RNVSLEFR4P5IAQ` |
+| `credit-pool` (XLM) | `CAVS2MUDEJSMTJKKCTMHINHHT7OKXSLWMEHSQMCZT5E6MFX4VKZ45AO4` |
 | `USDC` SAC (issuer = `palengkepay`) | `CDY4LM3FP2R7FBITPY6RW7HJDKOLZICDVVMAQVQYMH3DOYKC3VEWIXCZ` |
 | native XLM SAC | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` |
 
@@ -142,8 +148,8 @@ Admin keypair: `GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH`
 | `vendor-registry` | `CDEQVKKRIXJHQRZCMOKE65LL2LMDXOY3MHKXQ2AP2DNHP56NPIT2NLJR` | On-chain vendor identity — register, apply, approve, deactivate, stats, ratings, default reputation |
 | `palengke-payment` | `CDSCCIT7L5ZNY5AYHOA2T6HMDEXFR7ZVR6JEWHJXXQCSILOMDOEKW5WY` | QR-based XLM payment settlement with fee support |
 | `utang-escrow` | `CCPYLRKBCM4SSQYNEETXDWANEQ3Q7AB7SBS254L3CHTEGQADTX5IOI53` | BNPL installments — create, pay, default with grace + reserve, resume after late fee |
-| `credit-pool` (USDC) | `CA2IUTQJBTKWWJYJJZH6E7YL42Q7DRXZWRY5LEVAE2GVY3NAX6V6NXBA` | Score-gated USDC working-capital pool reading `get_credit_score` (see Credit RWA Layer) |
-| `credit-pool` (XLM) | `CCGEJGE3J65BQRULSJ4ZS5Q3GWWTSEQPMALDFHXSJETVLD2J5T3TWV33` | Same pool, settles in native XLM |
+| `credit-pool` (USDC) | `CCJ63ODUQXWRGWGKOOSPQQRHZJYZWGAZ2RK5J4G2T6RNVSLEFR4P5IAQ` | Score-gated USDC working-capital pool reading `get_credit_score`, incl. scheduled auto-repay (see Credit RWA Layer) |
+| `credit-pool` (XLM) | `CAVS2MUDEJSMTJKKCTMHINHHT7OKXSLWMEHSQMCZT5E6MFX4VKZ45AO4` | Same pool, settles in native XLM |
 
 ### VendorRegistry
 
