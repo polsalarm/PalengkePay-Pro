@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { AlertTriangle, CheckCircle, Loader2, QrCode, ExternalLink, MapPin, Phone, Tag, Wallet } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, CheckCircle, Clock, Loader2, QrCode, ExternalLink, MapPin, Phone, Tag, Wallet } from 'lucide-react';
 import { useWallet } from '../../lib/hooks/useWallet';
-import { useApplyVendor } from '../../lib/hooks/useVendor';
+import { useApplyVendor, useVendorApplication } from '../../lib/hooks/useVendor';
 import { useToast } from '../../lib/hooks/useToast';
 import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -130,6 +130,7 @@ function StallPicker({ value, onChange }: { value: string; onChange: (s: string)
 export function VendorApply() {
   const { address, isConnected, connect } = useWallet();
   const { apply, isSubmitting, error, txHash } = useApplyVendor();
+  const { application } = useVendorApplication(address);
   const { showToast } = useToast();
   const { t } = useLanguage();
   const [done, setDone] = useState(false);
@@ -149,12 +150,75 @@ export function VendorApply() {
     if (ok) {
       showToast(t('apply.successToast'), 'success');
       setDone(true);
-    } else if (error) {
-      showToast(error.slice(0, 100), 'error');
     }
+    // Failure toast comes from the error effect below — reading `error` here
+    // would see the stale pre-submit value and silently swallow the failure.
   };
 
+  useEffect(() => {
+    if (error && !done) showToast(error.slice(0, 100), 'error');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
+
   const meta = PRODUCT_META[form.productType] ?? PRODUCT_META.other;
+
+  /* ── Pending application state ── */
+  if (!done && application?.status === 'pending') {
+    const appMeta = PRODUCT_META[application.productType] ?? PRODUCT_META.other;
+    return (
+      <div className="max-w-md mx-auto animate-page-in">
+        <div className="rounded-3xl overflow-hidden" style={{ border: '1.5px solid #F1F5F9' }}>
+          <div
+            className="p-8 text-center relative overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, #00284B 0%, #B45309 100%)' }}
+          >
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 relative"
+              style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
+            >
+              <Clock size={40} className="text-white" />
+            </div>
+            <h2
+              className="text-xl font-black text-white mb-1"
+              style={{ fontFamily: "'Montserrat', sans-serif" }}
+            >
+              {t('apply.pendingTitle')}
+            </h2>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              {t('apply.pendingDesc')}
+            </p>
+          </div>
+
+          <div className="bg-white p-5">
+            <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: '#F8FAFC' }}>
+              <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#94A3B8' }}>
+                {t('apply.yourDetails')}
+              </p>
+              {[
+                { icon: QrCode, labelKey: 'stallName', value: application.name },
+                { icon: MapPin, labelKey: 'stall',     value: application.stallNumber },
+                { icon: Tag,    labelKey: 'product',   value: `${appMeta.emoji} ${application.productType}` },
+                ...(application.phone ? [{ icon: Phone, labelKey: 'phone', value: application.phone }] : []),
+              ].map(({ icon: Icon, labelKey, value }) => (
+                <div key={labelKey} className="flex items-center gap-3">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: '#FFFBEB' }}
+                  >
+                    <Icon size={13} style={{ color: '#D97706' }} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">{t(`apply.${labelKey}`)}</p>
+                    <p className="text-sm font-bold text-slate-800 capitalize">{value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   /* ── Success state ── */
   if (done) {
