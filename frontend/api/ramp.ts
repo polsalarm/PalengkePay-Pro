@@ -20,6 +20,14 @@ import { isMainnet } from './_network.js';
  */
 
 const ADMIN_KEY = process.env.RAMP_ADMIN_KEY;
+
+// Must match fee-bump.ts's PALENGKEPAY_MEMO_PREFIX — the fee-bump sponsor only
+// signs transactions whose memo carries this prefix, so the deposit memo we
+// hand out (and later verify against) has to include it from the start.
+const CASHOUT_MEMO_PREFIX = 'PP:';
+function cashoutMemo(id: string): string {
+  return `${CASHOUT_MEMO_PREFIX}${id}`.slice(0, 28);
+}
 const EXPORT_COLUMNS = [
   'id', 'network', 'kind', 'status', 'wallet', 'amountIn', 'amountOut', 'feePhp',
   'spreadBps', 'railProvider', 'railMode', 'rail', 'destination', 'proofReference',
@@ -190,7 +198,7 @@ async function cashout(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       id: txn.id,
       depositAddress: dep.address,
-      memo: dep.memo,
+      memo: cashoutMemo(txn.id),
       memoType: dep.memoType,
       amountXlm,
       rail,
@@ -212,7 +220,7 @@ async function cashout(req: VercelRequest, res: VercelResponse) {
     if (txn.kind !== 'withdraw') return res.status(400).json({ error: 'not a withdraw' });
 
     if (isAnchorConfigured()) {
-      const check = await verifyIncomingPayment(stellarTxHash, id);
+      const check = await verifyIncomingPayment(stellarTxHash, cashoutMemo(id));
       if (!check.valid) {
         await updateTxn(id, { status: 'error', stellarTxHash, message: `verification failed: ${check.reason}` });
         return res.status(400).json({ error: 'horizon verification failed', reason: check.reason });
