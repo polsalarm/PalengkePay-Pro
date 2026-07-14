@@ -238,7 +238,7 @@ export async function listPending(): Promise<RampTxn[]> {
     const t = await getTxn(id);
     if (t) out.push(t);
   }
-  return out;
+  return out.sort((a, b) => b.startedAt - a.startedAt);
 }
 
 export async function listPendingForNetwork(network: LiquidityNetwork): Promise<RampTxn[]> {
