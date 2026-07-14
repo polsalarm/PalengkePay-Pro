@@ -43,10 +43,17 @@ export function useToggleVendorStatus(address: string | null) {
     setError(null);
     try {
       const xdr = buildSetStatusXdr(address, nextIsOpen);
-      const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdr, {
-        networkPassphrase: NETWORK_PASSPHRASE,
-        address,
-      });
+      // Wallet extensions can silently drop the sign request (e.g. Freighter's
+      // service worker asleep) — without a timeout the spinner hangs forever.
+      const { signedTxXdr } = await Promise.race([
+        StellarWalletsKit.signTransaction(xdr, {
+          networkPassphrase: NETWORK_PASSPHRASE,
+          address,
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Wallet did not respond. Open your wallet extension and try again.')), 90_000),
+        ),
+      ]);
       await submitSignedStatus(signedTxXdr);
       cache.set(address, { isOpen: nextIsOpen, defaulted: false, updatedAt: Date.now() });
       return true;
