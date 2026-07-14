@@ -1,0 +1,8 @@
+/*.mp4
+/*.gif
+/*.pdf
+/*.jpg
+/*.jpeg
+/*.png
+/contracts/target
+/node_modules
