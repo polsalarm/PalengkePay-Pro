@@ -20,7 +20,7 @@ score-gated working capital against it from a USDC / XLM liquidity pool.
 | Item | Where | Summary |
 |------|-------|---------|
 | `get_credit_score(vendor) -> u32` | `vendor-registry` (v2) | FICO-style 300–850 from `total_volume` + `total_transactions` + ratings − defaults. Deterministic, side-effect free. 5 unit tests. |
-| `credit-pool` crate | `contracts/credit-pool/` | Score-gated working-capital lending pool. `initialize / deposit / draw / repay` + views `credit_limit`, `available_to`, `debt`, `pool_balance`, `min_score`. Cross-calls `get_credit_score`. 8 unit tests. |
+| `credit-pool` crate | `contracts/credit-pool/` | Score-gated working-capital lending pool. `initialize / deposit / draw / repay` + views `credit_limit`, `available_to`, `debt`, `pool_balance`, `min_score`. Cross-calls `get_credit_score`. Scheduled auto-repay: `set_schedule` / `cancel_schedule` (vendor-signed) + `collect` (permissionless, pulls via SEP-41 `token.transfer_from` against a vendor-approved allowance — no vendor signature needed at collection time). 16 unit tests. |
 
 **Scoring** (in `get_credit_score`):
 
@@ -44,7 +44,11 @@ Score 850 ⇒ 350-unit line. `available_to = min(credit_limit − debt, pool_bal
 | VendorHome wiring | `src/pages/vendor/VendorHome.tsx` | `<CreditCard>` surfaced between the QR CTA and Utang CTA. |
 | `VendorVault.tsx` | `src/pages/vendor/` | Testnet-only `/vendor/vault` dashboard with Borrow and Provide Liquidity tabs. Vendors can draw/repay; liquidity providers can deposit into the selected XLM/USDC pool from their wallet. |
 | Vault navigation | `src/App.tsx`, `src/components/Layout.tsx` | Vault is available from the vendor navigation and home preview on Testnet only; Mainnet builds hide the entry and route back to vendor home. |
-| Env vars | `.env.local` (local) / `.env.example` | `VITE_VENDOR_REGISTRY_V2_CONTRACT_ID`, `VITE_CREDIT_POOL_USDC_CONTRACT_ID`, `VITE_CREDIT_POOL_XLM_CONTRACT_ID`, `VITE_USDC_SAC_CONTRACT_ID`. |
+| Env vars | `.env.local` (local) / `.env.example` | `VITE_VENDOR_REGISTRY_V2_CONTRACT_ID`, `VITE_CREDIT_POOL_USDC_CONTRACT_ID`, `VITE_CREDIT_POOL_XLM_CONTRACT_ID`, `VITE_USDC_SAC_CONTRACT_ID`, `VITE_XLM_SAC_CONTRACT_ID`. |
+| `useAutoRepay` | `src/lib/hooks/useCredit.ts` | Scheduled auto-repay: reads `schedule()` + token `allowance()`, `enable(intervalSeconds, amountUnits, capUnits)` (2 sequential vendor-signed txs — `token.approve` then `pool.set_schedule`, Soroban allows only 1 invoke op/tx so these can't be merged), `cancel()`. Registers/unregisters the vendor with the cron worklist via `/api/credit-autorepay`. |
+| Auto-repay UI | `pages/vendor/VendorVault.tsx` | Card in the Borrow tab: cadence presets (Daily/Weekly/Monthly), per-period amount, next-due + allowance-low banner, cancel button. |
+| `credit-autorepay.ts` / `_autoRepayStore.ts` | `api/` | KV-backed (Upstash, in-memory fallback) worklist of which vendors have an active schedule per asset — lets the cron relayer avoid scanning the whole chain. Register/unregister is best-effort; the contract's own `next_due` gate is the real guard, not this store. |
+| `cron/credit-collect.ts` | `api/cron/` | Daily relayer (Vercel Hobby plan caps crons at 2 total, once/day) — signs with `SPONSOR_SECRET` (fee-payer only, never vendor custody) and calls `collect(vendor)` for every registered vendor/asset. Most calls are expected to simulate-fail harmlessly (not due yet / no debt / allowance short) — those are skips, not errors. Auto-unregisters a vendor once its debt hits 0. |
 
 ### CI fixes (`.github/workflows/ci.yml`)
 
@@ -56,13 +60,13 @@ Score 850 ⇒ 350-unit line. `available_to = min(credit_limit − debt, pool_bal
 
 ---
 
-## Deployed contract IDs (Stellar **testnet**, 2026-06-20)
+## Deployed contract IDs (Stellar **testnet**, redeployed 2026-07-15 for auto-repay)
 
 | Component | Contract ID |
 |-----------|-------------|
 | `vendor-registry` v2 (credit score) | `CDDDOUWUWGHSBEJDFK5ACA6CQH235UQ252VBPGX7O74G3EYUZZEBYKJR` |
-| `credit-pool` (USDC) | `CA2IUTQJBTKWWJYJJZH6E7YL42Q7DRXZWRY5LEVAE2GVY3NAX6V6NXBA` |
-| `credit-pool` (XLM) | `CCGEJGE3J65BQRULSJ4ZS5Q3GWWTSEQPMALDFHXSJETVLD2J5T3TWV33` |
+| `credit-pool` (USDC) | `CCJ63ODUQXWRGWGKOOSPQQRHZJYZWGAZ2RK5J4G2T6RNVSLEFR4P5IAQ` |
+| `credit-pool` (XLM) | `CAVS2MUDEJSMTJKKCTMHINHHT7OKXSLWMEHSQMCZT5E6MFX4VKZ45AO4` |
 | `USDC` SAC (issuer = `palengkepay`) | `CDY4LM3FP2R7FBITPY6RW7HJDKOLZICDVVMAQVQYMH3DOYKC3VEWIXCZ` |
 | native XLM SAC | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` |
 | Admin / oracle / LP | `GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH` (`stellar keys` id `palengkepay`) |
@@ -71,6 +75,12 @@ Score 850 ⇒ 350-unit line. `available_to = min(credit_limit − debt, pool_bal
 > no `upgrade` entrypoint). It has no migrated history — demo vendors are re-seeded.
 > It is separate from the app's existing `VITE_VENDOR_REGISTRY_CONTRACT_ID`; the
 > credit layer reads v2 via its own env var so the rest of the app is undisturbed.
+
+> **2026-07-15 redeploy:** `credit-pool` has no `upgrade` entrypoint either, so adding
+> `set_schedule`/`cancel_schedule`/`collect` required a fresh deploy of both pool
+> instances (new contract IDs above, superseding `CA2IUTQJ…`/`CCGEJGE3…`). Re-funded
+> 1,000 USDC + 580 XLM; debt resets to 0 (old demo debt was on the superseded IDs,
+> not migrated — clean slate, arguably better for a live demo of `draw`).
 
 ### Mainnet
 
@@ -104,7 +114,7 @@ pool with 100 XLM, vendor drew 20 → `debt` 20, pool balance 80. All four CI ch
 ```bash
 cd contracts
 REG=CDDDOUWUWGHSBEJDFK5ACA6CQH235UQ252VBPGX7O74G3EYUZZEBYKJR
-POOL_XLM=CCGEJGE3J65BQRULSJ4ZS5Q3GWWTSEQPMALDFHXSJETVLD2J5T3TWV33
+POOL_XLM=CAVS2MUDEJSMTJKKCTMHINHHT7OKXSLWMEHSQMCZT5E6MFX4VKZ45AO4
 ADMIN=$(stellar keys address palengkepay)
 stellar keys generate demo2 --network testnet --fund
 VEN=$(stellar keys address demo2)
