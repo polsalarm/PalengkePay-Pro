@@ -75,6 +75,32 @@ balance 80. The fresh registry has no migrated history; demo vendors are re-seed
 
 ---
 
+## Credit Score Oracle Fix (testnet, upgraded 2026-07-24)
+
+Closed a hackathon-judge REJECT: a single admin key could hand-type
+`increment_stats`/`report_default` calls to fabricate any vendor's score
+inputs — no multisig, no decentralized oracle. Full writeup, design
+rationale, and the CLI/SDK gotchas hit deploying this are in
+`CREDIT_SCORE_ORACLE_FIX.md` at the repo root. **Same contract ID as
+above** (`CDDDOUWU…`) — upgraded in place, not redeployed.
+
+| Change | Detail |
+|--------|--------|
+| Pull-based scoring | New permissionless fns `record_activity_from_payment(payment_id)` / `record_activity_from_installment(utang_id)` / `record_default_from_utang(utang_id)` — read the already-settled `Payment`/`Utang` record straight off the live `palengke-payment`/`utang-escrow` contracts and credit vendor stats, deduped by ID. No signature required; correctness comes from reading real settlement data. |
+| New admin-gated setters | `set_payment_contract(signers, contract)` / `set_escrow_contract(signers, contract)` — point the registry at the real payment/escrow contract IDs. Currently set to `CDSCCIT7…`/`CCPYLRKB…` (the live ones). |
+| 2-of-3 multisig | New `migrate_to_multisig(admin, signers, threshold)` (one-time bootstrap) + `require_multisig` helper now gate `set_payment_contract`, `set_escrow_contract`, `increment_stats`, `report_default`, `set_signers`, and **`upgrade` itself**. `increment_stats`/`report_default` are kept as a manual-override/dispute path only — not the routine path anymore. |
+| Live committee | 3 dedicated new testnet keys (local CLI identities `vr-signer-1`/`vr-signer-2`/`vr-signer-3`), threshold 2. **Losing 2 of 3 permanently locks the contract out of every gated fn above** — the permissionless `record_activity_from_*`/`record_default_from_*` paths are unaffected. |
+
+New wasm hash: `19f137a72d6d53bb2277f7c6e4cb725404327b5773b0b744a89f55445c4a0fde`.
+49/49 unit tests green. **Verified end-to-end on real testnet** — both the
+permissionless pull path (real `pay()` → `record_activity_from_payment` →
+`get_vendor`/`get_credit_score` moved) and the multisig path (all 12
+negative cases across the 4 gated fns rejected on-chain; positive 2-of-3
+signed calls succeeded for `increment_stats`, `report_default`, and a
+no-op self-`upgrade`).
+
+---
+
 ## Mainnet Deploy (2026-05-22)
 
 First mainnet deployment includes all default-handling + Phase 0 contract hardening
@@ -125,7 +151,7 @@ Old contract IDs are superseded; old testnet data not migrated.
 
 | Contract | Hardening |
 |----------|-----------|
-| `vendor-registry` | `apply_vendor` requires `wallet.require_auth()`; `increment_stats` requires admin auth + positive amount; `report_default` requires admin auth |
+| `vendor-registry` | `apply_vendor` requires `wallet.require_auth()`; `increment_stats` requires positive amount + (as of 2026-07-24) 2-of-3 multisig, not admin alone — see Credit Score Oracle Fix above; `report_default` same multisig gate |
 | `utang-escrow` | `create_utang` requires `customer.require_auth()`; `mark_default` requires admin auth + grace elapsed; `resume_after_late` requires debtor auth; `set_grace_period` requires admin auth |
 | `palengke-payment` | adds `CustomerPayments` index + `get_customer_payments(customer, limit, offset)` |
 
