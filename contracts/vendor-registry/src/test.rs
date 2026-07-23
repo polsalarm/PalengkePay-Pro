@@ -1,6 +1,6 @@
 #![cfg(test)]
 use super::*;
-use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, String};
+use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, String, Vec};
 
 fn tx_hash(env: &Env, byte: u8) -> BytesN<32> {
     BytesN::from_array(env, &[byte; 32])
@@ -18,6 +18,21 @@ fn setup() -> (Env, Address, VendorRegistryClient<'static>) {
     let admin = Address::generate(&env);
     client.initialize(&admin);
     (env, admin, client)
+}
+
+/// Bootstraps a 2-of-2 multisig committee (via the admin-gated one-time
+/// `migrate_to_multisig`) and returns its signer list — used by every test
+/// that exercises a Phase-2-gated fn (`increment_stats`/`report_default`/
+/// `set_payment_contract`/`set_escrow_contract`/`set_signers`/`upgrade`).
+fn setup_with_multisig() -> (Env, Address, VendorRegistryClient<'static>, Vec<Address>) {
+    let (env, admin, client) = setup();
+    let s1 = Address::generate(&env);
+    let s2 = Address::generate(&env);
+    let mut signers = Vec::new(&env);
+    signers.push_back(s1);
+    signers.push_back(s2);
+    client.migrate_to_multisig(&admin, &signers, &2u32);
+    (env, admin, client, signers)
 }
 
 fn setup_without_global_auth() -> (Env, Address, VendorRegistryClient<'static>) {
@@ -195,35 +210,85 @@ fn test_deactivate_vendor() {
 
 #[test]
 fn test_increment_stats() {
-    let (env, admin, client) = setup();
+    let (env, admin, client, signers) = setup_with_multisig();
     let vendor = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
-    client.increment_stats(&admin, &vendor, &10_000_000i128);
-    client.increment_stats(&admin, &vendor, &5_000_000i128);
+    client.increment_stats(&signers, &vendor, &10_000_000i128);
+    client.increment_stats(&signers, &vendor, &5_000_000i128);
     let record = client.get_vendor(&vendor);
     assert_eq!(record.total_transactions, 2);
     assert_eq!(record.total_volume, 15_000_000i128);
 }
 
 #[test]
-#[should_panic]
-fn test_increment_stats_requires_admin_auth() {
-    let (env, admin, client) = setup_without_global_auth();
+#[should_panic(expected = "multisig not configured")]
+fn test_increment_stats_before_migration_panics() {
+    let (env, admin, client) = setup();
     let vendor = Address::generate(&env);
-    register(&env, &client.mock_all_auths(), &admin, &vendor);
-
-    client.increment_stats(&admin, &vendor, &10_000_000i128);
+    register(&env, &client, &admin, &vendor);
+    let mut signers = Vec::new(&env);
+    signers.push_back(admin.clone());
+    // migrate_to_multisig was never called — the committee doesn't exist yet.
+    client.increment_stats(&signers, &vendor, &10_000_000i128);
 }
 
 #[test]
-#[should_panic(expected = "not admin")]
-fn test_non_admin_cannot_increment_stats() {
-    let (env, admin, client) = setup();
+#[should_panic]
+fn test_increment_stats_requires_real_signer_auth() {
+    let (env, admin, client) = setup_without_global_auth();
     let vendor = Address::generate(&env);
-    let not_admin = Address::generate(&env);
+    register(&env, &client.mock_all_auths(), &admin, &vendor);
+    let s1 = Address::generate(&env);
+    let s2 = Address::generate(&env);
+    let mut signers = Vec::new(&env);
+    signers.push_back(s1);
+    signers.push_back(s2);
+    client
+        .mock_all_auths()
+        .migrate_to_multisig(&admin, &signers, &2u32);
+
+    // No mock_all_auths active here — neither signer actually signed.
+    client.increment_stats(&signers, &vendor, &10_000_000i128);
+}
+
+#[test]
+#[should_panic(expected = "insufficient signers")]
+fn test_increment_stats_rejects_under_threshold_signers() {
+    let (env, admin, client, signers) = setup_with_multisig();
+    let vendor = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
 
-    client.increment_stats(&not_admin, &vendor, &10_000_000i128);
+    let mut one_signer = Vec::new(&env);
+    one_signer.push_back(signers.get(0).unwrap());
+    client.increment_stats(&one_signer, &vendor, &10_000_000i128);
+}
+
+#[test]
+#[should_panic(expected = "duplicate signer")]
+fn test_increment_stats_rejects_duplicate_signer() {
+    let (env, admin, client, signers) = setup_with_multisig();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    let s1 = signers.get(0).unwrap();
+    let mut duped = Vec::new(&env);
+    duped.push_back(s1.clone());
+    duped.push_back(s1);
+    client.increment_stats(&duped, &vendor, &10_000_000i128);
+}
+
+#[test]
+#[should_panic(expected = "not a registered signer")]
+fn test_increment_stats_rejects_unregistered_signer() {
+    let (env, admin, client, signers) = setup_with_multisig();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+    let mallory = Address::generate(&env);
+
+    let mut bad_signers = Vec::new(&env);
+    bad_signers.push_back(signers.get(0).unwrap());
+    bad_signers.push_back(mallory);
+    client.increment_stats(&bad_signers, &vendor, &10_000_000i128);
 }
 
 #[test]
@@ -390,39 +455,45 @@ fn test_distinct_tx_hashes_allow_multiple_ratings() {
 
 #[test]
 fn test_report_default_increments_counters() {
-    let (env, admin, client) = setup();
+    let (env, _admin, client, signers) = setup_with_multisig();
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
 
     assert_eq!(client.vendor_defaults_received(&vendor), 0);
     assert_eq!(client.customer_defaults_history(&customer), 0);
 
-    client.report_default(&admin, &vendor, &customer);
+    client.report_default(&signers, &vendor, &customer);
     assert_eq!(client.vendor_defaults_received(&vendor), 1);
     assert_eq!(client.customer_defaults_history(&customer), 1);
 
-    client.report_default(&admin, &vendor, &customer);
+    client.report_default(&signers, &vendor, &customer);
     assert_eq!(client.vendor_defaults_received(&vendor), 2);
     assert_eq!(client.customer_defaults_history(&customer), 2);
 }
 
 #[test]
-#[should_panic(expected = "not admin")]
-fn test_non_admin_cannot_report_default() {
-    let (env, _admin, client) = setup();
-    let not_admin = Address::generate(&env);
+#[should_panic(expected = "not a registered signer")]
+fn test_unregistered_signer_cannot_report_default() {
+    let (env, _admin, client, signers) = setup_with_multisig();
+    let mallory = Address::generate(&env);
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
-    client.report_default(&not_admin, &vendor, &customer);
+
+    let mut bad_signers = Vec::new(&env);
+    bad_signers.push_back(signers.get(0).unwrap());
+    bad_signers.push_back(mallory);
+    client.report_default(&bad_signers, &vendor, &customer);
 }
 
 #[test]
-#[should_panic]
-fn test_report_default_requires_admin_auth() {
-    let (env, admin, client) = setup_without_global_auth();
+#[should_panic(expected = "multisig not configured")]
+fn test_report_default_before_migration_panics() {
+    let (env, admin, client) = setup();
     let vendor = Address::generate(&env);
     let customer = Address::generate(&env);
-    client.report_default(&admin, &vendor, &customer);
+    let mut signers = Vec::new(&env);
+    signers.push_back(admin);
+    client.report_default(&signers, &vendor, &customer);
 }
 
 // ── Credit scoring ──────────────────────────────────────────────────────────
@@ -446,13 +517,13 @@ fn test_credit_score_fresh_vendor_is_floor() {
 
 #[test]
 fn test_credit_score_builds_from_cashflow_and_ratings() {
-    let (env, admin, client) = setup();
+    let (env, admin, client, signers) = setup_with_multisig();
     let vendor = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
 
     // 12 txns, 120 XLM cumulative volume → +200 volume, +50 txns.
     for _ in 0..12 {
-        client.increment_stats(&admin, &vendor, &100_000_000i128); // 10 XLM each
+        client.increment_stats(&signers, &vendor, &100_000_000i128); // 10 XLM each
     }
 
     // Three 5-star ratings → avg 5.00 → +200.
@@ -473,13 +544,13 @@ fn test_credit_score_builds_from_cashflow_and_ratings() {
 
 #[test]
 fn test_credit_score_caps_at_850() {
-    let (env, admin, client) = setup();
+    let (env, admin, client, signers) = setup_with_multisig();
     let vendor = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
 
     // 500 txns at 10 XLM = 5000 XLM volume → +200 vol, +150 txns.
     for _ in 0..500 {
-        client.increment_stats(&admin, &vendor, &100_000_000i128);
+        client.increment_stats(&signers, &vendor, &100_000_000i128);
     }
     for i in 0..5u8 {
         let customer = Address::generate(&env);
@@ -497,20 +568,423 @@ fn test_credit_score_caps_at_850() {
 
 #[test]
 fn test_credit_score_default_penalty_floors_at_300() {
-    let (env, admin, client) = setup();
+    let (env, admin, client, signers) = setup_with_multisig();
     let vendor = Address::generate(&env);
     register(&env, &client, &admin, &vendor);
 
     // Modest profile: 10 txns + 100 XLM → 300 + 200 + 50 = 550.
     for _ in 0..10 {
-        client.increment_stats(&admin, &vendor, &100_000_000i128);
+        client.increment_stats(&signers, &vendor, &100_000_000i128);
     }
     assert_eq!(client.get_credit_score(&vendor), 550);
 
     // Six defaults × 100 penalty = 600 > 250 of headroom → clamped to 300 floor.
     for _ in 0..6 {
         let customer = Address::generate(&env);
-        client.report_default(&admin, &vendor, &customer);
+        client.report_default(&signers, &vendor, &customer);
     }
     assert_eq!(client.get_credit_score(&vendor), 300);
+}
+
+// ── Pull-based credit-score oracle (Phase 1 fix) ───────────────────────────────
+//
+// Mocks mirror the REAL palengke-payment `Payment` / utang-escrow `Utang`
+// structs field-for-field (superset of what vendor-registry's PaymentView/
+// UtangView actually decode) so these tests prove the real cross-contract
+// integration shape, not just self-consistency against a fabricated shape.
+
+#[contract]
+struct MockPayment;
+
+#[contracttype]
+#[derive(Clone)]
+struct MockPaymentRecord {
+    pub id: u64,
+    pub customer: Address,
+    pub vendor: Address,
+    pub amount: i128,
+    pub timestamp: u64,
+    pub memo: String,
+}
+
+#[contractimpl]
+impl MockPayment {
+    pub fn seed_payment(env: Env, payment_id: u64, customer: Address, vendor: Address, amount: i128) {
+        env.storage().persistent().set(
+            &payment_id,
+            &MockPaymentRecord {
+                id: payment_id,
+                customer,
+                vendor,
+                amount,
+                timestamp: 0,
+                memo: String::from_str(&env, ""),
+            },
+        );
+    }
+    pub fn get_payment(env: Env, payment_id: u64) -> MockPaymentRecord {
+        env.storage().persistent().get(&payment_id).unwrap()
+    }
+}
+
+#[contract]
+struct MockEscrow;
+
+#[contracttype]
+#[derive(Clone, PartialEq)]
+enum MockUtangStatus {
+    Active,
+    Completed,
+    Defaulted,
+}
+
+#[contracttype]
+#[derive(Clone)]
+struct MockUtangRecord {
+    pub id: u64,
+    pub customer: Address,
+    pub vendor: Address,
+    pub total_amount: i128,
+    pub installment_amount: i128,
+    pub installments_total: u32,
+    pub installments_paid: u32,
+    pub next_due: u64,
+    pub interval_seconds: u64,
+    pub status: MockUtangStatus,
+    pub description: String,
+}
+
+#[contractimpl]
+impl MockEscrow {
+    #[allow(clippy::too_many_arguments)]
+    pub fn seed_utang(
+        env: Env,
+        utang_id: u64,
+        customer: Address,
+        vendor: Address,
+        total_amount: i128,
+        installment_amount: i128,
+        installments_paid: u32,
+        status: MockUtangStatus,
+    ) {
+        env.storage().persistent().set(
+            &utang_id,
+            &MockUtangRecord {
+                id: utang_id,
+                customer,
+                vendor,
+                total_amount,
+                installment_amount,
+                installments_total: 0,
+                installments_paid,
+                next_due: 0,
+                interval_seconds: 0,
+                status,
+                description: String::from_str(&env, ""),
+            },
+        );
+    }
+    pub fn get_utang(env: Env, utang_id: u64) -> MockUtangRecord {
+        env.storage().persistent().get(&utang_id).unwrap()
+    }
+}
+
+fn setup_with_sources(
+    env: &Env,
+    admin: &Address,
+    client: &VendorRegistryClient,
+) -> (Address, MockPaymentClient<'static>, Address, MockEscrowClient<'static>) {
+    // set_payment_contract/set_escrow_contract are multisig-gated (Phase 2) —
+    // bootstrap a throwaway committee here so these Phase-1-focused tests
+    // don't need to thread signers through every call site.
+    let s1 = Address::generate(env);
+    let s2 = Address::generate(env);
+    let mut signers = Vec::new(env);
+    signers.push_back(s1);
+    signers.push_back(s2);
+    client.migrate_to_multisig(admin, &signers, &2u32);
+
+    let payment_id = env.register(MockPayment, ());
+    let payment = MockPaymentClient::new(env, &payment_id);
+    let escrow_id = env.register(MockEscrow, ());
+    let escrow = MockEscrowClient::new(env, &escrow_id);
+    client.set_payment_contract(&signers, &payment_id);
+    client.set_escrow_contract(&signers, &escrow_id);
+    (payment_id, payment, escrow_id, escrow)
+}
+
+#[test]
+fn test_record_activity_from_payment_credits_vendor_once() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+    let customer = Address::generate(&env);
+    let (_, payment, _, _) = setup_with_sources(&env, &admin, &client);
+
+    payment.seed_payment(&1u64, &customer, &vendor, &10_000_000i128);
+    client.record_activity_from_payment(&1u64);
+
+    let record = client.get_vendor(&vendor);
+    assert_eq!(record.total_transactions, 1);
+    assert_eq!(record.total_volume, 10_000_000i128);
+
+    // Calling again for the same payment_id must not double-count.
+    client.record_activity_from_payment(&1u64);
+    let record = client.get_vendor(&vendor);
+    assert_eq!(record.total_transactions, 1);
+    assert_eq!(record.total_volume, 10_000_000i128);
+}
+
+#[test]
+fn test_record_activity_from_payment_noop_for_unknown_vendor() {
+    let (env, admin, client) = setup();
+    let ghost_vendor = Address::generate(&env);
+    let customer = Address::generate(&env);
+    let (_, payment, _, _) = setup_with_sources(&env, &admin, &client);
+
+    payment.seed_payment(&1u64, &customer, &ghost_vendor, &10_000_000i128);
+    // Vendor was never registered in this registry — must not panic.
+    client.record_activity_from_payment(&1u64);
+}
+
+#[test]
+fn test_record_activity_from_installment_credits_delta_only() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+    let customer = Address::generate(&env);
+    let (_, _, _, escrow) = setup_with_sources(&env, &admin, &client);
+
+    // 4 installments of 25 each, total 100, evenly divisible.
+    escrow.seed_utang(
+        &1u64,
+        &customer,
+        &vendor,
+        &100i128,
+        &25i128,
+        &1u32,
+        &MockUtangStatus::Active,
+    );
+    client.record_activity_from_installment(&1u64);
+    let record = client.get_vendor(&vendor);
+    assert_eq!(record.total_volume, 25i128);
+    assert_eq!(record.total_transactions, 1);
+
+    // installments_paid advances to 2 → only the new 25 should be added, not
+    // the cumulative 50.
+    escrow.seed_utang(
+        &1u64,
+        &customer,
+        &vendor,
+        &100i128,
+        &25i128,
+        &2u32,
+        &MockUtangStatus::Active,
+    );
+    client.record_activity_from_installment(&1u64);
+    let record = client.get_vendor(&vendor);
+    assert_eq!(record.total_volume, 50i128);
+    assert_eq!(record.total_transactions, 2);
+
+    // Calling again at the same installments_paid must not double-count.
+    client.record_activity_from_installment(&1u64);
+    let record = client.get_vendor(&vendor);
+    assert_eq!(record.total_volume, 50i128);
+    assert_eq!(record.total_transactions, 2);
+}
+
+#[test]
+fn test_record_activity_from_installment_handles_final_remainder_installment() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+    let customer = Address::generate(&env);
+    let (_, _, _, escrow) = setup_with_sources(&env, &admin, &client);
+
+    // total 100 over 3 installments of ceil(100/3)=34 → 34, 34, 34 would
+    // overshoot to 102; final delta must be capped to the real remainder (32).
+    escrow.seed_utang(
+        &1u64,
+        &customer,
+        &vendor,
+        &100i128,
+        &34i128,
+        &2u32,
+        &MockUtangStatus::Active,
+    );
+    client.record_activity_from_installment(&1u64);
+    let record = client.get_vendor(&vendor);
+    assert_eq!(record.total_volume, 68i128); // 34 + 34, under total
+
+    escrow.seed_utang(
+        &1u64,
+        &customer,
+        &vendor,
+        &100i128,
+        &34i128,
+        &3u32,
+        &MockUtangStatus::Completed,
+    );
+    client.record_activity_from_installment(&1u64);
+    let record = client.get_vendor(&vendor);
+    // 100 total, capped — not 34*3=102.
+    assert_eq!(record.total_volume, 100i128);
+}
+
+#[test]
+fn test_record_default_from_utang_credits_once_and_only_when_defaulted() {
+    let (env, admin, client) = setup();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+    let customer = Address::generate(&env);
+    let (_, _, _, escrow) = setup_with_sources(&env, &admin, &client);
+
+    escrow.seed_utang(
+        &1u64,
+        &customer,
+        &vendor,
+        &100i128,
+        &25i128,
+        &1u32,
+        &MockUtangStatus::Active,
+    );
+    // Active — must not bump default counters.
+    client.record_default_from_utang(&1u64);
+    assert_eq!(client.vendor_defaults_received(&vendor), 0);
+
+    escrow.seed_utang(
+        &1u64,
+        &customer,
+        &vendor,
+        &100i128,
+        &25i128,
+        &1u32,
+        &MockUtangStatus::Defaulted,
+    );
+    client.record_default_from_utang(&1u64);
+    assert_eq!(client.vendor_defaults_received(&vendor), 1);
+    assert_eq!(client.customer_defaults_history(&customer), 1);
+
+    // Calling again for the same utang_id must not double-count.
+    client.record_default_from_utang(&1u64);
+    assert_eq!(client.vendor_defaults_received(&vendor), 1);
+    assert_eq!(client.customer_defaults_history(&customer), 1);
+}
+
+#[test]
+#[should_panic(expected = "not a registered signer")]
+fn test_set_payment_contract_rejects_unregistered_signer() {
+    let (env, _admin, client, signers) = setup_with_multisig();
+    let mallory = Address::generate(&env);
+    let fake_payment = Address::generate(&env);
+    let mut bad_signers = Vec::new(&env);
+    bad_signers.push_back(signers.get(0).unwrap());
+    bad_signers.push_back(mallory);
+    client.set_payment_contract(&bad_signers, &fake_payment);
+}
+
+#[test]
+#[should_panic(expected = "not a registered signer")]
+fn test_set_escrow_contract_rejects_unregistered_signer() {
+    let (env, _admin, client, signers) = setup_with_multisig();
+    let mallory = Address::generate(&env);
+    let fake_escrow = Address::generate(&env);
+    let mut bad_signers = Vec::new(&env);
+    bad_signers.push_back(signers.get(0).unwrap());
+    bad_signers.push_back(mallory);
+    client.set_escrow_contract(&bad_signers, &fake_escrow);
+}
+
+// ── Phase 2: multisig bootstrap + rotation ─────────────────────────────────────
+
+#[test]
+#[should_panic(expected = "not admin")]
+fn test_migrate_to_multisig_rejects_non_admin() {
+    let (env, _admin, client) = setup();
+    let not_admin = Address::generate(&env);
+    let s1 = Address::generate(&env);
+    let s2 = Address::generate(&env);
+    let mut signers = Vec::new(&env);
+    signers.push_back(s1);
+    signers.push_back(s2);
+    client.migrate_to_multisig(&not_admin, &signers, &2u32);
+}
+
+#[test]
+#[should_panic(expected = "invalid threshold")]
+fn test_migrate_to_multisig_rejects_threshold_zero() {
+    let (env, admin, client) = setup();
+    let s1 = Address::generate(&env);
+    let mut signers = Vec::new(&env);
+    signers.push_back(s1);
+    client.migrate_to_multisig(&admin, &signers, &0u32);
+}
+
+#[test]
+#[should_panic(expected = "invalid threshold")]
+fn test_migrate_to_multisig_rejects_threshold_over_signer_count() {
+    let (env, admin, client) = setup();
+    let s1 = Address::generate(&env);
+    let mut signers = Vec::new(&env);
+    signers.push_back(s1);
+    client.migrate_to_multisig(&admin, &signers, &2u32);
+}
+
+#[test]
+#[should_panic(expected = "multisig already configured")]
+fn test_migrate_to_multisig_cannot_run_twice() {
+    let (env, admin, client, _signers) = setup_with_multisig();
+    let s3 = Address::generate(&env);
+    let mut new_signers = Vec::new(&env);
+    new_signers.push_back(s3);
+    client.migrate_to_multisig(&admin, &new_signers, &1u32);
+}
+
+#[test]
+fn test_set_signers_rotates_committee_and_old_signers_then_fail() {
+    let (env, admin, client, old_signers) = setup_with_multisig();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    let new1 = Address::generate(&env);
+    let new2 = Address::generate(&env);
+    let mut new_signers = Vec::new(&env);
+    new_signers.push_back(new1);
+    new_signers.push_back(new2);
+
+    // Old committee authorizes the rotation.
+    client.set_signers(&old_signers, &new_signers, &2u32);
+
+    // New committee can now use the gated fns.
+    client.increment_stats(&new_signers, &vendor, &10_000_000i128);
+    assert_eq!(client.get_vendor(&vendor).total_transactions, 1);
+}
+
+#[test]
+#[should_panic(expected = "not a registered signer")]
+fn test_old_signers_fail_after_rotation() {
+    let (env, admin, client, old_signers) = setup_with_multisig();
+    let vendor = Address::generate(&env);
+    register(&env, &client, &admin, &vendor);
+
+    let new1 = Address::generate(&env);
+    let new2 = Address::generate(&env);
+    let mut new_signers = Vec::new(&env);
+    new_signers.push_back(new1);
+    new_signers.push_back(new2);
+    client.set_signers(&old_signers, &new_signers, &2u32);
+
+    // Old committee is no longer registered — must fail now.
+    client.increment_stats(&old_signers, &vendor, &10_000_000i128);
+}
+
+#[test]
+#[should_panic(expected = "multisig not configured")]
+fn test_upgrade_requires_multisig() {
+    let (env, admin, client) = setup();
+    let dummy_hash = BytesN::from_array(&env, &[7u8; 32]);
+    let mut signers = Vec::new(&env);
+    signers.push_back(admin);
+    // migrate_to_multisig never called — upgrade must not fall back to admin.
+    client.upgrade(&signers, &dummy_hash);
 }
