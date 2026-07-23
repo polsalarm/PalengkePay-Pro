@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Search, Store, RefreshCw, MapPin, Zap, Star } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Search, Store, RefreshCw, MapPin, Zap, Star, X } from 'lucide-react';
 import { useAllVendors } from '../lib/hooks/useVendor';
 import type { VendorProfile } from '../lib/hooks/useVendor';
 import { useBulkVendorStatuses } from '../lib/hooks/useVendorStatus';
 import type { VendorStatus } from '../lib/vendorStatus';
 import { useBulkVendorRatings } from '../lib/hooks/useRating';
 import type { RatingSummary } from '../lib/rating';
+import { CreditCard } from '../components/CreditCard';
 
 const PRODUCT_META: Record<string, { emoji: string; label: string; accent: string; bg: string; chipBg: string; chipColor: string }> = {
   fish:            { emoji: '🐟', label: 'Fish',          accent: '#2563EB', bg: '#EFF6FF', chipBg: '#DBEAFE', chipColor: '#1D4ED8' },
@@ -20,13 +22,17 @@ const PRODUCT_META: Record<string, { emoji: string; label: string; accent: strin
 const ALL_TYPES = ['all', 'fish', 'meat', 'vegetables', 'fruits', 'rice & grains', 'spices', 'other'] as const;
 type SortMode = 'alphabetical' | 'most_active' | 'top_rated';
 
-function VendorCard({ vendor, status, rating }: { vendor: VendorProfile; status: VendorStatus | undefined; rating: RatingSummary | undefined }) {
+function VendorCard({ vendor, status, rating, onClick }: { vendor: VendorProfile; status: VendorStatus | undefined; rating: RatingSummary | undefined; onClick: () => void }) {
   const meta = PRODUCT_META[vendor.productType] ?? PRODUCT_META.other;
   const isOpen = status?.isOpen ?? true;
 
   return (
     <div
-      className="rounded-3xl overflow-hidden transition-all active:scale-[0.97]"
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+      className="rounded-3xl overflow-hidden transition-all active:scale-[0.97] cursor-pointer"
       style={{
         border: '1.5px solid #F1F5F9',
         boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
@@ -126,6 +132,7 @@ export function MarketDirectory() {
   const [openOnly, setOpenOnly] = useState(false);
   const [minRating, setMinRating] = useState<MinRating>(0);
   const [section, setSection] = useState<string>('all');
+  const [selected, setSelected] = useState<VendorProfile | null>(null);
 
   const active = vendors.filter((v) => v.isActive);
   const addresses = useMemo(() => active.map((v) => v.wallet).filter(Boolean), [active]);
@@ -428,9 +435,80 @@ export function MarketDirectory() {
       {!isLoading && filtered.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((v) => (
-            <VendorCard key={v.id} vendor={v} status={statuses.get(v.wallet)} rating={ratings.get(v.wallet)} />
+            <VendorCard key={v.id} vendor={v} status={statuses.get(v.wallet)} rating={ratings.get(v.wallet)} onClick={() => setSelected(v)} />
           ))}
         </div>
+      )}
+
+      {/* ── Vendor detail sheet ── */}
+      {selected && createPortal(
+        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+          <div
+            className="w-full rounded-t-3xl overflow-hidden"
+            style={{ backgroundColor: 'white', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#E2E8F0' }} />
+            </div>
+
+            <div className="px-5 pt-2 pb-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl leading-none select-none">
+                  {(PRODUCT_META[selected.productType] ?? PRODUCT_META.other).emoji}
+                </span>
+                <div>
+                  <p className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                    {selected.name}
+                  </p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <MapPin size={10} style={{ color: '#94A3B8' }} />
+                    <p className="text-xs text-slate-400">Stall {selected.stallNumber}</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelected(null)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-95 shrink-0"
+                style={{ backgroundColor: '#F1F5F9' }}
+              >
+                <X size={16} style={{ color: '#64748B' }} />
+              </button>
+            </div>
+
+            <div className="px-5 pb-3 flex items-center gap-2">
+              {(() => {
+                const isOpen = statuses.get(selected.wallet)?.isOpen ?? true;
+                return (
+                  <span
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    style={isOpen
+                      ? { backgroundColor: '#DCFCE7', color: '#15803D' }
+                      : { backgroundColor: '#FEE2E2', color: '#B91C1C' }}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'animate-pulse' : ''}`} style={{ backgroundColor: isOpen ? '#22C55E' : '#F43F5E' }} />
+                    {isOpen ? 'Open' : 'Closed'}
+                  </span>
+                );
+              })()}
+              {(() => {
+                const r = ratings.get(selected.wallet);
+                return r && r.count > 0 ? (
+                  <span className="text-xs font-bold flex items-center gap-0.5" style={{ color: '#CA8A04' }}>
+                    <Star size={11} fill="#FACC15" style={{ color: '#FACC15' }} />
+                    {r.average.toFixed(1)}
+                    <span className="text-slate-400 font-medium ml-0.5">({r.count})</span>
+                  </span>
+                ) : null;
+              })()}
+            </div>
+
+            <div className="pb-6">
+              <CreditCard address={selected.wallet} readOnly />
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
