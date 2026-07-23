@@ -99,6 +99,17 @@ negative cases across the 4 gated fns rejected on-chain; positive 2-of-3
 signed calls succeeded for `increment_stats`, `report_default`, and a
 no-op self-`upgrade`).
 
+**Follow-up, same day:** new vendors approved via v1's real onboarding flow
+were silently invisible to v2 scoring (no `VendorRecord` there to update).
+Fixed with the same pull pattern: `set_v1_registry(signers, contract)`
+(multisig-gated, points at v1 `CDEQVKKR…`) + `mirror_vendor_from_v1(wallet)`
+(permissionless — cross-contract-reads v1's `get_vendor`, creates a
+matching v2 record with fresh stats, no-ops if already present). New wasm
+hash `e7c70a6ffacfa7ad17878699b20e06122e8fccc5cd8641d288176223dfd9fdad`,
+53/53 tests, deployed via real 2-of-3 signed `upgrade` + `set_v1_registry`,
+verified end-to-end (fresh v1 vendor → mirrored into v2 → confirmed
+idempotent on re-call).
+
 ---
 
 ## Mainnet Deploy (2026-05-22)
