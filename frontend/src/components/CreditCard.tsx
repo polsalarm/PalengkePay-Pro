@@ -16,6 +16,10 @@ function fmt(stroops: bigint): string {
 
 interface Props {
   address: string;
+  /** Score/gauge/stats only — no Vault link, no Draw/Repay. For viewing
+   *  someone else's vendor account (e.g. a customer browsing the Market
+   *  Directory) where those actions would try to sign as the wrong wallet. */
+  readOnly?: boolean;
 }
 
 /**
@@ -23,7 +27,7 @@ interface Props {
  * on-chain credit score and lets them draw / repay score-gated working capital
  * from the USDC or XLM lending pool.
  */
-export function CreditCard({ address }: Props) {
+export function CreditCard({ address, readOnly = false }: Props) {
   const { score, isLoading: scoreLoading, refetch: refetchScore } = useCreditScore(address);
   const [asset, setAsset] = useState<PoolAsset>('USDC');
   const pool = useCreditPool(address, asset);
@@ -106,9 +110,11 @@ export function CreditCard({ address }: Props) {
               >
                 <ShieldCheck size={10} /> On-chain credit
               </span>
-              <Link to="/vendor/vault" className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white hover:bg-white/20">
-                Open Vault
-              </Link>
+              {!readOnly && (
+                <Link to="/vendor/vault" className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-white hover:bg-white/20">
+                  Open Vault
+                </Link>
+              )}
             </div>
           </div>
 
@@ -180,7 +186,7 @@ export function CreditCard({ address }: Props) {
         </div>
 
         {/* Actions */}
-        {mode === null ? (
+        {readOnly ? null : mode === null ? (
           <div className="flex gap-2 px-4 pb-4">
             <button
               onClick={() => openPanel('draw')}
