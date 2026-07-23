@@ -6,7 +6,7 @@ import {
   i128ToScVal,
   prepareContractTx,
   stringToScVal,
-  submitSorobanTx,
+  submitSorobanTxAndDecode,
   submitWithFeeBump,
 } from '../stellar';
 import {
@@ -66,9 +66,23 @@ export function usePayment() {
       });
 
       setState((s) => ({ ...s, status: 'submitting' }));
-      const txHash = useContract
-        ? await submitSorobanTx(signedTxXdr)
-        : (await submitWithFeeBump(signedTxXdr)).hash;
+      let txHash: string;
+      if (useContract) {
+        const { hash, returnValue } = await submitSorobanTxAndDecode(signedTxXdr);
+        txHash = hash;
+        // Best-effort: pull this real payment into the credit-score oracle.
+        // Never blocks/throws into the payment flow — the payment itself
+        // already succeeded regardless of whether this follow-up lands.
+        if (typeof returnValue === 'bigint' || typeof returnValue === 'number') {
+          fetch('/api/credit-autorepay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'record_payment', id: returnValue.toString() }),
+          }).catch(() => {});
+        }
+      } else {
+        txHash = (await submitWithFeeBump(signedTxXdr)).hash;
+      }
 
       setState({ status: 'confirmed', txHash, error: null, diagnostic: null });
     } catch (err: unknown) {
