@@ -988,3 +988,95 @@ fn test_upgrade_requires_multisig() {
     // migrate_to_multisig never called — upgrade must not fall back to admin.
     client.upgrade(&signers, &dummy_hash);
 }
+
+// ── v1 → v2 vendor mirroring ────────────────────────────────────────────────
+//
+// Mock returns the REAL VendorRecord type (not a subset) — v1 and v2
+// originated from identical source, so this is the actual shape v1 returns.
+
+#[contract]
+struct MockV1Registry;
+
+#[contractimpl]
+impl MockV1Registry {
+    pub fn seed_v1_vendor(env: Env, wallet: Address, record: VendorRecord) {
+        env.storage().persistent().set(&wallet, &record);
+    }
+    pub fn get_vendor(env: Env, wallet: Address) -> VendorRecord {
+        env.storage().persistent().get(&wallet).unwrap()
+    }
+}
+
+fn v1_record(env: &Env, wallet: &Address, name: &str) -> VendorRecord {
+    VendorRecord {
+        id: 1,
+        wallet: wallet.clone(),
+        market_id: String::from_str(env, "marikina-public-market"),
+        name: String::from_str(env, name),
+        stall_number: String::from_str(env, "V1-01"),
+        phone: String::from_str(env, "+639170000001"),
+        product_type: String::from_str(env, "fish"),
+        registered_at: 0,
+        total_transactions: 999, // deliberately nonzero — must NOT carry over
+        total_volume: 999_000_000,
+        is_active: true,
+    }
+}
+
+#[test]
+fn test_mirror_vendor_from_v1_creates_record_with_fresh_stats() {
+    let (env, _admin, client, signers) = setup_with_multisig();
+    let v1_id = env.register(MockV1Registry, ());
+    let v1 = MockV1RegistryClient::new(&env, &v1_id);
+    client.set_v1_registry(&signers, &v1_id);
+
+    let wallet = Address::generate(&env);
+    v1.seed_v1_vendor(&wallet, &v1_record(&env, &wallet, "Aling Rosa"));
+
+    client.mirror_vendor_from_v1(&wallet);
+
+    let record = client.get_vendor(&wallet);
+    assert_eq!(record.name, String::from_str(&env, "Aling Rosa"));
+    assert_eq!(record.stall_number, String::from_str(&env, "V1-01"));
+    // Stats start fresh — v1's total_transactions/total_volume never carry over.
+    assert_eq!(record.total_transactions, 0);
+    assert_eq!(record.total_volume, 0);
+}
+
+#[test]
+fn test_mirror_vendor_from_v1_noop_if_already_exists() {
+    let (env, admin, client, signers) = setup_with_multisig();
+    let v1_id = env.register(MockV1Registry, ());
+    let v1 = MockV1RegistryClient::new(&env, &v1_id);
+    client.set_v1_registry(&signers, &v1_id);
+
+    let wallet = Address::generate(&env);
+    register(&env, &client, &admin, &wallet); // native v2 vendor, "Aling Nena"
+    v1.seed_v1_vendor(&wallet, &v1_record(&env, &wallet, "Different Name In V1"));
+
+    client.mirror_vendor_from_v1(&wallet);
+
+    // Existing v2 record must be untouched, not overwritten by v1's data.
+    let record = client.get_vendor(&wallet);
+    assert_eq!(record.name, String::from_str(&env, "Aling Nena"));
+}
+
+#[test]
+#[should_panic(expected = "v1 registry not configured")]
+fn test_mirror_vendor_from_v1_panics_when_not_configured() {
+    let (env, _admin, client) = setup();
+    let wallet = Address::generate(&env);
+    client.mirror_vendor_from_v1(&wallet);
+}
+
+#[test]
+#[should_panic(expected = "not a registered signer")]
+fn test_set_v1_registry_rejects_unregistered_signer() {
+    let (env, _admin, client, signers) = setup_with_multisig();
+    let mallory = Address::generate(&env);
+    let fake_v1 = Address::generate(&env);
+    let mut bad_signers = Vec::new(&env);
+    bad_signers.push_back(signers.get(0).unwrap());
+    bad_signers.push_back(mallory);
+    client.set_v1_registry(&bad_signers, &fake_v1);
+}

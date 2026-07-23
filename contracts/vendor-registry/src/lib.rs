@@ -66,6 +66,7 @@ pub enum DataKey {
     ProcessedPayment(u64),   // payment_id → bool, dedup guard
     UtangProgress(u64),      // utang_id → u32 (last-seen installments_paid)
     ProcessedDefault(u64),   // utang_id → bool, dedup guard
+    V1Registry,              // Address of the real v1 vendor onboarding registry
     // Phase 2 — multisig committee gating the score-input functions above
     // plus `upgrade` itself. See CREDIT_SCORE_ORACLE_FIX.md.
     Signers,    // Vec<Address> — the multisig committee
@@ -812,6 +813,90 @@ impl VendorRegistry {
 
     pub fn escrow_contract(env: Env) -> Option<Address> {
         env.storage().instance().get(&DataKey::EscrowContract)
+    }
+
+    pub fn set_v1_registry(env: Env, signers: Vec<Address>, contract: Address) {
+        Self::require_multisig(&env, &signers);
+        env.storage().instance().set(&DataKey::V1Registry, &contract);
+    }
+
+    pub fn v1_registry(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::V1Registry)
+    }
+
+    /// Permissionless. Mirrors a vendor's identity fields (not stats — those
+    /// start fresh at 0 here; real activity accrues from that point via
+    /// record_activity_from_payment/_installment) from the real v1 vendor
+    /// onboarding registry, so a vendor approved there isn't silently
+    /// invisible to scoring here. No-op if already present in this registry
+    /// (never clobbers real accrued stats). Traps if `wallet` has no v1
+    /// record — same as any other lookup-by-address call in this contract
+    /// (e.g. `get_vendor`), so callers should only invoke this for wallets
+    /// they know are real v1 vendors (e.g. reacting to a v1
+    /// VendorRegisteredEvent/approve_vendor call).
+    pub fn mirror_vendor_from_v1(env: Env, wallet: Address) {
+        if env
+            .storage()
+            .persistent()
+            .has(&DataKey::Vendor(wallet.clone()))
+        {
+            return;
+        }
+        let v1: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::V1Registry)
+            .expect("v1 registry not configured");
+
+        let v1_record: VendorRecord = env.invoke_contract(
+            &v1,
+            &Symbol::new(&env, "get_vendor"),
+            vec![&env, wallet.clone().into_val(&env)],
+        );
+
+        let mut count: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::VendorCount)
+            .unwrap_or(0);
+        count += 1;
+        env.storage().instance().set(&DataKey::VendorCount, &count);
+
+        let record = VendorRecord {
+            id: count,
+            wallet: wallet.clone(),
+            market_id: v1_record.market_id.clone(),
+            name: v1_record.name,
+            stall_number: v1_record.stall_number,
+            phone: v1_record.phone,
+            product_type: v1_record.product_type,
+            registered_at: env.ledger().timestamp(),
+            total_transactions: 0,
+            total_volume: 0,
+            is_active: v1_record.is_active,
+        };
+        env.storage()
+            .persistent()
+            .set(&DataKey::Vendor(wallet.clone()), &record);
+
+        let mut vendor_list: Vec<Address> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::VendorList)
+            .unwrap_or(Vec::new(&env));
+        vendor_list.push_back(wallet.clone());
+        env.storage()
+            .persistent()
+            .set(&DataKey::VendorList, &vendor_list);
+
+        env.events().publish(
+            (symbol_short!("vendor"), symbol_short!("mirror")),
+            VendorRegisteredEvent {
+                vendor_id: count,
+                wallet,
+                market_id: v1_record.market_id,
+            },
+        );
     }
 
     /// Anyone can call. Reads the payment by ID from the configured
