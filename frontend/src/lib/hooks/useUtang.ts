@@ -232,6 +232,15 @@ export function usePayInstallment() {
         const hash = await submitSorobanTx(signedTxXdr);
         setTxHash(hash);
         setStatus('confirmed');
+        // Best-effort: pull this real installment into the credit-score
+        // oracle. Never blocks/throws — the payment already succeeded
+        // regardless of whether this follow-up lands (see
+        // CREDIT_SCORE_ORACLE_FIX.md).
+        fetch('/api/credit-autorepay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'record_installment', id: utang.id.toString() }),
+        }).catch(() => {});
         const nextNum = utang.installmentsPaid + 1;
         const isFinal = nextNum >= utang.installmentsTotal;
         notifyWallet(utang.vendorWallet, {
