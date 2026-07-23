@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   rpc, Contract, Account, TransactionBuilder, Keypair,
-  Address, scValToNative,
+  Address, scValToNative, nativeToScVal,
 } from '@stellar/stellar-sdk';
 import { getRpcUrl, getNetworkPassphrase } from './_network.js';
 import { isValidWallet } from './_pushValidation.js';
@@ -39,6 +39,8 @@ const POOL_IDS: Record<PoolAsset, string | undefined> = {
   USDC: process.env.VITE_CREDIT_POOL_USDC_CONTRACT_ID,
   XLM: process.env.VITE_CREDIT_POOL_XLM_CONTRACT_ID,
 };
+
+const REGISTRY_V2 = process.env.VITE_VENDOR_REGISTRY_V2_CONTRACT_ID;
 
 interface CollectOutcome {
   vendor: string;
@@ -98,6 +100,61 @@ async function collectOne(asset: PoolAsset, poolId: string, vendor: string, spon
   return { vendor, asset, result: 'error', detail: 'timed out waiting for confirmation' };
 }
 
+function parseId(raw: unknown): bigint | null {
+  if (typeof raw === 'number' && Number.isInteger(raw) && raw >= 0) return BigInt(raw);
+  if (typeof raw === 'string' && /^\d+$/.test(raw)) return BigInt(raw);
+  return null;
+}
+
+/**
+ * Pulls a real, already-settled payment/installment into the vendor-registry
+ * v2 credit score — record_activity_from_payment/_installment are
+ * permissionless on-chain (no signature required), but *some* account still
+ * has to pay the tx fee, so the sponsor key does that here. Frontend fires
+ * this best-effort right after a real pay()/pay_installment() confirms (see
+ * usePayment.ts / useUtang.ts) — a missed/failed call here just means that
+ * one activity doesn't count toward the score yet; nothing is lost since
+ * anyone can call the same registry fn again later (idempotent, deduped
+ * on-chain by payment_id/utang_id). See CREDIT_SCORE_ORACLE_FIX.md.
+ */
+async function recordActivity(
+  method: 'record_activity_from_payment' | 'record_activity_from_installment',
+  id: bigint,
+  sponsor: Keypair
+): Promise<{ ok: boolean; detail?: string }> {
+  if (!REGISTRY_V2) return { ok: false, detail: 'registry not configured' };
+
+  const server = new rpc.Server(getRpcUrl());
+  const passphrase = getNetworkPassphrase();
+  const contract = new Contract(REGISTRY_V2);
+  const account = await server.getAccount(sponsor.publicKey());
+
+  const tx = new TransactionBuilder(account, { fee: '100', networkPassphrase: passphrase })
+    .addOperation(contract.call(method, nativeToScVal(id, { type: 'u64' })))
+    .setTimeout(30)
+    .build();
+
+  const sim = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(sim)) {
+    const err = (sim as rpc.Api.SimulateTransactionErrorResponse).error;
+    return { ok: false, detail: err };
+  }
+
+  const prepared = rpc.assembleTransaction(tx, sim).build();
+  prepared.sign(sponsor);
+  const sendResult = await server.sendTransaction(prepared);
+  if (sendResult.status === 'ERROR') return { ok: false, detail: 'send rejected' };
+
+  const hash = sendResult.hash;
+  for (let attempts = 0; attempts < 15; attempts++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const getResult = await server.getTransaction(hash);
+    if (getResult.status === 'SUCCESS') return { ok: true };
+    if (getResult.status === 'FAILED') return { ok: false, detail: 'failed on-chain' };
+  }
+  return { ok: false, detail: 'timed out waiting for confirmation' };
+}
+
 async function handleCollect(req: VercelRequest, res: VercelResponse) {
   const isProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
   if (isProd && !CRON_SECRET) {
@@ -142,11 +199,28 @@ async function handleCollect(req: VercelRequest, res: VercelResponse) {
 }
 
 async function handleRegister(req: VercelRequest, res: VercelResponse) {
-  const { vendor, asset, action } = (req.body ?? {}) as {
+  const { vendor, asset, action, id } = (req.body ?? {}) as {
     vendor?: string;
     asset?: string;
     action?: string;
+    id?: number | string;
   };
+
+  if (action === 'record_payment' || action === 'record_installment') {
+    const parsedId = parseId(id);
+    if (parsedId === null) return res.status(400).json({ error: 'invalid id' });
+
+    const sponsorSecret = process.env.SPONSOR_SECRET;
+    if (!sponsorSecret) return res.status(500).json({ error: 'SPONSOR_SECRET not configured' });
+    const sponsor = Keypair.fromSecret(sponsorSecret);
+
+    const method = action === 'record_payment'
+      ? 'record_activity_from_payment'
+      : 'record_activity_from_installment';
+    const result = await recordActivity(method, parsedId, sponsor);
+    // Best-effort by design — 200 either way, frontend never blocks on this.
+    return res.status(200).json(result);
+  }
 
   if (!isValidWallet(vendor)) {
     return res.status(400).json({ error: 'invalid vendor address' });
