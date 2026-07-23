@@ -139,8 +139,11 @@ export async function getLatestLedgerSequence(): Promise<number> {
   return sequence;
 }
 
-/** Submit a signed Soroban tx and poll until confirmed. Returns tx hash. */
-export async function submitSorobanTx(signedXdr: string): Promise<string> {
+/** Submit a signed Soroban tx and poll until confirmed. Returns tx hash + the
+ *  contract fn's decoded return value (null for void-returning fns). */
+export async function submitSorobanTxAndDecode(
+  signedXdr: string
+): Promise<{ hash: string; returnValue: unknown }> {
   const server = getRpcServer();
   const tx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
   const sendResult = await server.sendTransaction(tx);
@@ -154,10 +157,21 @@ export async function submitSorobanTx(signedXdr: string): Promise<string> {
   while (true) {
     await new Promise((r) => setTimeout(r, 2000));
     const getResult = await server.getTransaction(hash);
-    if (getResult.status === 'SUCCESS') return hash;
+    if (getResult.status === 'SUCCESS') {
+      const returnValue = getResult.returnValue != null
+        ? scValToNative(getResult.returnValue)
+        : null;
+      return { hash, returnValue };
+    }
     if (getResult.status === 'FAILED') throw new Error('Transaction failed on-chain');
     if (++attempts > 15) throw new Error('Transaction timed out');
   }
+}
+
+/** Submit a signed Soroban tx and poll until confirmed. Returns tx hash. */
+export async function submitSorobanTx(signedXdr: string): Promise<string> {
+  const { hash } = await submitSorobanTxAndDecode(signedXdr);
+  return hash;
 }
 
 // ── ScVal helpers ─────────────────────────────────────────────────────────────
