@@ -4,6 +4,7 @@ import {
   IS_MAINNET,
   simulateViewCall, prepareContractTx, submitSorobanTx, getLatestLedgerSequence,
   addressToScVal, i128ToScVal, u32ToScVal, u64ToScVal,
+  fetchContractEvents,
 } from '../stellar';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 
@@ -237,4 +238,173 @@ export function useAutoRepay(address: string | null, asset: PoolAsset) {
   }, [address, pid, asset, refetch]);
 
   return { schedule, allowance, isLoading, refetch, enable, cancel };
+}
+
+// ── Vault activity (deposit/draw/repay/collect history) ───────────────────────
+
+export type VaultActivityType = 'fund' | 'draw' | 'repay' | 'collect';
+
+export interface VaultActivityItem {
+  id: string;
+  type: VaultActivityType;
+  asset: PoolAsset;
+  actor: string;      // vendor for draw/repay/collect, LP for fund
+  amount: bigint;      // stroops
+  newDebt?: bigint;     // stroops — vendor's outstanding principal after this event
+  ledger: number;
+  closedAt: string;    // ISO timestamp
+  txHash: string;
+}
+
+function toBigIntSafe(value: unknown): bigint {
+  if (value == null) return 0n;
+  return BigInt(String(value));
+}
+
+async function fetchPoolActivity(asset: PoolAsset): Promise<VaultActivityItem[]> {
+  const pid = poolId(asset);
+  if (!pid) return [];
+
+  const [fundEvents, creditEvents] = await Promise.all([
+    fetchContractEvents(pid, 'pool'),
+    fetchContractEvents(pid, 'credit'),
+  ]);
+
+  const items: VaultActivityItem[] = [];
+
+  for (const event of fundEvents) {
+    const v = event.value as { from?: unknown; amount?: unknown };
+    items.push({
+      id: event.id,
+      type: 'fund',
+      asset,
+      actor: String(v.from ?? ''),
+      amount: toBigIntSafe(v.amount),
+      ledger: event.ledger,
+      closedAt: event.closedAt,
+      txHash: event.txHash,
+    });
+  }
+
+  for (const event of creditEvents) {
+    const kind = event.topics[1] as VaultActivityType | undefined;
+    if (kind !== 'draw' && kind !== 'repay' && kind !== 'collect') continue;
+    const v = event.value as { vendor?: unknown; amount?: unknown; new_debt?: unknown };
+    items.push({
+      id: event.id,
+      type: kind,
+      asset,
+      actor: String(v.vendor ?? ''),
+      amount: toBigIntSafe(v.amount),
+      newDebt: toBigIntSafe(v.new_debt),
+      ledger: event.ledger,
+      closedAt: event.closedAt,
+      txHash: event.txHash,
+    });
+  }
+
+  return items;
+}
+
+/** Vault-wide activity feed (fund/draw/repay/collect) across the given pools,
+ *  built from contract events — the pool contract only stores current debt,
+ *  not history, so this is the only source for "who borrowed/repaid what". */
+export function useVaultActivity(assets: PoolAsset[]) {
+  const key = assets.join(',');
+  const [items, setItems] = useState<VaultActivityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!key) { setItems([]); return; }
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+    Promise.all(key.split(',').map((asset) => fetchPoolActivity(asset as PoolAsset)))
+      .then((groups) => {
+        if (cancelled) return;
+        setItems(groups.flat().sort((a, b) => b.ledger - a.ledger));
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setItems([]);
+        setError((err as { message?: string })?.message ?? 'Could not load vault activity');
+      })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, [key, tick]);
+
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+  return { items, isLoading, error, refetch };
+}
+
+// ── Current borrowers (live outstanding debt per vendor) ──────────────────────
+
+export interface VaultBorrower {
+  wallet: string;
+  name?: string;
+  asset: PoolAsset;
+  debt: bigint;
+  limit: bigint;
+}
+
+interface VendorLike {
+  wallet: string;
+  name?: string;
+}
+
+async function fetchAssetBorrowers(asset: PoolAsset, vendors: VendorLike[]): Promise<VaultBorrower[]> {
+  const pid = poolId(asset);
+  if (!pid || vendors.length === 0) return [];
+
+  const rows = await Promise.all(
+    vendors.map(async (vendor) => {
+      const [debt, limit] = await Promise.all([
+        simulateViewCall(pid, 'debt', [addressToScVal(vendor.wallet)]),
+        simulateViewCall(pid, 'credit_limit', [addressToScVal(vendor.wallet)]),
+      ]);
+      return {
+        wallet: vendor.wallet,
+        name: vendor.name,
+        asset,
+        debt: BigInt(String(debt ?? 0)),
+        limit: BigInt(String(limit ?? 0)),
+      };
+    })
+  );
+
+  return rows.filter((row) => row.debt > 0n);
+}
+
+/** Vendors currently carrying an outstanding balance on a pool — the pool
+ *  contract only stores debt per-address, not a "list all borrowers" view,
+ *  so this checks every registered vendor's debt directly. Live current
+ *  state (unlike [[useVaultActivity]], which is historical events) — shows
+ *  up immediately even if the draw happened before the event-retention
+ *  window the RPC will actually serve. */
+export function useVaultBorrowers(assets: PoolAsset[], vendors: VendorLike[]) {
+  const assetKey = assets.join(',');
+  const vendorKey = vendors.map((v) => v.wallet).join(',');
+  const [borrowers, setBorrowers] = useState<VaultBorrower[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!assetKey || !vendorKey) { setBorrowers([]); return; }
+    let cancelled = false;
+    setIsLoading(true);
+    Promise.all(assetKey.split(',').map((asset) => fetchAssetBorrowers(asset as PoolAsset, vendors)))
+      .then((groups) => {
+        if (cancelled) return;
+        setBorrowers(groups.flat().sort((a, b) => (b.debt > a.debt ? 1 : b.debt < a.debt ? -1 : 0)));
+      })
+      .catch(() => { if (!cancelled) setBorrowers([]); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetKey, vendorKey, tick]);
+
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+  return { borrowers, isLoading, refetch };
 }

@@ -139,6 +139,97 @@ export async function getLatestLedgerSequence(): Promise<number> {
   return sequence;
 }
 
+export interface ContractEventRecord {
+  id: string;
+  ledger: number;
+  closedAt: string;
+  txHash: string;
+  topics: string[];
+  value: unknown;
+}
+
+interface RawEventsResult {
+  events?: {
+    id: string;
+    ledger: number;
+    ledgerClosedAt: string;
+    txHash: string;
+    topic: string[];
+    value: string;
+  }[];
+}
+
+// The public testnet RPC silently returns an EMPTY (not erroring) events page
+// once startLedger is too far back — empirically the cutoff sits around
+// 10-12k ledgers even though getLatestLedger's own oldestLedger advertises a
+// much longer retention. Paginate in chunks under that cutoff so distant
+// history isn't silently dropped, capped at a total lookback to keep the
+// request count for a manual "Refresh" click bounded.
+const EVENT_CHUNK_LEDGERS = 9_000;
+const EVENT_MAX_LOOKBACK_LEDGERS = 45_000;
+
+/** Fetch contract events whose first topic segment matches `topic0` (any
+ *  second segment), from `EVENT_MAX_LOOKBACK_LEDGERS` back through latest.
+ *
+ *  Calls the RPC directly instead of `rpc.Server.getEvents` — that helper
+ *  decodes every event's topic/value in one batch, so a single legacy or
+ *  unrelated event that this SDK build can't decode (observed in-browser
+ *  against long-lived testnet contracts) throws and drops the whole page of
+ *  events. Decoding one event at a time here means a bad event is skipped,
+ *  not fatal. */
+export async function fetchContractEvents(
+  contractId: string,
+  topic0: string
+): Promise<ContractEventRecord[]> {
+  const { sequence: latest } = await getRpcServer().getLatestLedger();
+  const topicFilter = nativeToScVal(topic0, { type: 'symbol' }).toXDR('base64');
+  const lookbackStart = Math.max(1, latest - EVENT_MAX_LOOKBACK_LEDGERS);
+
+  const records: ContractEventRecord[] = [];
+  for (let chunkStart = lookbackStart; chunkStart <= latest; chunkStart += EVENT_CHUNK_LEDGERS) {
+    const chunkEnd = Math.min(latest, chunkStart + EVENT_CHUNK_LEDGERS);
+    try {
+      const res = await fetch(RPC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: `${contractId}-${topic0}-${chunkStart}`,
+          method: 'getEvents',
+          params: {
+            startLedger: chunkStart,
+            endLedger: chunkEnd,
+            filters: [{ type: 'contract', contractIds: [contractId], topics: [[topicFilter, '*']] }],
+            limit: 200,
+          },
+        }),
+      });
+      const json = (await res.json()) as { result?: RawEventsResult; error?: { message?: string } };
+      if (json.error) throw new Error(json.error.message ?? 'RPC getEvents failed');
+
+      for (const event of json.result?.events ?? []) {
+        try {
+          records.push({
+            id: event.id,
+            ledger: event.ledger,
+            closedAt: event.ledgerClosedAt,
+            txHash: event.txHash,
+            topics: event.topic.map((t) => String(scValToNative(xdr.ScVal.fromXDR(t, 'base64')))),
+            value: scValToNative(xdr.ScVal.fromXDR(event.value, 'base64')),
+          });
+        } catch (decodeErr) {
+          console.warn(`[vault-events] skipping undecodable event ${event.id}`, decodeErr); // eslint-disable-line no-console
+        }
+      }
+    } catch (chunkErr) {
+      // One bad chunk (RPC hiccup, transient decode failure) shouldn't blank
+      // out every other chunk's real data — skip it and keep going.
+      console.warn(`[vault-events] skipping chunk ${chunkStart}-${chunkEnd}`, chunkErr); // eslint-disable-line no-console
+    }
+  }
+  return records;
+}
+
 /** Submit a signed Soroban tx and poll until confirmed. Returns tx hash + the
  *  contract fn's decoded return value (null for void-returning fns). */
 export async function submitSorobanTxAndDecode(
