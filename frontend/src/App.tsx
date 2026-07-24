@@ -56,8 +56,8 @@ export default function App() {
   return (
     <LanguageProvider> {/* Wrap everything with LanguageProvider */}
       <BrowserRouter>
-        <WalletProvider>
-          <ToastProvider>
+        <ToastProvider>
+          <WalletProvider>
             <Suspense fallback={<RouteLoading />}>
               <Routes>
                 {/* Fullscreen pages - no layout shell */}
@@ -126,8 +126,8 @@ export default function App() {
                 </Route>
               </Routes>
             </Suspense>
-          </ToastProvider>
-        </WalletProvider>
+          </WalletProvider>
+        </ToastProvider>
       </BrowserRouter>
     </LanguageProvider>
   );

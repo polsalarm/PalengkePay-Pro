@@ -1,7 +1,17 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { WalletContext } from '../lib/wallet-context';
 import { NETWORK_PASSPHRASE } from '../lib/stellar';
 import { initKit, loadWalletKit, isWalletKitLoaded } from '../lib/wallet-kit';
+import { useToast } from '../lib/hooks/useToast';
+
+// WalletConnect's relay publish can time out when the tab is backgrounded —
+// which is exactly what happens on mobile web when the browser switches to
+// the wallet app to approve and back. Matches the SDK's own error text
+// ("Failed to publish custom payload...") so a retry is only auto-armed for
+// this specific, recoverable failure mode, not e.g. "wallet not installed".
+function isRelayPublishFailure(message: string): boolean {
+  return /publish|relay/i.test(message);
+}
 
 function getStoredValue(key: string): string | null {
   if (typeof window === 'undefined') return null;
@@ -9,11 +19,16 @@ function getStoredValue(key: string): string | null {
 }
 
 export function WalletProvider({ children }: { children: ReactNode }) {
+  const { showToast } = useToast();
   const [address, setAddress] = useState<string | null>(() => getStoredValue('palengkepay_address'));
   const [balance, setBalance] = useState<string | null>(null);
   const [walletName, setWalletName] = useState<string | null>(() => getStoredValue('palengkepay_wallet_name'));
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set once when a connect failure looks like a backgrounded-tab relay
+  // timeout — consumed by the visibilitychange retry below, then cleared
+  // either way so a real re-failure doesn't loop.
+  const retryArmedRef = useRef(false);
 
   const refreshBalance = useCallback(async (addr: string) => {
     try {
@@ -36,9 +51,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (address) refreshBalance(address);
   }, [address, refreshBalance]);
 
-  const connect = useCallback(async (): Promise<string | null> => {
+  const connect = useCallback(async (isRetry = false): Promise<string | null> => {
     setIsConnecting(true);
-    setError(null);
+    if (!isRetry) setError(null);
     try {
       await initKit();
       const { StellarWalletsKit } = await loadWalletKit();
@@ -62,17 +77,41 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.warn('[wallet] sign-in challenge skipped:', signErr);
       }
       await refreshBalance(addr);
+      retryArmedRef.current = false;
       return addr;
     } catch (err: unknown) {
       const msg = (err as { message?: string }).message ?? 'Connection failed';
       if (!msg.includes('close') && !msg.includes('Cancel') && !msg.includes('cancel')) {
         setError(msg);
+        if (isRelayPublishFailure(msg)) {
+          retryArmedRef.current = true;
+        } else {
+          showToast('Wallet connection failed. Tap Connect Wallet to try again.', 'error');
+        }
       }
       return null;
     } finally {
       setIsConnecting(false);
     }
-  }, [refreshBalance]);
+  }, [refreshBalance, showToast]);
+
+  // Mobile WalletConnect: approving switches away to the wallet app, which
+  // backgrounds this tab mid-handshake and can time out the relay publish.
+  // Retry once automatically when the user switches back, so the connect
+  // they already asked for actually completes instead of silently dying.
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState !== 'visible' || !retryArmedRef.current || address) return;
+      retryArmedRef.current = false;
+      connect(true).then((addr) => {
+        if (!addr) {
+          showToast("Still couldn't connect — tap Connect Wallet to try again.", 'error');
+        }
+      });
+    }
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [connect, address, showToast]);
 
   const disconnect = useCallback(async () => {
     try {
