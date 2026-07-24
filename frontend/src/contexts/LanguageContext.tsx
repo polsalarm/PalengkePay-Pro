@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { IS_MAINNET } from '../lib/stellar';
+
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
 
 type Language = 'en' | 'tl';
 type TParams = Record<string, string | number>;
@@ -91,7 +94,7 @@ const translations = {
     'transactions.todayEarnings': "Today's Earnings",
     'transactions.paymentsToday': 'Payments Today',
     'transactions.incomeProofPack': 'Income Proof Pack',
-    'transactions.incomeProofDesc': 'Exportable vendor proof with source labels and Testnet caveats.',
+    'transactions.incomeProofDesc': `Exportable vendor proof with source labels and ${NETWORK_LABEL} caveats.`,
     'transactions.transactions': 'Transactions',
     'transactions.totalXlm': 'Total XLM',
     'transactions.phpEst': 'PHP est.',
@@ -113,7 +116,7 @@ const translations = {
     'transactions.certificate': 'Certificate',
     'transactions.print': 'Print',
     'transactions.copyLiveHash': 'Copy live hash',
-    'transactions.captureHashHint': 'Capture one real Testnet payment before sharing this certificate outside the demo team.',
+    'transactions.captureHashHint': `Capture one real ${NETWORK_LABEL} payment before sharing this certificate outside the demo team.`,
     'transactions.recoveryDesk': 'Transaction Recovery Desk',
     'transactions.recoveryDesc': 'Receipt lookup, resend path, and sponsor diagnostics for customer payment issues.',
     'transactions.receiptLookup': 'Receipt lookup',
@@ -591,7 +594,7 @@ const translations = {
     'transactions.todayEarnings': 'Kita Ngayon',
     'transactions.paymentsToday': 'Mga Bayad Ngayon',
     'transactions.incomeProofPack': 'Income Proof Pack',
-    'transactions.incomeProofDesc': 'Exportable vendor proof na may source labels at Testnet caveats.',
+    'transactions.incomeProofDesc': `Exportable vendor proof na may source labels at ${NETWORK_LABEL} caveats.`,
     'transactions.transactions': 'Mga Transaksyon',
     'transactions.totalXlm': 'Kabuuang XLM',
     'transactions.phpEst': 'PHP tantiya',
@@ -613,7 +616,7 @@ const translations = {
     'transactions.certificate': 'Sertipiko',
     'transactions.print': 'I-print',
     'transactions.copyLiveHash': 'Kopyahin ang live hash',
-    'transactions.captureHashHint': 'Kumuha ng isang tunay na Testnet payment bago ibahagi ang sertipiko na ito sa labas ng demo team.',
+    'transactions.captureHashHint': `Kumuha ng isang tunay na ${NETWORK_LABEL} payment bago ibahagi ang sertipiko na ito sa labas ng demo team.`,
     'transactions.recoveryDesk': 'Transaction Recovery Desk',
     'transactions.recoveryDesc': 'Receipt lookup, resend path, at sponsor diagnostics para sa mga isyu sa pagbabayad ng customer.',
     'transactions.receiptLookup': 'Receipt lookup',

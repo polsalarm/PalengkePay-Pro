@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, ShieldCheck, Loader2, Zap } from 'lucide-react';
 import { useWallet } from '../lib/hooks/useWallet';
+import { IS_MAINNET } from '../lib/stellar';
 import logoImg2 from '../assets/logo-2.png';
+
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
 
 const WALLETS = [
   { id: 'freighter',     letter: 'F', color: '#4F46E5', bg: '#EEF2FF', name: 'Freighter',     sub: 'Browser extension wallet' },
@@ -126,7 +129,7 @@ export function Connect() {
         {/* Footer */}
         <div className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
           <ShieldCheck size={13} style={{ color: '#4ADE80' }} />
-          <span className="text-xs font-medium">Secured by Stellar Testnet</span>
+          <span className="text-xs font-medium">Secured by Stellar {NETWORK_LABEL}</span>
         </div>
       </div>
 
@@ -194,8 +197,8 @@ export function Connect() {
               })}
             </div>
 
-            {/* Friendbot faucet — shown after wallet connected */}
-            {isConnected && address && (
+            {/* Friendbot faucet — testnet only, no faucet exists on mainnet */}
+            {!IS_MAINNET && isConnected && address && (
               <div
                 className="rounded-2xl p-4 mb-6 border"
                 style={{ backgroundColor: '#F0FDFA', borderColor: '#CCFBF1' }}
@@ -241,7 +244,7 @@ export function Connect() {
         {/* Mobile footer */}
         <div className="lg:hidden px-6 pb-6 flex items-center justify-center gap-2 text-xs text-slate-400">
           <ShieldCheck size={12} className="text-green-500" />
-          Secured by Stellar Testnet
+          Secured by Stellar {NETWORK_LABEL}
         </div>
       </div>
     </div>

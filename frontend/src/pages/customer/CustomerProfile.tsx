@@ -389,6 +389,7 @@ export function CustomerProfile() {
 
         {/* LINKS */}
         <div className="space-y-3">
+          {!IS_MAINNET && (
           <NavLink
             to="/customer/testnet-wallet"
             className="rounded-2xl px-5 py-4 flex items-center gap-4 active:scale-[0.98] transition-all"
@@ -422,6 +423,7 @@ export function CustomerProfile() {
               className="text-slate-300 shrink-0"
             />
           </NavLink>
+          )}
 
           <NavLink
             to="/market"

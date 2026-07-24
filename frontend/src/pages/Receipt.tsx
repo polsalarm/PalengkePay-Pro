@@ -2,7 +2,9 @@ import { ArrowLeft, ExternalLink, Printer, ReceiptText, ShieldCheck } from 'luci
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { formatPhp, formatXlm } from '../lib/checkout-quote';
 import { getPaymentProofByHash } from '../lib/payment-proof';
-import { stellarExpertUrl, truncateAddress } from '../lib/stellar';
+import { IS_MAINNET, stellarExpertUrl, truncateAddress } from '../lib/stellar';
+
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -69,7 +71,7 @@ export function Receipt() {
                 <div className="rounded-2xl p-4 flex items-start gap-3" style={{ backgroundColor: '#F0FDFA', border: '1.5px solid #A7F3D0' }}>
                   <ShieldCheck size={20} style={{ color: '#008055' }} />
                   <div>
-                    <p className="text-sm font-black text-slate-900">Wallet-signed Testnet proof saved on this device</p>
+                    <p className="text-sm font-black text-slate-900">Wallet-signed {NETWORK_LABEL} proof saved on this device</p>
                     <p className="text-xs text-slate-600 mt-1">
                       Verify final settlement on Stellar Expert before using this receipt outside the demo.
                     </p>

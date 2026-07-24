@@ -7,9 +7,12 @@ import {
 import { useWallet } from '../lib/hooks/useWallet';
 import { isRegisteredVendor } from '../lib/hooks/useVendor';
 import { getCachedRole, setCachedRole } from '../lib/role';
+import { IS_MAINNET } from '../lib/stellar';
 import phoneImg from '../assets/phone.png';
 import logoImg from '../assets/logo.png';
 import ctaBgImg from '../assets/cta-bg.png';
+
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
 
 // ── Main component ──────────────────────────────────────────────────────────
 export function Landing() {
@@ -228,7 +231,7 @@ export function Landing() {
   }}
 >
   <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#008055' }} />
-  Live on Stellar Testnet
+  Powered by Stellar
 </div>
 
             <h1
@@ -794,7 +797,7 @@ export function Landing() {
         style={{ backgroundColor: '#00284B', borderColor: 'rgba(255,255,255,0.3)', color: 'white' }}
       >
         <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#4ADE80' }} />
-        Testnet — try it free today
+        {NETWORK_LABEL} — try it free today
       </div>
 
       {/* Heading - white text with optional text shadow for readability */}
@@ -862,7 +865,7 @@ export function Landing() {
           <span style={{ color: '#00284B' }}>Palengke</span><span style={{ color: '#008055' }}>Pay</span>
         </span>
         <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#F1F5F9', color: '#64748B' }}>
-          Testnet
+          {NETWORK_LABEL}
         </span>
       </div>
 

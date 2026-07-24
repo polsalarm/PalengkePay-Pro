@@ -5,7 +5,9 @@ import { buildTestnetPaymentSmokeGuide } from '../../lib/payment-smoke';
 import { getAllPaymentProofs } from '../../lib/payment-proof';
 import type { PaymentHistoryRecord } from '../../lib/payment-source';
 import { formatPhp, formatXlm } from '../../lib/checkout-quote';
-import { truncateAddress } from '../../lib/stellar';
+import { IS_MAINNET, truncateAddress } from '../../lib/stellar';
+
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
 
 interface HealthResponse {
   status: 'ok' | 'degraded';
@@ -133,7 +135,7 @@ export function AdminProofs() {
               <div className="flex items-center gap-2">
                 <ShieldCheck size={18} aria-hidden="true" style={{ color: '#008055' }} />
                 <h2 className="text-base font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                  Testnet Payment Smoke Flow
+                  {NETWORK_LABEL} Payment Smoke Flow
                 </h2>
               </div>
               <p className="text-xs text-slate-500 mt-1">
@@ -170,7 +172,7 @@ export function AdminProofs() {
                 Manual smoke payment required
               </h3>
               <p className="text-xs text-orange-800 mt-2">
-                Make one wallet-signed Testnet payment, refresh this dashboard, then confirm the same hash appears in customer history, the receipt route, and the vendor proof certificate.
+                Make one wallet-signed {NETWORK_LABEL} payment, refresh this dashboard, then confirm the same hash appears in customer history, the receipt route, and the vendor proof certificate.
               </p>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <a
@@ -277,7 +279,7 @@ export function AdminProofs() {
                 <div className="rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
                   <p className="text-sm font-black text-slate-800">No saved receipts yet</p>
                   <p className="text-xs text-slate-500 mt-1">
-                    The dashboard will populate after a signed Testnet payment stores one receipt proof on this device.
+                    The dashboard will populate after a signed {NETWORK_LABEL} payment stores one receipt proof on this device.
                   </p>
                 </div>
               )}

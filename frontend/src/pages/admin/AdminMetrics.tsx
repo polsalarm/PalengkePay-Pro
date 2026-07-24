@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, Zap, TrendingUp, BarChart2, Clock, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react';
 import { useMetrics } from '../../lib/hooks/useMetrics';
 import { useWallet } from '../../lib/hooks/useWallet';
+import { IS_MAINNET } from '../../lib/stellar';
+
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
 
 const PRODUCT_EMOJIS: Record<string, string> = {
   fish: '🐟', meat: '🥩', vegetables: '🥦', fruits: '🍎',
@@ -316,7 +319,7 @@ export function AdminMetrics() {
         <>
           {/* Stat cards */}
           <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={TrendingUp} label="Total XLM Processed" value={summary.totalVolumeXlm.toFixed(2)} sub="XLM on Testnet" color="#008055" />
+            <StatCard icon={TrendingUp} label="Total XLM Processed" value={summary.totalVolumeXlm.toFixed(2)} sub={`XLM on ${NETWORK_LABEL}`} color="#008055" />
             <StatCard icon={Zap} label="Total Transactions" value={String(summary.totalTransactions)} sub="all-time payments" color="#042E80" />
             <StatCard icon={Users} label="Active Vendors" value={`${summary.activeVendors}/${summary.totalVendors}`} sub={`${summary.totalVendors - summary.activeVendors} inactive`} color="#0369A1" />
             <StatCard icon={Clock} label="Avg Tx Size" value={summary.avgTxXlm > 0 ? summary.avgTxXlm.toFixed(3) : '—'} sub="XLM per payment" color="#D97706" />
@@ -438,7 +441,7 @@ export function AdminMetrics() {
       )}
 
       <p className="text-center text-xs pb-2" style={{ color: '#94A3B8' }}>
-        {metricsSource === 'palengke-payment' ? 'Live from PalengkePayment records' : 'Using registry fallback'} · Stellar Testnet · refreshes every {REFRESH_SECS}s
+        {metricsSource === 'palengke-payment' ? 'Live from PalengkePayment records' : 'Using registry fallback'} · Stellar {NETWORK_LABEL} · refreshes every {REFRESH_SECS}s
       </p>
     </div>
   );

@@ -8,9 +8,12 @@ import { useWallet } from '../lib/hooks/useWallet';
 import { useBalance } from '../lib/hooks/useBalance';
 import { isRegisteredVendor } from '../lib/hooks/useVendor';
 import { getCachedRole, setCachedRole } from '../lib/role';
+import { IS_MAINNET } from '../lib/stellar';
 import logoImg from '../assets/logo.png';
 
-const STEPS = ['Get wallet', 'Connect', 'Fund', "Let's go!"];
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
+const STEPS = IS_MAINNET ? ['Get wallet', 'Connect', "Let's go!"] : ['Get wallet', 'Connect', 'Fund', "Let's go!"];
+const READY_STEP = IS_MAINNET ? 2 : 3;
 
 export function Onboard() {
   const { address, connect, isConnecting, error: walletError } = useWallet();
@@ -112,21 +115,21 @@ export function Onboard() {
           </p>
           <div className="space-y-4">
             {[
-              { n: 1, label: 'First, get a wallet',  active: true  },
-              { n: 2, label: 'Connect your wallet',  active: false },
-              { n: 3, label: 'Get free test money',  active: false },
-              { n: 4, label: "You're ready!",         active: false },
-            ].map(({ n, label, active }) => (
-              <div key={n} className="flex items-center gap-3">
+              'First, get a wallet',
+              'Connect your wallet',
+              ...(IS_MAINNET ? [] : ['Get free test money']),
+              "You're ready!",
+            ].map((label, i) => (
+              <div key={i} className="flex items-center gap-3">
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all"
-                  style={active
+                  style={i === 0
                     ? { backgroundColor: '#14B8A6', color: 'white' }
                     : { backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.25)' }}
-                >{n}</div>
+                >{i + 1}</div>
                 <span
                   className="text-sm font-medium transition-all"
-                  style={{ color: active ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)' }}
+                  style={{ color: i === 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)' }}
                 >{label}</span>
               </div>
             ))}
@@ -171,7 +174,7 @@ export function Onboard() {
       {/* Footer */}
       <div className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
         <ShieldCheck size={13} style={{ color: '#4ADE80' }} />
-        <span className="text-xs font-medium">Secured by Stellar Testnet</span>
+        <span className="text-xs font-medium">Secured by Stellar {NETWORK_LABEL}</span>
       </div>
     </div>
   );
@@ -356,7 +359,7 @@ export function Onboard() {
 
                 <div className="flex justify-end mt-2">
                   <button
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(READY_STEP)}
                     className="flex items-center gap-2 font-bold px-6 py-3 rounded-2xl text-white transition-all hover:opacity-90 active:scale-95"
                     style={{ backgroundColor: '#008055' }}
                   >
@@ -366,8 +369,8 @@ export function Onboard() {
               </div>
             )}
 
-            {/* ── Step 2: Fund wallet ── */}
-            {step === 2 && (
+            {/* ── Step 2: Fund wallet (testnet only — no faucet on mainnet) ── */}
+            {step === 2 && !IS_MAINNET && (
               <div>
                 {/* Coin icon */}
                 <div
@@ -436,7 +439,7 @@ export function Onboard() {
 
                 <div className="flex justify-end mt-4">
                   <button
-                    onClick={() => setStep(3)}
+                    onClick={() => setStep(READY_STEP)}
                     className="flex items-center gap-2 font-bold px-6 py-3 rounded-2xl text-white transition-all hover:opacity-90 active:scale-95"
                     style={{ backgroundColor: '#008055' }}
                   >
@@ -446,8 +449,8 @@ export function Onboard() {
               </div>
             )}
 
-            {/* ── Step 3: Ready ── */}
-            {step === 3 && (
+            {/* ── Ready step ── */}
+            {step === READY_STEP && (
               <div>
                 <div
                   className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
@@ -475,7 +478,7 @@ export function Onboard() {
                     <span
                       className="text-xs font-bold px-2.5 py-1 rounded-full"
                       style={{ backgroundColor: '#FEF3C7', color: '#D97706' }}
-                    >Stellar Testnet</span>
+                    >Stellar {NETWORK_LABEL}</span>
                   </div>
                   {balance && (
                     <div className="flex items-center justify-between pt-3">
@@ -537,7 +540,7 @@ export function Onboard() {
         {/* Mobile footer */}
         <div className="lg:hidden px-6 pb-6 flex items-center justify-center gap-2 text-xs text-slate-400">
           <ShieldCheck size={12} className="text-green-500" />
-          Secured by Stellar Testnet
+          Secured by Stellar {NETWORK_LABEL}
         </div>
       </div>
     </div>
