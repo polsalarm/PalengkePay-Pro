@@ -1,8 +1,8 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, vec, Address, BytesN, Env, IntoVal,
-    String, Symbol, Vec,
+    contract, contractimpl, contracttype, symbol_short, vec, Address, BytesN, Env, IntoVal, String,
+    Symbol, Vec,
 };
 
 // ── Data types ────────────────────────────────────────────────────────────────
@@ -61,16 +61,16 @@ pub enum DataKey {
     // Pull-based credit-score oracle (Phase 1 fix) — vendor-registry reads the
     // already-settled Payment/Utang record straight off the live contracts
     // instead of trusting an admin-typed number. See CREDIT_SCORE_ORACLE_FIX.md.
-    PaymentContract,         // Address of the deployed palengke-payment contract
-    EscrowContract,          // Address of the deployed utang-escrow contract
-    ProcessedPayment(u64),   // payment_id → bool, dedup guard
-    UtangProgress(u64),      // utang_id → u32 (last-seen installments_paid)
-    ProcessedDefault(u64),   // utang_id → bool, dedup guard
-    V1Registry,              // Address of the real v1 vendor onboarding registry
+    PaymentContract,       // Address of the deployed palengke-payment contract
+    EscrowContract,        // Address of the deployed utang-escrow contract
+    ProcessedPayment(u64), // payment_id → bool, dedup guard
+    UtangProgress(u64),    // utang_id → u32 (last-seen installments_paid)
+    ProcessedDefault(u64), // utang_id → bool, dedup guard
+    V1Registry,            // Address of the real v1 vendor onboarding registry
     // Phase 2 — multisig committee gating the score-input functions above
     // plus `upgrade` itself. See CREDIT_SCORE_ORACLE_FIX.md.
-    Signers,    // Vec<Address> — the multisig committee
-    Threshold,  // u32 — minimum distinct committee signatures required
+    Signers,   // Vec<Address> — the multisig committee
+    Threshold, // u32 — minimum distinct committee signatures required
 }
 
 #[contracttype]
@@ -219,7 +219,9 @@ impl VendorRegistry {
         }
         Self::validate_committee(&signers, threshold);
         env.storage().instance().set(&DataKey::Signers, &signers);
-        env.storage().instance().set(&DataKey::Threshold, &threshold);
+        env.storage()
+            .instance()
+            .set(&DataKey::Threshold, &threshold);
     }
 
     /// Rotates the committee/threshold. Requires the CURRENT committee's
@@ -234,7 +236,9 @@ impl VendorRegistry {
     ) {
         Self::require_multisig(&env, &signers);
         Self::validate_committee(&new_signers, new_threshold);
-        env.storage().instance().set(&DataKey::Signers, &new_signers);
+        env.storage()
+            .instance()
+            .set(&DataKey::Signers, &new_signers);
         env.storage()
             .instance()
             .set(&DataKey::Threshold, &new_threshold);
@@ -255,7 +259,10 @@ impl VendorRegistry {
     }
 
     pub fn threshold(env: Env) -> u32 {
-        env.storage().instance().get(&DataKey::Threshold).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::Threshold)
+            .unwrap_or(0)
     }
 
     // ── Vendor applies (no admin needed) ─────────────────────────────────────
@@ -817,7 +824,9 @@ impl VendorRegistry {
 
     pub fn set_v1_registry(env: Env, signers: Vec<Address>, contract: Address) {
         Self::require_multisig(&env, &signers);
-        env.storage().instance().set(&DataKey::V1Registry, &contract);
+        env.storage()
+            .instance()
+            .set(&DataKey::V1Registry, &contract);
     }
 
     pub fn v1_registry(env: Env) -> Option<Address> {
@@ -974,8 +983,7 @@ impl VendorRegistry {
             return; // nothing new since the last pull
         }
 
-        let paid_before =
-            (utang.installment_amount * last_seen as i128).min(utang.total_amount);
+        let paid_before = (utang.installment_amount * last_seen as i128).min(utang.total_amount);
         let paid_now =
             (utang.installment_amount * utang.installments_paid as i128).min(utang.total_amount);
         let delta = paid_now - paid_before;
@@ -1180,7 +1188,7 @@ impl VendorRegistry {
             .get(&DataKey::Threshold)
             .expect("multisig not configured");
 
-        if (signers.len() as u32) < threshold {
+        if signers.len() < threshold {
             panic!("insufficient signers");
         }
         for i in 0..signers.len() {

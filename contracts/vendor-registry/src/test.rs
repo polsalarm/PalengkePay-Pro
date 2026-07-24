@@ -609,7 +609,13 @@ struct MockPaymentRecord {
 
 #[contractimpl]
 impl MockPayment {
-    pub fn seed_payment(env: Env, payment_id: u64, customer: Address, vendor: Address, amount: i128) {
+    pub fn seed_payment(
+        env: Env,
+        payment_id: u64,
+        customer: Address,
+        vendor: Address,
+        amount: i128,
+    ) {
         env.storage().persistent().set(
             &payment_id,
             &MockPaymentRecord {
@@ -693,7 +699,12 @@ fn setup_with_sources(
     env: &Env,
     admin: &Address,
     client: &VendorRegistryClient,
-) -> (Address, MockPaymentClient<'static>, Address, MockEscrowClient<'static>) {
+) -> (
+    Address,
+    MockPaymentClient<'static>,
+    Address,
+    MockEscrowClient<'static>,
+) {
     // set_payment_contract/set_escrow_contract are multisig-gated (Phase 2) —
     // bootstrap a throwaway committee here so these Phase-1-focused tests
     // don't need to thread signers through every call site.
