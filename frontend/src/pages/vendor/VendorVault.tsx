@@ -27,7 +27,7 @@ import {
   useCreditPool,
   useCreditScore,
 } from '../../lib/hooks/useCredit';
-import { stellarExpertUrl, truncateAddress } from '../../lib/stellar';
+import { IS_MAINNET, stellarExpertUrl, truncateAddress } from '../../lib/stellar';
 import { useToast } from '../../lib/hooks/useToast';
 import { WalletRequiredState } from '../../components/WalletRequiredState';
 
@@ -36,6 +36,7 @@ type BorrowAction = 'draw' | 'repay' | null;
 
 const SCORE_MIN = 300;
 const SCORE_MAX = 850;
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
 
 function formatUnits(value: bigint): string {
   return toUnits(value).toLocaleString('en-PH', {
@@ -98,7 +99,7 @@ export function VendorVault() {
   const autoRepay = useAutoRepay(address, asset);
 
   if (!address) {
-    return <WalletRequiredState detail="Connect your Testnet wallet to open the Vendor Vault." />;
+    return <WalletRequiredState detail={`Connect your ${NETWORK_LABEL} wallet to open the Vendor Vault.`} />;
   }
 
   if (!creditLayerConfigured || availableAssets.length === 0) {
@@ -109,9 +110,9 @@ export function VendorVault() {
           <div className="flex gap-3">
             <AlertTriangle className="mt-0.5 shrink-0 text-amber-600" size={20} />
             <div>
-              <h2 className="font-black text-amber-950">Testnet Vault is not configured</h2>
+              <h2 className="font-black text-amber-950">{NETWORK_LABEL} Vault is not configured</h2>
               <p className="mt-1 text-sm leading-6 text-amber-800">
-                Add the Testnet registry and credit-pool contract IDs to the frontend environment before using this screen.
+                Add the {NETWORK_LABEL} registry and credit-pool contract IDs to the frontend environment before using this screen.
               </p>
             </div>
           </div>
@@ -174,7 +175,7 @@ export function VendorVault() {
       setTxHash(hash);
       setAmount('');
       pool.refetch();
-      showToast(`Deposited ${units.toFixed(2)} ${asset} into the Testnet pool`, 'success');
+      showToast(`Deposited ${units.toFixed(2)} ${asset} into the ${NETWORK_LABEL} pool`, 'success');
     } catch (error) {
       showToast(formatError(error), 'error');
     } finally {
@@ -237,7 +238,7 @@ export function VendorVault() {
         <div className="relative">
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-teal-200">Vendor Vault - Testnet</p>
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-teal-200">Vendor Vault - {NETWORK_LABEL}</p>
               <h1 className="max-w-lg text-3xl font-black leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 Your daily sales can open the next door.
               </h1>
@@ -447,7 +448,7 @@ export function VendorVault() {
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#0D9488]">Liquidity provider</p>
                 <h2 className="mt-1 text-xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>Keep the market moving</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">Deposit Testnet {asset} into the on-chain pool. Eligible vendors can draw from this liquidity when their credit line allows it.</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Deposit {NETWORK_LABEL} {asset} into the on-chain pool. Eligible vendors can draw from this liquidity when their credit line allows it.</p>
               </div>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -471,7 +472,7 @@ export function VendorVault() {
             </button>
             <div className="mt-4 flex gap-2 rounded-2xl bg-amber-50 p-3 text-xs leading-5 text-amber-800">
               <Info size={15} className="mt-0.5 shrink-0 text-amber-600" />
-              <p><strong>Testnet prototype:</strong> this pool currently supports deposits and vendor lending, but does not yet expose withdrawal or yield accounting. Use Testnet funds only.</p>
+              <p><strong>{NETWORK_LABEL} prototype:</strong> this pool currently supports deposits and vendor lending, but does not yet expose withdrawal or yield accounting. Use {NETWORK_LABEL} funds only.</p>
             </div>
           </div>
         </section>
@@ -481,7 +482,7 @@ export function VendorVault() {
         <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
           <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-600" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-black text-emerald-900">Confirmed on Testnet</p>
+            <p className="text-sm font-black text-emerald-900">Confirmed on {NETWORK_LABEL}</p>
             <p className="mt-0.5 truncate font-mono text-xs text-emerald-700">{truncateAddress(txHash)}</p>
           </div>
           <a href={stellarExpertUrl(txHash)} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 text-xs font-black text-emerald-700 hover:text-emerald-900">
@@ -492,7 +493,7 @@ export function VendorVault() {
 
       <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-500">
         <Info size={15} className="mt-0.5 shrink-0 text-[#008055]" />
-        <p><strong className="text-slate-700">How this works:</strong> the contract reads your score from the Testnet vendor registry, limits borrowing to the pool's available balance, and requires your wallet to authorize every draw, repayment, or deposit.</p>
+        <p><strong className="text-slate-700">How this works:</strong> the contract reads your score from the {NETWORK_LABEL} vendor registry, limits borrowing to the pool's available balance, and requires your wallet to authorize every draw, repayment, or deposit.</p>
       </div>
 
       <Link to="/vendor/home" className="inline-flex items-center gap-2 text-sm font-black text-[#008055] hover:text-[#006B4A]">Back to vendor home</Link>
@@ -504,12 +505,12 @@ function Header() {
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#008055]">Testnet finance</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#008055]">{NETWORK_LABEL} finance</p>
         <h1 className="mt-1 text-2xl font-black text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>Vendor Vault</h1>
         <p className="mt-1 text-sm text-slate-500">Borrow against your track record. Help fund someone else's next stall day.</p>
       </div>
       <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700">
-        <ShieldCheck size={13} /> Testnet only
+        <ShieldCheck size={13} /> {NETWORK_LABEL} only
       </div>
     </div>
   );
