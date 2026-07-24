@@ -1,3 +1,7 @@
+import { IS_MAINNET } from './stellar';
+
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
+
 export interface PaymentFailureDetails {
   message: string;
   diagnostic: string | null;
@@ -28,7 +32,7 @@ export function getPaymentFailureDetails(err: unknown): PaymentFailureDetails {
     if (tx === 'tx_bad_seq') return { message: 'Sequence error — please try again', diagnostic };
     if (tx === 'tx_insufficient_fee') return { message: 'Network fee too low — please try again', diagnostic };
     if (tx === 'tx_bad_auth') return { message: 'Invalid signature — reconnect wallet', diagnostic };
-    if (ops.includes('op_no_destination')) return { message: 'Vendor account not activated on Stellar testnet', diagnostic };
+    if (ops.includes('op_no_destination')) return { message: `Vendor account not activated on Stellar ${NETWORK_LABEL}`, diagnostic };
     if (ops.includes('op_underfunded')) return { message: 'Insufficient XLM balance', diagnostic };
     if (ops.includes('op_low_reserve')) return { message: 'Account below minimum XLM reserve', diagnostic };
 
@@ -77,7 +81,7 @@ export function getPaymentFailureDetails(err: unknown): PaymentFailureDetails {
     return { message: 'Transaction cancelled — no funds sent', diagnostic: null };
   }
   if (lower.includes('network')) {
-    return { message: 'Please switch to Stellar Testnet', diagnostic: raw.slice(0, 160) };
+    return { message: `Please switch to Stellar ${NETWORK_LABEL}`, diagnostic: raw.slice(0, 160) };
   }
   if (lower.includes('balance') || lower.includes('insufficient')) {
     return { message: 'Insufficient XLM balance', diagnostic: raw.slice(0, 160) };

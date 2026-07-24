@@ -1,5 +1,7 @@
 import type { PaymentProofRecord } from './payment-proof';
-import { stellarExpertUrl } from './stellar';
+import { IS_MAINNET, stellarExpertUrl } from './stellar';
+
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
 
 type SmokeStepStatus = 'todo' | 'blocked' | 'done';
 type SmokeGuideStatus = 'needs_hash' | 'ready';
@@ -38,7 +40,7 @@ export function buildTestnetPaymentSmokeGuide(proofs: PaymentProofRecord[]): Tes
         {
           label: 'Start customer smoke',
           href: '/customer/scan',
-          detail: 'Make one wallet-signed Testnet payment from a funded customer wallet.',
+          detail: `Make one wallet-signed ${NETWORK_LABEL} payment from a funded customer wallet.`,
         },
         {
           label: 'Review vendor proof',
@@ -52,8 +54,8 @@ export function buildTestnetPaymentSmokeGuide(proofs: PaymentProofRecord[]): Tes
         },
       ],
       steps: [
-        { id: 'connect-funded-wallet', label: 'Connect a funded Testnet wallet', status: 'todo' },
-        { id: 'make-testnet-payment', label: 'Complete one wallet-signed Testnet payment', status: 'todo' },
+        { id: 'connect-funded-wallet', label: `Connect a funded ${NETWORK_LABEL} wallet`, status: 'todo' },
+        { id: 'make-testnet-payment', label: `Complete one wallet-signed ${NETWORK_LABEL} payment`, status: 'todo' },
         { id: 'customer-history-proof', label: 'Confirm customer history shows the payment hash', status: 'blocked' },
         { id: 'receipt-page-proof', label: 'Open the receipt proof route for the hash', status: 'blocked' },
         { id: 'vendor-export-proof', label: 'Confirm vendor proof export includes the hash', status: 'blocked' },
@@ -83,8 +85,8 @@ export function buildTestnetPaymentSmokeGuide(proofs: PaymentProofRecord[]): Tes
       },
     ],
     steps: [
-      { id: 'connect-funded-wallet', label: 'Connect a funded Testnet wallet', status: 'done' },
-      { id: 'make-testnet-payment', label: 'Complete one wallet-signed Testnet payment', status: 'done' },
+      { id: 'connect-funded-wallet', label: `Connect a funded ${NETWORK_LABEL} wallet`, status: 'done' },
+      { id: 'make-testnet-payment', label: `Complete one wallet-signed ${NETWORK_LABEL} payment`, status: 'done' },
       { id: 'customer-history-proof', label: 'Confirm customer history shows the payment hash', status: 'done' },
       { id: 'receipt-page-proof', label: 'Open the receipt proof route for the hash', status: 'done' },
       { id: 'vendor-export-proof', label: 'Confirm vendor proof export includes the hash', status: 'done' },

@@ -1,6 +1,9 @@
 import type { UtangRecord } from './hooks/useUtang';
 import type { PaymentHistoryRecord } from './payment-source';
 import { getTransactionReceiptReference } from './vendor-transaction-recovery';
+import { IS_MAINNET } from './stellar';
+
+const NETWORK_LABEL = IS_MAINNET ? 'Mainnet' : 'Testnet';
 
 export type ProofPeriodKind = '7d' | '30d' | 'all';
 
@@ -136,7 +139,9 @@ export function buildProofSummary(input: ProofSummaryInput): ProofSummary {
   const uniqueCustomers = new Set(input.transactions.map((payment) => payment.from)).size;
   const sourceLabel = getSourceLabel(input.transactions);
   const hasFallbackCaveat = input.transactions.some((payment) => payment.source !== 'palengke-payment');
-  const caveats: string[] = ['Testnet exports are demo evidence until mainnet/audit status changes.'];
+  const caveats: string[] = IS_MAINNET
+    ? []
+    : ['Testnet exports are demo evidence until mainnet/audit status changes.'];
 
   if (transactionCount === 0) {
     caveats.push('No payment rows are available for the selected period.');
@@ -247,11 +252,11 @@ export function buildIncomeProofCertificate(summary: ProofSummary): IncomeProofC
       summary.livePaymentTxHash ? { label: 'Live hash', value: summary.livePaymentTxHash } : null,
     ].filter((item): item is { label: string; value: string } => !!item),
     attestation: summary.readiness.liveProofMissing
-      ? 'Needs a wallet-signed Testnet transaction hash before external review.'
-      : 'Includes at least one wallet-signed Testnet transaction reference for review.',
+      ? `Needs a wallet-signed ${NETWORK_LABEL} transaction hash before external review.`
+      : `Includes at least one wallet-signed ${NETWORK_LABEL} transaction reference for review.`,
     verificationNotes: [
       `Date range: ${summary.dateRange.label}`,
-      summary.livePaymentTxHash ? `Live Testnet hash: ${summary.livePaymentTxHash}` : null,
+      summary.livePaymentTxHash ? `Live ${NETWORK_LABEL} hash: ${summary.livePaymentTxHash}` : null,
       `Unique customers: ${summary.uniqueCustomers}`,
       ...summary.caveats,
     ].filter((note): note is string => !!note),
