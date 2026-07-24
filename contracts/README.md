@@ -1,7 +1,8 @@
 # PalengkePay — Smart Contracts
 
-Three Soroban contracts deployed to **Stellar Mainnet (2026-05-22)** and **Stellar Testnet**,
-plus a fourth (`credit-pool`) built for the **Credit RWA layer** (see below, deploy pending).
+Four Soroban contracts deployed to **Stellar Mainnet** and **Stellar Testnet**: the original
+three (2026-05-22), plus `credit-pool` for the **Credit RWA layer** — testnet since
+2026-06-20, mainnet since 2026-07-24 (see "Mainnet Credit RWA Upgrade" below).
 
 ---
 
@@ -143,6 +144,49 @@ no redeploy, state preserved.
 [VendorRegistry](https://stellar.expert/explorer/public/contract/CCTB5OMKU6DITCWOFM7LVZENSJXR3VSABAWG3GRXTFPXDPBH2FKATOLX) ·
 [PalengkePayment](https://stellar.expert/explorer/public/contract/CCP6WOKMHH7AEX2JTP22EEAUTQ5EAPAECX4SMJ2P442QLD4J36277GBV) ·
 [UTangEscrow](https://stellar.expert/explorer/public/contract/CDW5HJWCXIAUI27F3WZRSFU4LETD7KIDOGTP4LEKFACETQVIFWV7XKIG)
+
+---
+
+## Mainnet Credit RWA Upgrade (2026-07-24)
+
+Brought the credit-score oracle + multisig fix (see "Credit Score Oracle Fix" above) and the
+`credit-pool` lending layer to mainnet for real, same day as the testnet fix. **Same
+VendorRegistry contract ID as the original 2026-05-22 deploy** (`CCTB5OMKU…`) — upgraded in
+place via admin `upgrade(admin, new_wasm_hash)` (the pre-upgrade code was still the plain
+admin-gated May version, no multisig yet, so that one call correctly used the old signature).
+Every step below was executed for real against mainnet RPC and verified by reading the
+resulting on-chain state back, not just trusting "Success":
+
+| Step | Detail |
+|------|--------|
+| VendorRegistry upgrade | New wasm hash `b6cb15b66031203f63774b0771f4af5560721611caa064d01969828507c0ce0c` (26 648 bytes). Confirmed live via `contract info interface`: `get_credit_score`, `migrate_to_multisig`, `record_activity_from_payment/_installment`, `record_default_from_utang` all present. |
+| Multisig bootstrap | `migrate_to_multisig(admin, signers, 2)` — **new, mainnet-only** dedicated keys (never reused from testnet's `vr-signer-1/2/3`, by design): `GCL5KBBG5SAEARJJ34OFNJ6VI5JKHQBQGBTJGPXPHID4ZN24BNYGGBXR`, `GDOTWHBA4EEDE5WXMWLGT7MX4UBSFB5XC23WLITNOO4A6I6X4MGKJT7Q`, `GB3X5QYKLN7AP75TIJAISAGXM34CDK7LAJQWOBKBZ5TNJTUWBHOXDQRB`. Threshold 2. Admin is now permanently locked out of `set_payment_contract`/`set_escrow_contract`/`increment_stats`/`report_default`/`set_signers`/`upgrade` — only the committee can call those. |
+| Payment/escrow wiring | Real 2-of-3 signed `set_payment_contract`/`set_escrow_contract` pointing at the live `CCP6WOKMHH7…`/`CDW5HJWCXIAU…`. Bare `stellar contract invoke` can't produce multi-party Soroban auth (only signs the outer envelope) — used `@stellar/stellar-sdk@16.1.0`'s `contract.Client` + `AssembledTransaction.signAuthEntries()` in a scratch Node script instead, per the documented multi-auth workflow. |
+| CreditPool deploy | Fresh wasm upload (hash `d67379d399e64e6606f87240c8e834ac1bf7c5730fbec13067858f641172c032`, 9 316 bytes), two instances deployed from it. |
+| Backfill | Real (not synthetic) mainnet history pulled in via the permissionless path: `record_activity_from_payment(1..4)` + `record_activity_from_installment(1)` — mainnet's actual 4 payments / 1 utang / 3 vendors at time of upgrade. No admin seeding. One real vendor's score moved to 520 from real activity alone. |
+
+| Component | Mainnet Contract ID |
+|-----------|---------------------|
+| `vendor-registry` (upgraded in place, same ID) | `CCTB5OMKU6DITCWOFM7LVZENSJXR3VSABAWG3GRXTFPXDPBH2FKATOLX` |
+| `credit-pool` (XLM) | `CAXWALT7FW4O2YQU5LVFVJGILA64S76O73Y2HXSB67DEQTM74NIOK6U7` |
+| `credit-pool` (USDC) | `CDMBEXZG27KLAUAYVC4BRIIZZDA2FJQCJI5MWLKHVRJC2BVO7CXJAQCG` |
+| Real Circle USDC SAC | `CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75` (issuer `GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN`) |
+| Native XLM SAC | `CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA` |
+
+**Unlike testnet, mainnet has no v1/v2 registry split** — there has only ever been one mainnet
+VendorRegistry, so no `mirror_vendor_from_v1` step was needed; real vendor records carried
+through the upgrade untouched (storage survives `upgrade`, only the wasm code changes).
+
+**Real-money notes:**
+- Resource fees on mainnet quoted much higher than the original May deploy's ~43 XLM/3-contracts
+  figure — the wasm upload alone for this upgrade quoted ~32 XLM live off mainnet RPC. Always
+  re-quote via `stellar tx simulate` on a `--build-only` tx immediately before spending, don't
+  trust old figures.
+- CreditPool USDC instance is deployed and initialized but **not yet funded** — funding it
+  requires actually holding real USDC (no mint-on-demand like the testnet self-issued mock).
+- Frontend gate: `useCredit.ts` previously hard-disabled the credit UI on mainnet
+  (`!IS_MAINNET`) pending pool-economics validation; lifted 2026-07-24 alongside this
+  deploy, real vendors now see live borrow/repay on `palengkepay-mainnet.vercel.app`.
 
 ---
 
