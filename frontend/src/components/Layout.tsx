@@ -13,6 +13,7 @@ import {
   BarChart2,
   ShieldOff,
   ArrowLeftRight,
+  Landmark,
 } from 'lucide-react';
 import { WalletButton } from './WalletButton';
 import logoImg from '../assets/logo.png';
@@ -39,6 +40,7 @@ const adminNav = [
   { to: '/admin/metrics', icon: BarChart2, label: 'Metrics' },
   { to: '/admin/ramps', icon: ArrowLeftRight, label: 'Ramps' },
   { to: '/admin/utang', icon: ShieldOff, label: 'Defaults' },
+  { to: '/admin/vault', icon: Landmark, label: 'Vault' },
   { to: '/admin/register', icon: UserPlus, label: 'Register' },
 ];
 
@@ -59,6 +61,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/metrics': 'Metrics',
   '/admin/ramps': 'Ramps',
   '/admin/utang': 'Defaults',
+  '/admin/vault': 'Vault Funding',
   '/admin/register': 'Register Vendor',
   '/dashboard': 'Dashboard',
   '/vendor/apply': 'Apply as Vendor',

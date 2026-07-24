@@ -35,6 +35,7 @@ const AdminHealth = lazy(() => import('./pages/admin/AdminHealth').then((module)
 const AdminProofs = lazy(() => import('./pages/admin/AdminProofs').then((module) => ({ default: module.AdminProofs })));
 const AdminRamps = lazy(() => import('./pages/admin/AdminRamps').then((module) => ({ default: module.AdminRamps })));
 const AdminUtang = lazy(() => import('./pages/admin/AdminUtang').then((module) => ({ default: module.AdminUtang })));
+const AdminVault = lazy(() => import('./pages/admin/AdminVault').then((module) => ({ default: module.AdminVault })));
 
 function RouteLoading() {
   return (
@@ -112,6 +113,7 @@ export default function App() {
                   {!IS_MAINNET && <Route path="/admin/ramps" element={<AdminRamps />} />}
                   {IS_MAINNET && <Route path="/admin/ramps" element={<Navigate to="/admin/market" replace />} />}
                   <Route path="/admin/utang" element={<AdminUtang />} />
+                  <Route path="/admin/vault" element={<AdminVault />} />
 
                   {/* Vendor apply (public) */}
                   <Route path="/vendor/apply" element={<VendorApply />} />
