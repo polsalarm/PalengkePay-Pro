@@ -7,18 +7,19 @@ import {
 } from '../stellar';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 
-// Credit RWA layer points at the v2 registry (which exposes get_credit_score) and
-// the two score-gated lending pools. Kept separate from the app's primary registry
-// env so the rest of the app is undisturbed.
-const REGISTRY_V2 = import.meta.env.VITE_VENDOR_REGISTRY_V2_CONTRACT_ID as string | undefined;
+// Credit RWA layer reads the registry that exposes get_credit_score. On testnet
+// that's a separate v2 registry (v1 predates the credit-score fns); on mainnet
+// there's only ever been one registry, and it was upgraded in place to add
+// credit-score + multisig, so the primary registry env IS the credit registry.
+const REGISTRY_TESTNET_V2 = import.meta.env.VITE_VENDOR_REGISTRY_V2_CONTRACT_ID as string | undefined;
+const REGISTRY_MAINNET = import.meta.env.VITE_VENDOR_REGISTRY_CONTRACT_ID as string | undefined;
+const CREDIT_REGISTRY = IS_MAINNET ? REGISTRY_MAINNET : REGISTRY_TESTNET_V2;
 const POOL_USDC = import.meta.env.VITE_CREDIT_POOL_USDC_CONTRACT_ID as string | undefined;
 const POOL_XLM = import.meta.env.VITE_CREDIT_POOL_XLM_CONTRACT_ID as string | undefined;
 const USDC_SAC = import.meta.env.VITE_USDC_SAC_CONTRACT_ID as string | undefined;
 const XLM_SAC = import.meta.env.VITE_XLM_SAC_CONTRACT_ID as string | undefined;
 
-// The credit RWA layer is deliberately Testnet-only while the pool economics,
-// repayment UX, and liquidity-provider workflow are being validated.
-export const creditLayerConfigured = !IS_MAINNET && !!(REGISTRY_V2 && (POOL_USDC || POOL_XLM));
+export const creditLayerConfigured = !!(CREDIT_REGISTRY && (POOL_USDC || POOL_XLM));
 
 export type PoolAsset = 'USDC' | 'XLM';
 
@@ -75,9 +76,9 @@ export function useCreditScore(address: string | null) {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    if (!address || !REGISTRY_V2) { setScore(null); return; }
+    if (!address || !CREDIT_REGISTRY) { setScore(null); return; }
     setIsLoading(true);
-    simulateViewCall(REGISTRY_V2, 'get_credit_score', [addressToScVal(address)])
+    simulateViewCall(CREDIT_REGISTRY, 'get_credit_score', [addressToScVal(address)])
       .then((raw) => setScore(raw == null ? 300 : Number(raw)))
       .catch(() => setScore(null))
       .finally(() => setIsLoading(false));

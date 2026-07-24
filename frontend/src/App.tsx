@@ -75,8 +75,7 @@ export default function App() {
                   <Route path="/vendor/qr" element={<VendorQR />} />
                   <Route path="/vendor/transactions" element={<VendorTransactions />} />
                   <Route path="/vendor/utang" element={<VendorUtang />} />
-                  {!IS_MAINNET && <Route path="/vendor/vault" element={<VendorVault />} />}
-                  {IS_MAINNET && <Route path="/vendor/vault" element={<Navigate to="/vendor/home" replace />} />}
+                  <Route path="/vendor/vault" element={<VendorVault />} />
                   {!IS_MAINNET && <Route path="/vendor/cashout" element={<CustomerCashout />} />}
                   {IS_MAINNET && <Route path="/vendor/cashout" element={<Navigate to="/vendor/profile" replace />} />}
                   <Route path="/vendor/profile" element={<VendorProfile />} />

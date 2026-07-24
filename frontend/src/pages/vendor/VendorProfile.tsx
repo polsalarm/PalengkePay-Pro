@@ -24,7 +24,6 @@ import { useVendorRating } from '../../lib/hooks/useRating';
 import { useToast } from '../../lib/hooks/useToast';
 import {
   NETWORK_PASSPHRASE,
-  IS_MAINNET,
   truncateAddress,
   prepareContractTx,
   submitSorobanTx,
@@ -472,42 +471,40 @@ export function VendorProfile() {
         </button>
 
         {/* ── VENDOR VAULT ── */}
-        {!IS_MAINNET && (
-          <button
-            type="button"
-            onClick={() => navigate('/vendor/vault')}
-            className="rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-[0.98] transition-all block w-full text-left"
-            style={{
-              backgroundColor: 'white',
-              border: '1px solid #F1F5F9',
-            }}
+        <button
+          type="button"
+          onClick={() => navigate('/vendor/vault')}
+          className="rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-[0.98] transition-all block w-full text-left"
+          style={{
+            backgroundColor: 'white',
+            border: '1px solid #F1F5F9',
+          }}
+        >
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: '#F5F3FF' }}
           >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ backgroundColor: '#F5F3FF' }}
-            >
-              <Landmark
-                size={16}
-                style={{ color: '#042E80' }}
-              />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-900">
-                {t('profile.vault')}
-              </p>
-
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                {t('profile.vaultDesc')}
-              </p>
-            </div>
-
-            <ArrowRight
-              size={14}
-              style={{ color: '#CBD5E1' }}
+            <Landmark
+              size={16}
+              style={{ color: '#042E80' }}
             />
-          </button>
-        )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-slate-900">
+              {t('profile.vault')}
+            </p>
+
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              {t('profile.vaultDesc')}
+            </p>
+          </div>
+
+          <ArrowRight
+            size={14}
+            style={{ color: '#CBD5E1' }}
+          />
+        </button>
 
         {/* ── STALL DETAILS ── */}
         <div
