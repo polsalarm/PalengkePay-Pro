@@ -181,13 +181,18 @@ Credit RWA layer (`CreditPool` USDC + XLM pools, registry v2) deploys separately
 
 ## 🚀 Mainnet Deployment
 
-Deployed 2026-05-22.
+Deployed 2026-05-22. VendorRegistry upgraded in place 2026-07-24 to add the credit-score
+oracle + 2-of-3 multisig governance (same contract ID, code swapped via `upgrade`); CreditPool
+(XLM + real USDC) deployed fresh the same day — see [`CREDIT_RWA.md`](CREDIT_RWA.md) for the
+full design and rollout notes.
 
 | Contract | Address | Explorer |
 |----------|---------|----------|
 | VendorRegistry | `CCTB5OMKU6DITCWOFM7LVZENSJXR3VSABAWG3GRXTFPXDPBH2FKATOLX` | [Stellar Expert →](https://stellar.expert/explorer/public/contract/CCTB5OMKU6DITCWOFM7LVZENSJXR3VSABAWG3GRXTFPXDPBH2FKATOLX) |
 | PalengkePayment | `CCP6WOKMHH7AEX2JTP22EEAUTQ5EAPAECX4SMJ2P442QLD4J36277GBV` | [Stellar Expert →](https://stellar.expert/explorer/public/contract/CCP6WOKMHH7AEX2JTP22EEAUTQ5EAPAECX4SMJ2P442QLD4J36277GBV) |
 | UTangEscrow | `CDW5HJWCXIAUI27F3WZRSFU4LETD7KIDOGTP4LEKFACETQVIFWV7XKIG` | [Stellar Expert →](https://stellar.expert/explorer/public/contract/CDW5HJWCXIAUI27F3WZRSFU4LETD7KIDOGTP4LEKFACETQVIFWV7XKIG) |
+| CreditPool (XLM) | `CAXWALT7FW4O2YQU5LVFVJGILA64S76O73Y2HXSB67DEQTM74NIOK6U7` | [Stellar Expert →](https://stellar.expert/explorer/public/contract/CAXWALT7FW4O2YQU5LVFVJGILA64S76O73Y2HXSB67DEQTM74NIOK6U7) |
+| CreditPool (USDC) | `CDMBEXZG27KLAUAYVC4BRIIZZDA2FJQCJI5MWLKHVRJC2BVO7CXJAQCG` | [Stellar Expert →](https://stellar.expert/explorer/public/contract/CDMBEXZG27KLAUAYVC4BRIIZZDA2FJQCJI5MWLKHVRJC2BVO7CXJAQCG) |
 
 📸 Screenshots — Stellar Expert (Mainnet):
 
@@ -195,8 +200,16 @@ Deployed 2026-05-22.
 ![PalengkePayment](UI/CONTRACT/MainnetPalengkeyPayment.png)
 ![UTangEscrow](UI/CONTRACT/MainnetUtangEscrow.png)
 
-- **Admin:** `GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH`
+- **Admin:** `GBI5W3JPFNGBMW2TCSGTNL3NPW6E423UN4BMAXAU34AXTSMTSDT2JDXH` — no longer able to call
+  `set_payment_contract`/`set_escrow_contract`/`increment_stats`/`report_default`/`set_signers`/
+  `upgrade` on VendorRegistry solo; those now require 2-of-3 committee sign-off.
+- **VendorRegistry 2-of-3 multisig signers:** `GCL5KBBG5SAEARJJ34OFNJ6VI5JKHQBQGBTJGPXPHID4ZN24BNYGGBXR`,
+  `GDOTWHBA4EEDE5WXMWLGT7MX4UBSFB5XC23WLITNOO4A6I6X4MGKJT7Q`,
+  `GB3X5QYKLN7AP75TIJAISAGXM34CDK7LAJQWOBKBZ5TNJTUWBHOXDQRB`
 - **Native XLM SAC:** `CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA`
+- **Real Circle USDC SAC:** `CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75`
+  (issuer `GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN`) — real USDC, not the
+  self-minted testnet mock.
 - **UTangEscrow BNPL cap:** 230 000 000 stroops (≈ ₱500)
 - Cash-in / cash-out (PDAX) stays testnet-only — mainnet ramps blocked on PDAX CAAS + KMS custody.
 
