@@ -14,9 +14,8 @@
 ![PWA](https://img.shields.io/badge/PWA-Installable-5A0FC8?style=flat&logo=pwa&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-22C55E?style=flat)
 
-**Live:** [Testnet →](https://palengkepay-pro.vercel.app) · [Mainnet →](https://palengkepay-mainnet.vercel.app)
-**Demo:** [Product Walkthrough →](https://drive.google.com/drive/folders/1ozQ1dlHwINO-gHuYgv4AVmQYGAj3KFC_?usp=sharing) · [Testnet Demo →](https://drive.google.com/drive/folders/1tZpDFF0VBAGEYmEI9eK6iWa6_AorDFTu?usp=drive_link) · [Mainnet Demo →](https://drive.google.com/drive/folders/1J2fLbQJx17tleVHExptrrOdg7IsB9gGL?usp=drive_link)
-**Docs:** [📖 Full Detail README →](FULL_DETAIL_README.md)
+**Live:** [Testnet →](https://testnet.palengkepay.com) · [Mainnet →](https://palengkepay.com)
+**Demo:** [Product Walkthrough →](https://youtu.be/Kz27XY-6LcM?si=wS1P6ikpe0cxgOIR) · [Teaser Video →](TBD)
 
 </div>
 
@@ -130,7 +129,7 @@ RAMP_RATE_FALLBACK=7.85
 # Ramp admin operator key (random hex; pasted into /admin/ramps)
 RAMP_ADMIN_KEY=
 ```
-See [`FULL_DETAIL_README.md`](FULL_DETAIL_README.md#environment-variables) for the full env reference + every server-only sponsor variable.
+See the Full Detail README (coming soon) for the full env reference + every server-only sponsor variable.
 
 ### 3. Run frontend
 ```bash
@@ -218,25 +217,24 @@ full design and rollout notes.
 ### 🔗 Live Apps
 | Network | URL |
 |---------|-----|
-| Testnet | [palengkepay-pro.vercel.app](https://palengkepay-pro.vercel.app) |
-| Mainnet | [palengkepay-mainnet.vercel.app](https://palengkepay-mainnet.vercel.app) |
+| Testnet | [testnet.palengkepay.com](https://testnet.palengkepay.com) |
+| Mainnet | [palengkepay.com](https://palengkepay.com) |
 
-### 🎥 Demo Videos (3–5 Minutes)
+### 🎥 Demo Videos
 | Type | Link |
 |------|------|
-| 🎬 MVP Walkthrough | [Google Drive →](https://drive.google.com/drive/folders/1ozQ1dlHwINO-gHuYgv4AVmQYGAj3KFC_?usp=sharing) |
-| 🧪 Testnet Demo | [Google Drive →](https://drive.google.com/drive/folders/1tZpDFF0VBAGEYmEI9eK6iWa6_AorDFTu?usp=drive_link) |
-| 🚀 Mainnet Demo | [Google Drive →](https://drive.google.com/drive/folders/1J2fLbQJx17tleVHExptrrOdg7IsB9gGL?usp=drive_link) |
+| 🎬 Product Walkthrough | [YouTube →](https://youtu.be/Kz27XY-6LcM?si=wS1P6ikpe0cxgOIR) |
+| 🎞️ Teaser Video | TBD |
 
 - 📊 **User Feedback (Google Sheets):** [View responses →](https://docs.google.com/spreadsheets/d/1g0AYRCwqc1-zcxy2q5UnIGHtllJHsXSaUvTCD7POI-g/edit?usp=sharing)
-- 🖼️ **Pitch Deck:** [Google Drive →](https://drive.google.com/drive/folders/1tGru6SEu5bsqhAks1nQDXdXJmVCl75LX?usp=drive_link)
+- 🖼️ **Pitch Deck:** [Canva →](https://canva.link/palengkepay)
 
-## 👤 Team
+## 👤 Team — UbeHalaya
 | Name | Role | GitHub |
 |------|------|--------|
-| Paul Henry Dacalan | Project Lead / Lead Developer | [@polsalarm](https://github.com/polsalarm) |
-| Lady Diane Casilang | UI/UX Developer | — |
-| Mark Angelo Siazon | Researcher / Developer | — |
+| Paul Henry Dacalan | Project Lead & Dev Lead | [@polsalarm](https://github.com/polsalarm) |
+| Kyle Aganinta | Marketing & Presenter | — |
+| Alea Masiglat | UI/UX Dev | — |
 
 ## 📄 License
 MIT
