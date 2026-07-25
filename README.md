@@ -234,7 +234,7 @@ full design and rollout notes.
 |------|------|--------|
 | Paul Henry Dacalan | Project Lead & Dev Lead | [@polsalarm](https://github.com/polsalarm) |
 | Kyle Aganinta | Marketing & Presenter | — |
-| Alea Masiglat | UI/UX Dev | — |
+| Alea Masiglat | UI/UX Dev | [@avvyra](https://github.com/avvyra) |
 
 ## 📄 License
 MIT
