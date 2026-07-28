@@ -15,7 +15,8 @@
 ![License](https://img.shields.io/badge/License-MIT-22C55E?style=flat)
 
 **Live:** [Testnet →](https://testnet.palengkepay.com) · [Mainnet →](https://palengkepay.com)
-**Demo:** [Product Walkthrough →](https://youtu.be/Kz27XY-6LcM?si=wS1P6ikpe0cxgOIR) · [Teaser Video →](TBD)
+**Demo:** [Product Walkthrough →](https://youtu.be/Kz27XY-6LcM?si=wS1P6ikpe0cxgOIR) · [Teaser Video →](https://x.com/palengkepay/status/2081158731560292758?s=20)
+**Socials:** [Facebook →](https://www.facebook.com/palenkepay) · [X →](https://x.com/palengkepay)
 
 </div>
 
@@ -224,10 +225,10 @@ full design and rollout notes.
 | Type | Link |
 |------|------|
 | 🎬 Product Walkthrough | [YouTube →](https://youtu.be/Kz27XY-6LcM?si=wS1P6ikpe0cxgOIR) |
-| 🎞️ Teaser Video | TBD |
+| 🎞️ Teaser Video | [X →](https://x.com/palengkepay/status/2081158731560292758?s=20) |
 
 - 📊 **User Feedback (Google Sheets):** [View responses →](https://docs.google.com/spreadsheets/d/1g0AYRCwqc1-zcxy2q5UnIGHtllJHsXSaUvTCD7POI-g/edit?usp=sharing)
-- 🖼️ **Pitch Deck:** [Canva →](https://canva.link/palengkepay)
+- 🖼️ **Pitch Deck:** [Canva →](https://canva.link/palengkepayy)
 
 ## 👤 Team — UbeHalaya
 | Name | Role | GitHub |
