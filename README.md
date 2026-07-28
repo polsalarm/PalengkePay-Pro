@@ -17,6 +17,7 @@
 **Live:** [Testnet →](https://testnet.palengkepay.com) · [Mainnet →](https://palengkepay.com)
 **Demo:** [Product Walkthrough →](https://youtu.be/Kz27XY-6LcM?si=wS1P6ikpe0cxgOIR) · [Teaser Video →](https://x.com/palengkepay/status/2081158731560292758?s=20)
 **Socials:** [Facebook →](https://www.facebook.com/palenkepay) · [X →](https://x.com/palengkepay)
+**Pitch Deck:** [Canva →](https://canva.link/palengkepayy)
 
 </div>
 
